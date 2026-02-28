@@ -1,0 +1,37 @@
+# Render Blueprint: backend only (frontend goes on Vercel).
+# After pushing, go to https://dashboard.render.com/blueprints → New Blueprint Instance
+# → connect repo. Render creates the web service from this file and prompts for secrets.
+
+services:
+  - type: web
+    runtime: python
+    name: land-management-api
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: MONGO_DB
+        value: land_management
+      # Render will prompt for these in the dashboard when you create the blueprint:
+      - key: MONGO_URI
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Add after Part 2 (Vercel); leave empty at first, then set to your Vercel URL
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      # Optional: Hugging Face for AI
+      - key: HF_TOKEN
+        sync: false
