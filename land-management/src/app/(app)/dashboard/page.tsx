@@ -472,7 +472,7 @@ export default function DashboardPage() {
             <YAxis stroke="var(--muted)" />
             <Tooltip
               contentStyle={tooltipStyle}
-              formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`}
+              formatter={(value: number | undefined) => `Rs ${Number(value ?? 0).toLocaleString()}`}
             />
             <Legend />
             <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
