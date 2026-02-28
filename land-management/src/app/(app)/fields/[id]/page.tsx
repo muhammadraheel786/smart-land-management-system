@@ -289,7 +289,7 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="month" stroke="#8b949e" />
               <YAxis stroke="#8b949e" />
-              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} formatter={(v) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
               <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expense" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
             </BarChart>

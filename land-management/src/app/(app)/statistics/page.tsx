@@ -212,7 +212,7 @@ export default function StatisticsPage() {
                     <Cell key={i} fill={e.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v) => `${Number(v ?? 0).toFixed(1)} ${t("acres")}`} contentStyle={tooltipStyle} />
+                <Tooltip formatter={(v: number | undefined) => `${Number(v ?? 0).toFixed(1)} ${t("acres")}`} contentStyle={tooltipStyle} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -231,7 +231,7 @@ export default function StatisticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis type="number" stroke="#8b949e" />
                 <YAxis type="category" dataKey="name" stroke="#8b949e" width={80} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
                 <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -256,7 +256,7 @@ export default function StatisticsPage() {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis dataKey="month" stroke="#8b949e" />
             <YAxis stroke="#8b949e" />
-            <Tooltip contentStyle={tooltipStyle} formatter={(v) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
             <Legend />
             <Bar dataKey="income" name={t("incomeShort")} fill="#22c55e" radius={[4, 4, 0, 0]} />
             <Bar dataKey="expense" name={t("expenseShort")} fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -291,7 +291,7 @@ export default function StatisticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="name" stroke="#8b949e" />
               <YAxis stroke="#8b949e" />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
               <Bar dataKey="profit" name={t("netProfit")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -306,7 +306,7 @@ export default function StatisticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="name" stroke="#8b949e" />
               <YAxis stroke="#8b949e" />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v) => `${Number(v ?? 0).toFixed(1)} °C`} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `${Number(v ?? 0).toFixed(1)} °C`} />
               <Bar dataKey="avgTemp" name="°C" fill="#f97316" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

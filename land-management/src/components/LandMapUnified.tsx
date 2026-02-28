@@ -420,13 +420,14 @@ export default function LandMapUnified() {
     setLoading(true);
     try {
       const { lat, lng } = await getCurrentPosition();
-      const displayName = await reverseGeocode(lat, lng);
-      setAddress(displayName || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      const result = await reverseGeocode(lat, lng);
+      const displayStr = result ? result.displayName : null;
+      setAddress(displayStr || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
       setPreview({
         coordinates: [],
         center: [lat, lng],
         area: 0,
-        address: displayName || undefined,
+        address: displayStr || undefined,
       });
       const acres = areaAcres ? parseFloat(areaAcres) : 0;
       if (acres > 0) {

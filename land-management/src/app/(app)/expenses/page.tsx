@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, TrendingDown, TrendingUp, Pencil, Trash } from "lucide-react";
 import { useLandStore } from "@/lib/store";
@@ -18,7 +18,7 @@ const expenseCategories: { value: Expense["category"]; labelKey: string }[] = [
   { value: "other", labelKey: "expCatOther" },
 ];
 
-export default function ExpensesPage() {
+function ExpensesContent() {
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const { fields, expenses, incomes, addExpense, addIncome, updateExpense, updateIncome, deleteExpense, deleteIncome, fetchAll, loading, error } = useLandStore();
@@ -341,5 +341,13 @@ export default function ExpensesPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function ExpensesPage() {
+  return (
+    <Suspense fallback={<div className="space-y-8"><div className="h-10 w-48 rounded-lg bg-theme-card animate-pulse" /><div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div className="h-28 rounded-2xl bg-theme-card border border-theme animate-pulse" /><div className="h-28 rounded-2xl bg-theme-card border border-theme animate-pulse" /><div className="h-28 rounded-2xl bg-theme-card border border-theme animate-pulse" /></div></div>}>
+      <ExpensesContent />
+    </Suspense>
   );
 }
