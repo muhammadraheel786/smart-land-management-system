@@ -69,38 +69,40 @@ MONGO_DB = os.environ.get('MONGO_DB', 'land_management')
 MONGO_CONNECT_TIMEOUT_MS = int(os.environ.get('MONGO_CONNECT_TIMEOUT_MS', '30000'))
 MONGO_SERVER_SELECTION_TIMEOUT_MS = int(os.environ.get('MONGO_SERVER_SELECTION_TIMEOUT_MS', '30000'))
 
-# CORS - allow React/Next.js frontend. Production: set CORS_ORIGINS (comma-separated)
-# e.g. https://yourapp.vercel.app. When using credentials (cookies), the backend
-# must send a specific origin, not '*'.
+# CORS - allow only production frontend origins. Never use CORS_ALLOW_ALL_ORIGINS.
+PRODUCTION_CORS_ORIGINS = [
+    'https://www.mashorifarm.com',
+    'https://mashorifarm.com',
+]
+LOCALHOST_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+]
 _cors = os.environ.get('CORS_ORIGINS', '').strip()
 if _cors:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors.split(',') if o.strip()]
 else:
-    CORS_ALLOWED_ORIGINS = [
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3001',
-        'http://127.0.0.1:49247',
-        'http://127.0.0.1:49248',
-    ]
+    CORS_ALLOWED_ORIGINS = list(PRODUCTION_CORS_ORIGINS)
+    if DEBUG:
+        CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS + LOCALHOST_ORIGINS
 
-# Allow cookies / credentials in CORS responses. Requires explicit origins above.
+# Credentials (cookies/auth) require explicit origins; no wildcard.
 CORS_ALLOW_CREDENTIALS = True
 
-# CSRF trusted origins (needed when using cookies from the frontend origin)
+# CSRF trusted origins (must match frontend origins for cookie/CSRF)
+PRODUCTION_CSRF_ORIGINS = [
+    'https://www.mashorifarm.com',
+    'https://mashorifarm.com',
+]
 _csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', '').strip()
 if _csrf:
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf.split(',') if o.strip()]
 else:
-    CSRF_TRUSTED_ORIGINS = [
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3001',
-        'http://127.0.0.1:49247',
-        'http://127.0.0.1:49248',
-    ]
+    CSRF_TRUSTED_ORIGINS = list(PRODUCTION_CSRF_ORIGINS)
+    if DEBUG:
+        CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS + LOCALHOST_ORIGINS
 
 # Cookie settings (safe defaults; tighten Secure=True in production over HTTPS)
 SESSION_COOKIE_SAMESITE = 'Lax'
