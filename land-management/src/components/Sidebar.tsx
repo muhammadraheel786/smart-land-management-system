@@ -85,8 +85,8 @@ export default function Sidebar() {
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <h1 className="truncate font-bold text-theme">Smart Land</h1>
-                <p className="truncate text-xs text-theme-muted">Farm Management</p>
+                <span className="truncate font-bold text-theme block">Mashori Farm</span>
+                <p className="truncate text-xs text-theme-muted">Smart Land Management</p>
               </div>
             )}
           </Link>
