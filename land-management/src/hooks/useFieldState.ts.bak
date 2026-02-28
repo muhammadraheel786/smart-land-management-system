@@ -1,0 +1,72 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import type { GeoFence, LandStatus } from "@/types";
+
+export interface PreviewField {
+  coordinates: { lat: number; lng: number }[];
+  center: [number, number];
+  area: number;
+  address?: string;
+}
+
+const STATUS_OPTIONS: { value: LandStatus; label: string }[] = [
+  { value: "cultivated", label: "Cultivated" },
+  { value: "available", label: "Available" },
+  { value: "uncultivated", label: "Uncultivated" },
+  { value: "thaka", label: "Thaka (Leased)" },
+  { value: "not_usable", label: "Not usable" },
+];
+
+export function useFieldState() {
+  const [locationQuery, setLocationQuery] = useState("");
+  const [areaAcres, setAreaAcres] = useState("");
+  const [fieldName, setFieldName] = useState("");
+  const [status, setStatus] = useState<LandStatus>("cultivated");
+  const [address, setAddress] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PreviewField | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const clearPreview = useCallback(() => {
+    setPreview(null);
+    setError(null);
+  }, []);
+
+  const resetForm = useCallback(() => {
+    setFieldName("");
+    setLocationQuery("");
+    setAreaAcres("");
+    setAddress("");
+    setError(null);
+    setPreview(null);
+  }, []);
+
+  const hasPreview = preview !== null && preview.coordinates.length >= 3;
+
+  return {
+    locationQuery,
+    setLocationQuery,
+    areaAcres,
+    setAreaAcres,
+    fieldName,
+    setFieldName,
+    status,
+    setStatus,
+    address,
+    setAddress,
+    error,
+    setError,
+    preview,
+    setPreview,
+    loading,
+    setLoading,
+    saving,
+    setSaving,
+    clearPreview,
+    resetForm,
+    hasPreview,
+    statusOptions: STATUS_OPTIONS,
+  };
+}

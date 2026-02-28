@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: dark: applies when data-theme="dark" on root */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  /* Default to dark theme */
+  --background: #0f1419;
+  --foreground: #e6edf3;
+  --primary: #22c55e;
+  --primary-dark: #16a34a;
+  --accent: #3b82f6;
+  --card: #161b22;
+  --card-hover: #21262d;
+  --border: #30363d;
+  --cultivated: #22c55e;
+  --available: #eab308;
+  --not-usable: #ef4444;
+  --thaka: #3b82f6;
+  --unfenced: #6b7280;
+  --muted: #8b949e;
+}
+
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #1f2937;
+  --primary: #16a34a;
+  --primary-dark: #15803d;
+  --accent: #2563eb;
+  --card: #ffffff;
+  --card-hover: #f3f4f6;
+  --border: #e5e7eb;
+  --cultivated: #16a34a;
+  --available: #ca8a04;
+  --not-usable: #dc2626;
+  --thaka: #2563eb;
+  --unfenced: #6b7280;
+  --muted: #6b7280;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* Leaflet map fix for Next.js */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  font-family: inherit;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--card);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Sidebar nav: smooth scroll, thin scrollbar */
+.sidebar-nav {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* Status color utilities */
+.status-cultivated { border-left-color: var(--cultivated); }
+.status-available { border-left-color: var(--available); }
+.status-not-usable { border-left-color: var(--not-usable); }
+.status-thaka { border-left-color: var(--thaka); }
+.status-unfenced { border-left-color: var(--unfenced); }
+
+/* Glass effect for panels - theme aware */
+.glass-panel {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+/* Theme-aware text and surfaces */
+.text-theme { color: var(--foreground); }
+.text-theme-muted { color: var(--muted); }
+.bg-theme { background-color: var(--background); }
+.bg-theme-card { background-color: var(--card); }
+.bg-theme-hover:hover { background-color: var(--card-hover); }
+.border-theme { border-color: var(--border); }
+.bg-theme-track { background-color: var(--card-hover); }
+.nav-active { color: var(--primary); }
+.placeholder-theme::placeholder { color: var(--muted); }

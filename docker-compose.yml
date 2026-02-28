@@ -1,0 +1,62 @@
+# Smart Land & Farm Management - Docker Compose
+# 
+# IMPORTANT: This application requires MongoDB Atlas in production.
+# Local MongoDB is only for development/testing purposes.
+# 
+# For production deployment:
+# 1. Set up MongoDB Atlas (see MONGODB_ATLAS_SETUP.md)
+# 2. Use the provided Dockerfiles for backend and frontend
+# 3. Set environment variables in your deployment platform
+#
+# To run locally with Docker:
+# 1. Set up MongoDB Atlas first
+# 2. Create backend/.env with your Atlas connection string
+# 3. Run: docker compose up -d
+#
+# For development without Docker:
+# - Run setup.sh (Linux/Mac) or setup.bat (Windows)
+# - Follow instructions in README.md
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend
+  frontend:
+    build:
+      context: ./land-management
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - ./land-management/.env.local
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Note: No volumes needed as MongoDB Atlas is used for data persistence
