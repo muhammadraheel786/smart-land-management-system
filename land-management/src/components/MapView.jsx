@@ -115,7 +115,7 @@ export default function MapView() {
   }, []);
 
   return (
-    <div className="-mx-4 -my-4 sm:-mx-6 sm:-my-6 md:-mx-8 md:-my-8 h-[calc(100vh-73px)] flex relative overflow-hidden bg-[var(--background)]">
+    <div className="-mx-4 -my-4 sm:-mx-6 sm:-my-6 md:-mx-8 md:-my-8 h-[calc(100dvh-140px)] md:h-[calc(100vh-73px)] flex relative overflow-hidden bg-[var(--background)]">
       {/* Universal Toggle Button */}
       {sidebarCollapsed && (
         <button
@@ -130,8 +130,8 @@ export default function MapView() {
       {/* Sidebar - Inside Map Container */}
       <div
         className={`absolute top-0 bottom-0 left-0 z-[1000] flex-shrink-0 transition-all duration-300 ease-in-out shadow-2xl ${sidebarCollapsed
-            ? "-translate-x-full"
-            : "w-full sm:w-[360px] md:w-[400px] translate-x-0"
+          ? "-translate-x-full"
+          : "w-full sm:w-[360px] md:w-[400px] translate-x-0"
           }`}
       >
         <Sidebar
@@ -203,11 +203,10 @@ export default function MapView() {
           </div>
         )}
 
-        {/* Field Info Panel */}
         {selectedField && (
-          <div className="absolute top-4 right-4 z-[1000] w-80 md:w-96 bg-[var(--card)]/95 backdrop-blur-2xl border border-[var(--border)] rounded-[2rem] shadow-2xl p-6 text-[var(--foreground)] animate-in slide-in-from-right-8 duration-500 overflow-y-auto max-h-[calc(100vh-120px)] no-scrollbar">
+          <div className="absolute top-[80px] left-4 right-4 sm:top-4 sm:left-auto sm:right-4 z-[1000] sm:w-80 md:w-96 bg-[var(--card)]/95 backdrop-blur-2xl border border-[var(--border)] rounded-[2rem] shadow-2xl p-5 sm:p-6 text-[var(--foreground)] animate-in slide-in-from-bottom-8 sm:slide-in-from-right-8 duration-500 overflow-y-auto max-h-[calc(100%-100px)] sm:max-h-[calc(100vh-120px)] no-scrollbar">
             {/* Header */}
-            <div className="relative -mx-6 -mt-6 mb-6 p-6 rounded-t-[2rem] bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent border-b border-[var(--border)]">
+            <div className="relative -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 mb-6 p-5 sm:p-6 rounded-t-[2rem] bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent border-b border-[var(--border)]">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <h3 className="text-2xl font-black bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent truncate pr-4">

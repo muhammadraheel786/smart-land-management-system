@@ -3,12 +3,12 @@
 import { Popup } from "react-leaflet";
 import { GeoFence, LandStatus } from "@/types";
 import { statusColors, statusGradients, statusBorderColors } from "@/lib/map-styles";
-import { 
-  MapPin, 
-  Calendar, 
-  TrendingUp, 
-  Droplets, 
-  Sun, 
+import {
+  MapPin,
+  Calendar,
+  TrendingUp,
+  Droplets,
+  Sun,
   DollarSign,
   Wheat,
   TreePine,
@@ -54,11 +54,11 @@ export default function LandPopup({ field, onEdit, onDelete, liveTempC }: LandPo
   };
 
   return (
-    <div className="min-w-[280px] max-w-[320px] bg-white rounded-xl shadow-2xl overflow-hidden">
+    <div className="w-[250px] sm:w-[280px] max-w-[320px] bg-white rounded-xl shadow-2xl overflow-hidden text-left">
       {/* Header with gradient background */}
-      <div 
-        className="p-4 text-white relative"
-        style={{ 
+      <div
+        className="p-3 sm:p-4 text-white relative"
+        style={{
           background: statusGradients[field.status],
           borderBottom: `3px solid ${statusBorderColors[field.status]}`
         }}
@@ -71,7 +71,7 @@ export default function LandPopup({ field, onEdit, onDelete, liveTempC }: LandPo
             </h3>
             <p className="text-sm opacity-90">{statusDescriptions[field.status]}</p>
           </div>
-          <div 
+          <div
             className="w-12 h-12 rounded-full border-2 border-white/50 flex items-center justify-center"
             style={{ backgroundColor: `${getStatusColor(field.status)}33` }}
           >
@@ -81,7 +81,7 @@ export default function LandPopup({ field, onEdit, onDelete, liveTempC }: LandPo
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 sm:p-4 space-y-3">
         {/* Area Information */}
         <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2">
@@ -111,9 +111,9 @@ export default function LandPopup({ field, onEdit, onDelete, liveTempC }: LandPo
 
         {/* Status Badge */}
         <div className="flex items-center gap-2">
-          <span 
+          <span
             className="px-3 py-1 rounded-full text-xs font-semibold text-white border-2"
-            style={{ 
+            style={{
               backgroundColor: getStatusColor(field.status),
               borderColor: statusBorderColors[field.status]
             }}
