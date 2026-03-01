@@ -763,13 +763,13 @@ def ai_insights(request):
             api_key=hf_token,
             timeout=60,
         )
-        # Try HF_MODEL, then with :together provider, then base Kimi-K2-Instruct (known live on HF)
-        default_hf = os.environ.get("HF_MODEL", "moonshotai/Kimi-K2-Instruct-0905")
+        # Try HF_MODEL, then common free Llama models
+        default_hf = os.environ.get("HF_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct")
         hf_models_to_try = [
             default_hf,
-            "moonshotai/Kimi-K2-Instruct-0905:together",
-            "moonshotai/Kimi-K2-Instruct",
-            "moonshotai/Kimi-K2-Instruct:together",
+            "meta-llama/Llama-3.2-3B-Instruct",
+            "Qwen/Qwen2.5-72B-Instruct",
+            "mistralai/Mistral-Nemo-Instruct-2407",
         ]
         seen = set()
         for hf_model in hf_models_to_try:
@@ -848,8 +848,8 @@ def _call_ai_chat(system_prompt: str, user_content: str) -> tuple[str | None, st
     if hf_token:
         from openai import OpenAI
         client = OpenAI(base_url="https://router.huggingface.co/v1", api_key=hf_token, timeout=60)
-        default_hf = os.environ.get("HF_MODEL", "moonshotai/Kimi-K2-Instruct-0905")
-        hf_candidates = [default_hf, "moonshotai/Kimi-K2-Instruct-0905:together", "moonshotai/Kimi-K2-Instruct", "moonshotai/Kimi-K2-Instruct:together"]
+        default_hf = os.environ.get("HF_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct")
+        hf_candidates = [default_hf, "meta-llama/Llama-3.2-3B-Instruct", "Qwen/Qwen2.5-72B-Instruct", "mistralai/Mistral-Nemo-Instruct-2407"]
         seen_hf = set()
         for hf_model in hf_candidates:
             if not hf_model or hf_model in seen_hf:
