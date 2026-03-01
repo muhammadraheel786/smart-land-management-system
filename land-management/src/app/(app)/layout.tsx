@@ -52,7 +52,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[var(--background)]">
       <Sidebar />
       <main
-        className={`min-h-screen transition-all duration-300 ease-in-out ${collapsed ? "ml-0 md:ml-[72px]" : "ml-0 md:ml-64"
+        className={`min-h-screen transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${collapsed ? "ml-0 md:ml-[80px]" : "ml-0 md:ml-[280px]"
           }`}
       >
         <header

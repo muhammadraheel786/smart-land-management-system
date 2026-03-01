@@ -70,8 +70,8 @@ function analyzeQuery(query: string, store: ReturnType<typeof useLandStore.getSt
     const waterRecords = store.waterRecords;
     const recent = waterRecords.slice(-5);
     return `You have **${waterRecords.length}** water/irrigation record(s). ${recent.length
-        ? `Recent: ${recent.map((r) => `${r.durationMinutes} min on ${format(new Date(r.date), "MMM d")}`).join("; ")}`
-        : "No records yet."
+      ? `Recent: ${recent.map((r) => `${r.durationMinutes} min on ${format(new Date(r.date), "MMM d")}`).join("; ")}`
+      : "No records yet."
       }`;
   }
 
@@ -138,10 +138,10 @@ export default function AIChatbot() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 left-4 w-12 h-12 rounded-full bg-green-500 text-white shadow-lg flex items-center justify-center hover:bg-green-600 transition z-[400]"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-xl shadow-green-500/20 flex items-center justify-center hover:scale-105 hover:shadow-green-500/30 transition-all z-[400]"
         aria-label="Open AI Chatbot"
       >
-        <Bot className="w-6 h-6" />
+        <Bot className="w-7 h-7" />
       </button>
 
       {isOpen && (
@@ -188,8 +188,8 @@ export default function AIChatbot() {
                   )}
                   <div
                     className={`max-w-[80%] rounded-xl px-4 py-2 ${m.role === "user"
-                        ? "bg-green-500/20 text-green-100"
-                        : "bg-theme-track text-theme"
+                      ? "bg-green-500/20 text-green-100"
+                      : "bg-theme-track text-theme"
                       }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{m.content.replace(/\*\*(.*?)\*\*/g, "$1")}</p>

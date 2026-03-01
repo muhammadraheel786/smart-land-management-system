@@ -24,6 +24,7 @@ import {
   Lightbulb,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -66,94 +67,112 @@ export default function Sidebar() {
       {/* Mobile Overlay */}
       {!collapsed && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-[50] glass-panel bg-theme/40 md:hidden"
           onClick={toggle}
+          aria-hidden="true"
         />
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-theme bg-theme-card transition-all duration-300 ease-in-out ${collapsed
-            ? "w-0 -translate-x-full md:w-[72px] md:translate-x-0"
-            : "w-64 translate-x-0"
+        className={`fixed left-0 top-0 z-[60] flex h-screen flex-col border-r border-border bg-theme-card shadow-2xl md:shadow-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${collapsed
+            ? "-translate-x-full md:w-[80px] md:translate-x-0"
+            : "w-[280px] translate-x-0"
           }`}
       >
-        {/* Header with logo and collapse toggle */}
-        <div className={`flex shrink-0 items-center border-b border-theme p-3 ${collapsed ? "flex-col gap-2 md:flex" : "justify-between"}`}>
-          <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
+        {/* Header */}
+        <div className={`flex shrink-0 items-center justify-between border-b border-theme p-4 transition-all ${collapsed ? "md:justify-center md:flex-col md:gap-3" : ""}`}>
+          <Link href="/dashboard" className={`flex min-w-0 items-center gap-3 ${collapsed ? "md:justify-center" : ""}`}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 shadow-lg shadow-green-500/20">
               <Map className="h-5 w-5 text-white" />
             </div>
             {!collapsed && (
-              <div className="min-w-0">
-                <span className="truncate font-bold text-theme block">Mashori Farm</span>
-                <p className="truncate text-xs text-theme-muted">Smart Land Management</p>
+              <div className="min-w-0 animate-fade-in">
+                <span className="truncate font-bold text-theme block text-lg">Mashori Farm</span>
+                <p className="truncate text-xs text-theme-muted font-medium">Smart Land System</p>
               </div>
             )}
           </Link>
+
+          {/* Mobile close button */}
+          {!collapsed && (
+            <button
+              onClick={toggle}
+              className="md:hidden p-2 rounded-xl bg-theme-track text-theme-muted hover:text-red-500 hover:bg-red-500/10 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Desktop collapse toggle */}
           <button
             type="button"
             onClick={toggle}
-            className={`rounded-lg p-2 text-theme-muted hover:bg-theme-track hover:text-theme transition-colors ${collapsed ? "hidden md:flex md:w-full md:justify-center" : "flex"}`}
+            className={`hidden md:flex items-center justify-center rounded-xl p-2.5 text-theme-muted hover:bg-theme-track hover:text-green-500 transition-colors ${collapsed ? "w-full" : ""}`}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
         </div>
 
-        {/* Scrollable nav - flex-1 min-h-0 allows overflow */}
-        <nav className="sidebar-nav min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3 pl-3 pr-2">
-          <ul className="space-y-1">
+        {/* Scrollable nav list */}
+        <nav className="sidebar-nav min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1">
+          <ul className="space-y-1.5 pb-20 md:pb-4">
             {navItems.map((item) => {
               const active = isActive(item.href);
               return (
-                <li key={item.href}>
+                <li key={item.href} className="group relative">
                   <Link
                     href={item.href}
-                    title={collapsed ? t(item.labelKey) : undefined}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${collapsed ? "justify-center px-0" : ""
+                    className={`flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-sm transition-all duration-200 ${collapsed ? "md:justify-center md:px-0" : ""
                       } ${active
-                        ? "bg-green-500/20 nav-active border border-green-500/30 font-semibold"
+                        ? "bg-gradient-to-r from-green-500/20 to-emerald-500/10 border border-green-500/30 text-green-500 font-semibold shadow-sm"
                         : "text-theme-muted hover:bg-theme-track hover:text-theme"
                       }`}
                   >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    {!collapsed && <span className="truncate">{t(item.labelKey)}</span>}
+                    <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110 group-hover:text-green-500"}`} />
+                    {!collapsed && <span className="truncate tracking-wide">{t(item.labelKey)}</span>}
                   </Link>
+                  {/* Tooltip for collapsed desktop view */}
+                  {collapsed && (
+                    <div className="absolute left-[85px] top-1/2 -translate-y-1/2 hidden md:group-hover:flex items-center pointer-events-none z-[100] animate-fade-in">
+                      <div className="bg-theme text-white border border-border px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
+                        {t(item.labelKey)}
+                      </div>
+                    </div>
+                  )}
                 </li>
               );
             })}
           </ul>
         </nav>
 
-        {/* Footer: expand when collapsed; when expanded show Logout if logged in else Login link */}
-        <div className="shrink-0 border-t border-theme p-3">
+        {/* Footer actions */}
+        <div className="shrink-0 border-t border-theme p-4 flex flex-col gap-2">
           {collapsed ? (
             <button
               type="button"
               onClick={toggle}
-              className="hidden w-full justify-center rounded-xl p-2.5 text-theme-muted hover:bg-theme-track hover:text-theme md:flex"
+              className="hidden md:flex w-full items-center justify-center rounded-xl p-3 text-theme-muted hover:bg-theme-track hover:text-green-500 transition-colors group"
               title="Expand sidebar"
-              aria-label="Expand sidebar"
             >
-              <PanelLeftOpen className="h-5 w-5" />
+              <PanelLeftOpen className="h-5 w-5 transition-transform group-hover:scale-110" />
             </button>
           ) : isLoggedIn ? (
             <button
               type="button"
               onClick={logout}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-theme-muted hover:bg-theme-track hover:text-theme"
+              className="flex w-full items-center gap-3.5 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200"
             >
               <LogOut className="h-5 w-5 shrink-0" />
-              <span className="truncate font-medium">{t("logout")}</span>
+              <span className="truncate font-semibold tracking-wide">{t("logout")}</span>
             </button>
           ) : (
             <Link
               href="/"
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-theme-muted hover:bg-theme-track hover:text-theme"
+              className="flex w-full items-center gap-3.5 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-green-500 hover:bg-green-500 hover:text-white transition-all duration-200"
             >
               <LogIn className="h-5 w-5 shrink-0" />
-              <span className="truncate font-medium">{t("login")}</span>
+              <span className="truncate font-semibold tracking-wide">{t("login")}</span>
             </Link>
           )}
         </div>

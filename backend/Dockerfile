@@ -19,14 +19,14 @@ COPY . .
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Use PORT from environment (Railway, Render set this); default 8000
-ENV PORT=8000
-EXPOSE $PORT
+# Use PORT from environment (Fly.io=8080, Railway/Render set their own)
+ENV PORT=8080
+EXPOSE 8080
 
-# Health check
+# Health check (Fly.io also uses /api/health via http_service.checks)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/api/health')"
 
-# Run with gunicorn with multiple workers
-CMD gunicorn config.wsgi:application --bind 0.0.0.0:${PORT} --workers 4 --timeout 120
+# Run with gunicorn (2 workers for free tier 256MB)
+CMD gunicorn config.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --threads 2 --timeout 120
 
