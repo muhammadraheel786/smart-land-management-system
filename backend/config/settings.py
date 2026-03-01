@@ -17,6 +17,11 @@ _render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '').strip()
 if _render_host and _render_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = list(ALLOWED_HOSTS)
     ALLOWED_HOSTS.append(_render_host)
+# Fly.io: allow <app>.fly.dev
+_fly_app = os.environ.get('FLY_APP_NAME', '').strip()
+if _fly_app and _fly_app not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = list(ALLOWED_HOSTS)
+    ALLOWED_HOSTS.append(f'{_fly_app}.fly.dev')
 
 INSTALLED_APPS = [
     'django.contrib.contenttypes',
@@ -90,6 +95,7 @@ else:
 
 # Credentials (cookies/auth) require explicit origins; no wildcard.
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_HEADERS = True
 
 # CSRF trusted origins (must match frontend origins for cookie/CSRF)
 PRODUCTION_CSRF_ORIGINS = [
