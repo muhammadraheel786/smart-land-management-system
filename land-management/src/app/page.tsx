@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Map, Brain, BarChart3, ChevronRight, Loader2, Leaf, Droplets } from "lucide-react";
+import { Map, Brain, BarChart3, ChevronRight, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import Image from "next/image";
