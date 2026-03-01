@@ -93,9 +93,12 @@ else:
     if DEBUG:
         CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS + LOCALHOST_ORIGINS
 
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'cache-control',
+]
 # Credentials (cookies/auth) require explicit origins; no wildcard.
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_HEADERS = True
 
 # CSRF trusted origins (must match frontend origins for cookie/CSRF)
 PRODUCTION_CSRF_ORIGINS = [
