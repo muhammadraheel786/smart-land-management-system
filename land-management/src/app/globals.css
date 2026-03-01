@@ -97,23 +97,40 @@ body {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
+
 .sidebar-nav::-webkit-scrollbar {
   width: 6px;
 }
+
 .sidebar-nav::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .sidebar-nav::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
 
 /* Status color utilities */
-.status-cultivated { border-left-color: var(--cultivated); }
-.status-available { border-left-color: var(--available); }
-.status-not-usable { border-left-color: var(--not-usable); }
-.status-thaka { border-left-color: var(--thaka); }
-.status-unfenced { border-left-color: var(--unfenced); }
+.status-cultivated {
+  border-left-color: var(--cultivated);
+}
+
+.status-available {
+  border-left-color: var(--available);
+}
+
+.status-not-usable {
+  border-left-color: var(--not-usable);
+}
+
+.status-thaka {
+  border-left-color: var(--thaka);
+}
+
+.status-unfenced {
+  border-left-color: var(--unfenced);
+}
 
 /* Glass effect for panels - theme aware */
 .glass-panel {
@@ -123,46 +140,129 @@ body {
 }
 
 /* Theme-aware text and surfaces */
-.text-theme { color: var(--foreground); }
-.text-theme-muted { color: var(--muted); }
-.bg-theme { background-color: var(--background); }
-.bg-theme-card { background-color: var(--card); }
-.bg-theme-hover:hover { background-color: var(--card-hover); }
-.border-theme { border-color: var(--border); }
-.bg-theme-track { background-color: var(--card-hover); }
-.nav-active { color: var(--primary); }
-.placeholder-theme::placeholder { color: var(--muted); }
+.text-theme {
+  color: var(--foreground);
+}
+
+.text-theme-muted {
+  color: var(--muted);
+}
+
+.bg-theme {
+  background-color: var(--background);
+}
+
+.bg-theme-card {
+  background-color: var(--card);
+}
+
+.bg-theme-hover:hover {
+  background-color: var(--card-hover);
+}
+
+.border-theme {
+  border-color: var(--border);
+}
+
+.bg-theme-track {
+  background-color: var(--card-hover);
+}
+
+.nav-active {
+  color: var(--primary);
+}
+
+.placeholder-theme::placeholder {
+  color: var(--muted);
+}
 
 /* Custom Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulseSlow {
-  0% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.05); }
-  100% { opacity: 0.3; transform: scale(1); }
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
 }
 
 @keyframes shine {
-  to { transform: translateX(200%); }
+  to {
+    transform: translateX(200%);
+  }
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
 }
 
-.animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-slide-up-fade { animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.animate-pulse-slow { animation: pulseSlow 15s ease-in-out infinite; }
-.animate-shine { animation: shine 1.5s ease-in-out infinite; }
-.animate-shake { animation: shake 0.4s ease-in-out; }
+.animate-fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
+.animate-slide-up-fade {
+  animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 15s ease-in-out infinite;
+}
+
+.animate-shine {
+  animation: shine 1.5s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Safe Area Utility Stack for Mobile */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 12px);
+}

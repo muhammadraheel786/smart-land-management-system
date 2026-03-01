@@ -8,6 +8,7 @@ import AIChatbot from "@/components/AIChatbot";
 import { useLandStore } from "@/lib/store";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
+import BottomNav from "@/components/BottomNav";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
@@ -63,7 +64,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={toggle}
-              className="rounded-lg p-2 transition-colors hover:opacity-80"
+              className="hidden md:flex rounded-lg p-2 transition-colors hover:opacity-80"
               style={{ color: "var(--foreground)" }}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -95,9 +96,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         )}
-        <div className="p-4 sm:p-6 md:p-8">{children}</div>
+        <div className="p-4 pb-24 sm:p-6 md:p-8 md:pb-8">{children}</div>
       </main>
       <AIChatbot />
+      <BottomNav />
     </div>
   );
 }

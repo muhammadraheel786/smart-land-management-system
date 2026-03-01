@@ -307,52 +307,110 @@ function DataBankContent() {
               </select>
             )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-theme bg-theme-track text-theme-muted">
-                  <th className="px-4 py-3 font-medium">{t("field")}</th>
-                  <th className="px-4 py-3 font-medium">{t("dbActivity")}</th>
-                  <th className="px-4 py-3 font-medium">{t("dbMaterials")}</th>
-                  <th className="px-4 py-3 font-medium">{t("dbLabor")}</th>
-                  <th className="px-4 py-3 font-medium">{t("dbWater")}</th>
-                  <th className="px-4 py-3 font-medium">{t("dbNotes")}</th>
-                  <th className="px-4 py-3 w-20"></th>
-                </tr>
-              </thead>
-              <tbody className="text-theme">
-                {entriesForDate.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-theme-muted">{t("dbNoEntriesForDate")}</td>
+          <div className="w-full">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-theme bg-theme-track text-theme-muted">
+                    <th className="px-4 py-3 font-medium">{t("field")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbActivity")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbMaterials")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbLabor")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbWater")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbNotes")}</th>
+                    <th className="px-4 py-3 w-20"></th>
                   </tr>
-                ) : (
-                  entriesForDate.map((entry, idx) => (
-                    <tr key={entry.id ? `${entry.id}-${idx}` : `entry-${idx}`} className="border-b border-theme hover:bg-theme-track">
-                      <td className="px-4 py-2.5">{fields.find((f) => f.id === entry.fieldId)?.name ?? entry.fieldId}</td>
-                      <td className="px-4 py-2.5">
-                        {entry.activity === "other" && entry.notes?.startsWith(t("dbOther") + ": ")
-                          ? entry.notes.slice((t("dbOther") + ": ").length).split(" | ")[0]
-                          : (t(ACTIVITIES.find((a) => a.value === entry.activity)?.labelKey as keyof typeof t) || entry.activity)}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {entry.materialsUsed?.length ? entry.materialsUsed.map((mu) => { const m = materials.find((x) => x.id === mu.materialId); return m ? `${m.name} ${mu.quantity}${m.unit}` : mu.quantity; }).join(", ") : "—"}
-                      </td>
-                      <td className="px-4 py-2.5">{entry.laborCost != null ? `Rs ${entry.laborCost.toLocaleString()}` : "—"}</td>
-                      <td className="px-4 py-2.5">{entry.waterMinutes != null ? `${entry.waterMinutes} ${t("minutes")}` : "—"}</td>
-                      <td className="px-4 py-2.5 max-w-[120px] truncate">
-                        {entry.activity === "other" && entry.notes
-                          ? (entry.notes.includes(" | ") ? entry.notes.split(" | ").slice(1).join(" | ") : "—")
-                          : (entry.notes || "—")}
-                      </td>
-                      <td className="px-4 py-2.5 flex gap-1">
-                        <button type="button" onClick={() => { const e = entry; setFieldId(e.fieldId); setSelectedDate(e.date); setActivity(e.activity as DailyActivityType); setLaborCost(e.laborCost != null ? String(e.laborCost) : ""); setWaterMinutes(e.waterMinutes != null ? String(e.waterMinutes) : ""); if (e.activity === "other" && e.notes?.startsWith(t("dbOther") + ": ")) { setOtherActivityText(e.notes.slice((t("dbOther") + ": ").length).split(" | ")[0] || ""); setNotes(e.notes.includes(" | ") ? e.notes.split(" | ").slice(1).join(" | ") : ""); } else { setOtherActivityText(""); setNotes(e.notes || ""); } setMaterialRows(e.materialsUsed?.length ? e.materialsUsed.map((mu) => ({ materialId: mu.materialId, quantity: String(mu.quantity) })) : [{ materialId: "", quantity: "" }]); setEditingId(e.id); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-theme-track rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setDeleteConfirmId(entry.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
-                      </td>
+                </thead>
+                <tbody className="text-theme">
+                  {entriesForDate.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-theme-muted">{t("dbNoEntriesForDate")}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    entriesForDate.map((entry, idx) => (
+                      <tr key={entry.id ? `${entry.id}-${idx}` : `entry-${idx}`} className="border-b border-theme hover:bg-theme-track">
+                        <td className="px-4 py-2.5">{fields.find((f) => f.id === entry.fieldId)?.name ?? entry.fieldId}</td>
+                        <td className="px-4 py-2.5">
+                          {entry.activity === "other" && entry.notes?.startsWith(t("dbOther") + ": ")
+                            ? entry.notes.slice((t("dbOther") + ": ").length).split(" | ")[0]
+                            : (t(ACTIVITIES.find((a) => a.value === entry.activity)?.labelKey as keyof typeof t) || entry.activity)}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {entry.materialsUsed?.length ? entry.materialsUsed.map((mu) => { const m = materials.find((x) => x.id === mu.materialId); return m ? `${m.name} ${mu.quantity}${m.unit}` : mu.quantity; }).join(", ") : "—"}
+                        </td>
+                        <td className="px-4 py-2.5">{entry.laborCost != null ? `Rs ${entry.laborCost.toLocaleString()}` : "—"}</td>
+                        <td className="px-4 py-2.5">{entry.waterMinutes != null ? `${entry.waterMinutes} ${t("minutes")}` : "—"}</td>
+                        <td className="px-4 py-2.5 max-w-[120px] truncate">
+                          {entry.activity === "other" && entry.notes
+                            ? (entry.notes.includes(" | ") ? entry.notes.split(" | ").slice(1).join(" | ") : "—")
+                            : (entry.notes || "—")}
+                        </td>
+                        <td className="px-4 py-2.5 flex gap-1">
+                          <button type="button" onClick={() => { const e = entry; setFieldId(e.fieldId); setSelectedDate(e.date); setActivity(e.activity as DailyActivityType); setLaborCost(e.laborCost != null ? String(e.laborCost) : ""); setWaterMinutes(e.waterMinutes != null ? String(e.waterMinutes) : ""); if (e.activity === "other" && e.notes?.startsWith(t("dbOther") + ": ")) { setOtherActivityText(e.notes.slice((t("dbOther") + ": ").length).split(" | ")[0] || ""); setNotes(e.notes.includes(" | ") ? e.notes.split(" | ").slice(1).join(" | ") : ""); } else { setOtherActivityText(""); setNotes(e.notes || ""); } setMaterialRows(e.materialsUsed?.length ? e.materialsUsed.map((mu) => ({ materialId: mu.materialId, quantity: String(mu.quantity) })) : [{ materialId: "", quantity: "" }]); setEditingId(e.id); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-theme-track rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => setDeleteConfirmId(entry.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden space-y-3 p-4 bg-theme-track/30">
+              {entriesForDate.length === 0 ? (
+                <div className="text-center py-8 text-sm text-theme-muted bg-theme-card rounded-xl border border-theme">
+                  {t("dbNoEntriesForDate")}
+                </div>
+              ) : (
+                entriesForDate.map((entry, idx) => (
+                  <div key={entry.id ? `${entry.id}-${idx}` : `entry-mobile-${idx}`} className="bg-theme-card border border-theme rounded-xl p-4 shadow-sm relative">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1 pr-8">
+                        <p className="font-semibold text-theme text-base">
+                          {fields.find((f) => f.id === entry.fieldId)?.name ?? entry.fieldId}
+                        </p>
+                        <p className="text-sm font-medium text-amber-500">
+                          {entry.activity === "other" && entry.notes?.startsWith(t("dbOther") + ": ")
+                            ? entry.notes.slice((t("dbOther") + ": ").length).split(" | ")[0]
+                            : (t(ACTIVITIES.find((a) => a.value === entry.activity)?.labelKey as keyof typeof t) || entry.activity)}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2 absolute top-4 right-4">
+                        <button type="button" onClick={() => { const e = entry; setFieldId(e.fieldId); setSelectedDate(e.date); setActivity(e.activity as DailyActivityType); setLaborCost(e.laborCost != null ? String(e.laborCost) : ""); setWaterMinutes(e.waterMinutes != null ? String(e.waterMinutes) : ""); if (e.activity === "other" && e.notes?.startsWith(t("dbOther") + ": ")) { setOtherActivityText(e.notes.slice((t("dbOther") + ": ").length).split(" | ")[0] || ""); setNotes(e.notes.includes(" | ") ? e.notes.split(" | ").slice(1).join(" | ") : ""); } else { setOtherActivityText(""); setNotes(e.notes || ""); } setMaterialRows(e.materialsUsed?.length ? e.materialsUsed.map((mu) => ({ materialId: mu.materialId, quantity: String(mu.quantity) })) : [{ materialId: "", quantity: "" }]); setEditingId(e.id); setSubmitError(null); }} className="p-2 text-theme-muted hover:text-theme bg-theme-track hover:bg-theme-track border border-theme rounded-lg" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setDeleteConfirmId(entry.id)} className="p-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-500/10 border border-red-500/20 rounded-lg" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-2 mt-4 text-sm mt-3 border-t border-theme pt-3">
+                      <div>
+                        <span className="text-theme-muted block text-xs mb-0.5">{t("dbLabor")}</span>
+                        <span className="text-theme font-medium">{entry.laborCost != null ? `Rs ${entry.laborCost.toLocaleString()}` : "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-theme-muted block text-xs mb-0.5">{t("dbWater")}</span>
+                        <span className="text-theme font-medium">{entry.waterMinutes != null ? `${entry.waterMinutes} ${t("minutes")}` : "—"}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-theme-muted block text-xs mb-0.5">{t("dbMaterials")}</span>
+                        <span className="text-theme">{entry.materialsUsed?.length ? entry.materialsUsed.map((mu) => { const m = materials.find((x) => x.id === mu.materialId); return m ? `${m.name} ${mu.quantity}${m.unit}` : mu.quantity; }).join(", ") : "—"}</span>
+                      </div>
+                      {(entry.notes || (entry.activity === "other" && entry.notes?.includes(" | "))) && (
+                        <div className="col-span-2 mt-1">
+                          <span className="text-theme-muted block text-xs mb-0.5">{t("dbNotes")}</span>
+                          <span className="text-theme text-xs italic bg-theme-track p-2 rounded block">
+                            {entry.activity === "other" && entry.notes
+                              ? (entry.notes.includes(" | ") ? entry.notes.split(" | ").slice(1).join(" | ") : "—")
+                              : (entry.notes || "—")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

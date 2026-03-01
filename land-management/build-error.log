@@ -1,0 +1,20 @@
+
+> land-management@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 14.6s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/25) ...
+Error occurred prerendering page "/chatbot". Read more: https://nextjs.org/docs/messages/prerender-error
+Error: useAuth must be used within AuthProvider
+    at d (D:\land managment beta\land-management\.next\server\chunks\ssr\[root-of-the-server]__641f541e._.js:1:7720)
+    at Y (D:\land managment beta\land-management\.next\server\chunks\ssr\src_app_(app)_layout_tsx_f101fa3d._.js:13:5838) {
+  digest: '161343497'
+}
+Export encountered an error on /(app)/chatbot/page: /chatbot, exiting the build.
+⨯ Next.js build worker exited with code: 1 and signal: null

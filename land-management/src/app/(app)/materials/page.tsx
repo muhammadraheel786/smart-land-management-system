@@ -262,38 +262,66 @@ export default function MaterialsPage() {
           <div className="px-6 py-4 border-b border-theme">
             <h2 className="text-lg font-semibold text-theme">{t("materialsStockCurrent")}</h2>
           </div>
-          <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-theme-muted border-b border-theme">
-                  <th className="px-4 py-3">{t("materialsName")}</th>
-                  <th className="px-4 py-3">{t("category")}</th>
-                  <th className="px-4 py-3">{t("materialsStock")}</th>
-                  <th className="px-4 py-3 w-20"></th>
-                </tr>
-              </thead>
-              <tbody className="text-theme">
-                {materials.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-theme-muted">{t("materialsNoMaterialsYet")}</td>
+          <div className="w-full">
+            <div className="hidden md:block overflow-x-auto max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-theme-muted border-b border-theme">
+                    <th className="px-4 py-3">{t("materialsName")}</th>
+                    <th className="px-4 py-3">{t("category")}</th>
+                    <th className="px-4 py-3">{t("materialsStock")}</th>
+                    <th className="px-4 py-3 w-20"></th>
                   </tr>
-                ) : (
-                  materials.map((m) => (
-                    <tr key={m.id} className={`border-b border-theme/50 hover:bg-theme-track ${m.currentStock < LOW_STOCK_THRESHOLD ? "bg-amber-500/5" : ""}`}>
-                      <td className="px-4 py-2.5 font-medium">{m.name}</td>
-                      <td className="px-4 py-2.5 capitalize">{m.category}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={m.currentStock < LOW_STOCK_THRESHOLD ? "text-amber-400 font-medium" : ""}>{m.currentStock} {m.unit}</span>
-                      </td>
-                      <td className="px-4 py-2.5 flex gap-1">
-                        <button type="button" onClick={() => { setName(m.name); setCategory(m.category); setUnit(m.unit); setStock(String(m.currentStock ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-white/10 rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="p-1.5 text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
-                      </td>
+                </thead>
+                <tbody className="text-theme">
+                  {materials.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-6 text-center text-theme-muted">{t("materialsNoMaterialsYet")}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    materials.map((m) => (
+                      <tr key={m.id} className={`border-b border-theme/50 hover:bg-theme-track ${m.currentStock < LOW_STOCK_THRESHOLD ? "bg-amber-500/5" : ""}`}>
+                        <td className="px-4 py-2.5 font-medium">{m.name}</td>
+                        <td className="px-4 py-2.5 capitalize">{m.category}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={m.currentStock < LOW_STOCK_THRESHOLD ? "text-amber-400 font-medium" : ""}>{m.currentStock} {m.unit}</span>
+                        </td>
+                        <td className="px-4 py-2.5 flex gap-1">
+                          <button type="button" onClick={() => { setName(m.name); setCategory(m.category); setUnit(m.unit); setStock(String(m.currentStock ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-white/10 rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="p-1.5 text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3 bg-theme-track/30 max-h-[400px] overflow-y-auto">
+              {materials.length === 0 ? (
+                <div className="text-center py-6 text-sm text-theme-muted bg-theme-card rounded-xl border border-theme">
+                  {t("materialsNoMaterialsYet")}
+                </div>
+              ) : (
+                materials.map((m) => (
+                  <div key={m.id} className={`bg-theme-card border rounded-xl p-4 shadow-sm flex items-center justify-between gap-2 ${m.currentStock < LOW_STOCK_THRESHOLD ? "border-amber-500/30 bg-amber-500/5" : "border-theme"}`}>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-theme truncate">{m.name}</p>
+                      <p className="text-sm text-theme-muted capitalize mt-0.5">{m.category}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`text-sm font-bold ${m.currentStock < LOW_STOCK_THRESHOLD ? "text-amber-400" : "text-theme"}`}>
+                        {m.currentStock} {m.unit}
+                      </span>
+                      <div className="flex gap-1">
+                        <button type="button" onClick={() => { setName(m.name); setCategory(m.category); setUnit(m.unit); setStock(String(m.currentStock ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted bg-theme-track hover:text-theme border border-theme rounded-lg" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="p-1.5 text-red-500 hover:text-white bg-red-500/10 border border-red-500/20 rounded-lg" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
@@ -301,50 +329,93 @@ export default function MaterialsPage() {
           <div className="px-6 py-4 border-b border-theme">
             <h2 className="text-lg font-semibold text-theme">{t("materialsRecentTransactions")}</h2>
           </div>
-          <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-theme-muted border-b border-theme">
-                  <th className="px-4 py-3">{t("date")}</th>
-                  <th className="px-4 py-3">{t("materialsType")}</th>
-                  <th className="px-4 py-3">{t("materialsMaterial")}</th>
-                  <th className="px-4 py-3">{t("materialsQty")}</th>
-                  <th className="px-4 py-3">{t("materialsFieldOrCost")}</th>
-                  <th className="px-4 py-3 w-16"></th>
-                </tr>
-              </thead>
-              <tbody className="text-theme">
-                {recentTx.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-theme-muted">{t("materialsNoTransactionsYet")}</td>
+          <div className="w-full">
+            <div className="hidden md:block overflow-x-auto max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-theme-muted border-b border-theme">
+                    <th className="px-4 py-3">{t("date")}</th>
+                    <th className="px-4 py-3">{t("materialsType")}</th>
+                    <th className="px-4 py-3">{t("materialsMaterial")}</th>
+                    <th className="px-4 py-3">{t("materialsQty")}</th>
+                    <th className="px-4 py-3">{t("materialsFieldOrCost")}</th>
+                    <th className="px-4 py-3 w-16"></th>
                   </tr>
-                ) : (
-                  recentTx.map((tx) => {
-                    const mat = materials.find((x) => x.id === tx.materialId);
-                    return (
-                      <tr key={tx.id} className="border-b border-theme/50">
-                        <td className="px-4 py-2.5">{tx.date}</td>
-                        <td className="px-4 py-2.5">
-                          {tx.type === "in" ? (
-                            <span className="text-green-400 flex items-center gap-1"><ArrowDownCircle className="w-3.5 h-3.5" /> In</span>
-                          ) : (
-                            <span className="text-amber-400 flex items-center gap-1"><ArrowUpCircle className="w-3.5 h-3.5" /> Out</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5">{mat?.name ?? tx.materialId}</td>
-                        <td className="px-4 py-2.5">{tx.quantity}</td>
-                        <td className="px-4 py-2.5">
-                          {tx.type === "in" && tx.cost != null ? `Rs ${tx.cost.toLocaleString()}` : tx.fieldId ? fields.find((f) => f.id === tx.fieldId)?.name ?? tx.fieldId : "—"}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <button type="button" onClick={() => setDeleteConfirmTxId(tx.id)} className="p-1.5 text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="text-theme">
+                  {recentTx.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-theme-muted">{t("materialsNoTransactionsYet")}</td>
+                    </tr>
+                  ) : (
+                    recentTx.map((tx) => {
+                      const mat = materials.find((x) => x.id === tx.materialId);
+                      return (
+                        <tr key={tx.id} className="border-b border-theme/50">
+                          <td className="px-4 py-2.5">{tx.date}</td>
+                          <td className="px-4 py-2.5">
+                            {tx.type === "in" ? (
+                              <span className="text-green-400 flex items-center gap-1"><ArrowDownCircle className="w-3.5 h-3.5" /> In</span>
+                            ) : (
+                              <span className="text-amber-400 flex items-center gap-1"><ArrowUpCircle className="w-3.5 h-3.5" /> Out</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">{mat?.name ?? tx.materialId}</td>
+                          <td className="px-4 py-2.5">{tx.quantity}</td>
+                          <td className="px-4 py-2.5">
+                            {tx.type === "in" && tx.cost != null ? `Rs ${tx.cost.toLocaleString()}` : tx.fieldId ? fields.find((f) => f.id === tx.fieldId)?.name ?? tx.fieldId : "—"}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <button type="button" onClick={() => setDeleteConfirmTxId(tx.id)} className="p-1.5 text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3 bg-theme-track/30 max-h-[400px] overflow-y-auto">
+              {recentTx.length === 0 ? (
+                <div className="text-center py-6 text-sm text-theme-muted bg-theme-card rounded-xl border border-theme">
+                  {t("materialsNoTransactionsYet")}
+                </div>
+              ) : (
+                recentTx.map((tx) => {
+                  const mat = materials.find((x) => x.id === tx.materialId);
+                  return (
+                    <div key={tx.id} className="bg-theme-card border border-theme rounded-xl p-4 shadow-sm relative">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-theme text-base truncate">{mat?.name ?? tx.materialId}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {tx.type === "in" ? (
+                              <span className="text-green-400 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10"><ArrowDownCircle className="w-3 h-3" /> IN</span>
+                            ) : (
+                              <span className="text-amber-400 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10"><ArrowUpCircle className="w-3 h-3" /> OUT</span>
+                            )}
+                            <span className="text-xs text-theme-muted">{tx.date}</span>
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => setDeleteConfirmTxId(tx.id)} className="absolute top-4 right-4 p-1.5 text-red-500 hover:text-white bg-red-500/10 border border-red-500/20 rounded-lg" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-y-2 mt-4 text-sm mt-3 border-t border-theme pt-3">
+                        <div>
+                          <span className="text-theme-muted block text-xs mb-0.5">{t("materialsQty")}</span>
+                          <span className="text-theme font-medium">{tx.quantity} {mat?.unit ?? ""}</span>
+                        </div>
+                        <div>
+                          <span className="text-theme-muted block text-xs mb-0.5">{t("materialsFieldOrCost")}</span>
+                          <span className="text-theme text-sm">{tx.type === "in" && tx.cost != null ? `Rs ${tx.cost.toLocaleString()}` : tx.fieldId ? (fields.find((f) => f.id === tx.fieldId)?.name ?? tx.fieldId) : "—"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       </div>
