@@ -757,12 +757,6 @@ def ai_insights(request):
 
     # 1. Hugging Face (OpenAI-compatible router; try primary model then fallbacks)
     if content is None and hf_token:
-        from openai import OpenAI
-        hf_client = OpenAI(
-            base_url="https://router.huggingface.co/v1",
-            api_key=hf_token,
-            timeout=60,
-        )
         # Try HF_MODEL, then common free Llama models
         default_hf = os.environ.get("HF_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct")
         hf_models_to_try = [
@@ -771,23 +765,30 @@ def ai_insights(request):
             "Qwen/Qwen2.5-72B-Instruct",
             "mistralai/Mistral-Nemo-Instruct-2407",
         ]
+        import urllib.request
         seen = set()
         for hf_model in hf_models_to_try:
             if not hf_model or hf_model in seen:
                 continue
             seen.add(hf_model)
             try:
-                response = hf_client.chat.completions.create(
-                    model=hf_model,
-                    messages=[
+                payload = {
+                    "model": hf_model,
+                    "messages": [
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
+                        {"role": "user", "content": user_prompt}
                     ],
-                    temperature=0.3,
-                )
-                content = (response.choices[0].message.content or "").strip()
-                model_used = hf_model
-                break
+                    "temperature": 0.3
+                }
+                req = urllib.request.Request("https://router.huggingface.co/v1/chat/completions", data=json.dumps(payload).encode("utf-8"), method="POST")
+                req.add_header("Authorization", f"Bearer {hf_token}")
+                req.add_header("Content-Type", "application/json")
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    resp_data = json.loads(resp.read().decode())
+                content = (resp_data.get("choices", [{}])[0].get("message", {}).get("content", "")).strip()
+                if content:
+                    model_used = hf_model
+                    break
             except Exception as _hf_err:
                 last_hf_error = _hf_err
                 logger.warning("HF API failed (ai_insights) model=%s: %s", hf_model, _hf_err)
@@ -846,25 +847,29 @@ def _call_ai_chat(system_prompt: str, user_content: str) -> tuple[str | None, st
 
     # Hugging Face (primary) – try configured model then fallback models
     if hf_token:
-        from openai import OpenAI
-        client = OpenAI(base_url="https://router.huggingface.co/v1", api_key=hf_token, timeout=60)
         default_hf = os.environ.get("HF_MODEL", "meta-llama/Meta-Llama-3-8B-Instruct")
         hf_candidates = [default_hf, "meta-llama/Llama-3.2-3B-Instruct", "Qwen/Qwen2.5-72B-Instruct", "mistralai/Mistral-Nemo-Instruct-2407"]
+        import urllib.request
         seen_hf = set()
         for hf_model in hf_candidates:
             if not hf_model or hf_model in seen_hf:
                 continue
             seen_hf.add(hf_model)
             try:
-                r = client.chat.completions.create(
-                    model=hf_model,
-                    messages=[
+                payload = {
+                    "model": hf_model,
+                    "messages": [
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_content},
+                        {"role": "user", "content": user_content}
                     ],
-                    temperature=0.4,
-                )
-                text = (r.choices[0].message.content or "").strip()
+                    "temperature": 0.4
+                }
+                req = urllib.request.Request("https://router.huggingface.co/v1/chat/completions", data=json.dumps(payload).encode("utf-8"), method="POST")
+                req.add_header("Authorization", f"Bearer {hf_token}")
+                req.add_header("Content-Type", "application/json")
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    resp_data = json.loads(resp.read().decode())
+                text = (resp_data.get("choices", [{}])[0].get("message", {}).get("content", "")).strip()
                 if text:
                     return (text, hf_model, None)
             except Exception as _hf_err:
