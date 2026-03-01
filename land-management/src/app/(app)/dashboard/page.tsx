@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (fields.length > 0) {
-      fetchFieldRecommendations().catch(() => {});
+      fetchFieldRecommendations().catch(() => { });
     }
   }, [fields.length, fetchFieldRecommendations]);
 
@@ -83,7 +83,7 @@ export default function DashboardPage() {
     fetchAll()
       .then(() => {
         setLastUpdated(new Date());
-        return fetchFieldRecommendations().catch(() => {});
+        return fetchFieldRecommendations().catch(() => { });
       })
       .finally(() => setRefreshing(false));
   };
@@ -465,20 +465,22 @@ export default function DashboardPage() {
           </Link>
         </div>
         <p className="text-theme-muted text-sm mb-4">{t("last6Months")}</p>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="month" stroke="var(--muted)" />
-            <YAxis stroke="var(--muted)" />
-            <Tooltip
-              contentStyle={tooltipStyle}
-              formatter={(value: number | undefined) => `Rs ${Number(value ?? 0).toLocaleString()}`}
-            />
-            <Legend />
-            <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expense" name={t("expenseShort")} fill="var(--not-usable)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="w-full h-full min-w-0 overflow-hidden">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="month" stroke="var(--muted)" />
+              <YAxis stroke="var(--muted)" />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                formatter={(value: number | undefined) => `Rs ${Number(value ?? 0).toLocaleString()}`}
+              />
+              <Legend />
+              <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expense" name={t("expenseShort")} fill="var(--not-usable)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="bg-theme-card border border-theme rounded-2xl p-6">
@@ -493,9 +495,8 @@ export default function DashboardPage() {
             {aiRecommendations.slice(0, 5).map((r) => (
               <div
                 key={r.id}
-                className={`p-4 rounded-xl border-l-4 ${
-                  r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-yellow-500 bg-yellow-500/10"
-                }`}
+                className={`p-4 rounded-xl border-l-4 ${r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-yellow-500 bg-yellow-500/10"
+                  }`}
               >
                 <p className="font-medium text-theme">{r.title}</p>
                 <p className="text-sm text-theme-muted">{r.message}</p>

@@ -205,17 +205,19 @@ export default function StatisticsPage() {
               <p>{t("statisticsAddFieldsForDistribution")}</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={landPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value">
-                  {landPieData.map((e, i) => (
-                    <Cell key={i} fill={e.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v: number | undefined) => `${Number(v ?? 0).toFixed(1)} ${t("acres")}`} contentStyle={tooltipStyle} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="w-full h-full min-w-0 overflow-hidden">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie data={landPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value">
+                    {landPieData.map((e, i) => (
+                      <Cell key={i} fill={e.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v: number | undefined) => `${Number(v ?? 0).toFixed(1)} ${t("acres")}`} contentStyle={tooltipStyle} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
 
@@ -226,15 +228,17 @@ export default function StatisticsPage() {
               <p>{t("statisticsNoExpensesRecorded")}</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={expenseByCategory} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis type="number" stroke="#8b949e" />
-                <YAxis type="category" dataKey="name" stroke="#8b949e" width={80} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
-                <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="w-full h-full min-w-0 overflow-hidden">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={expenseByCategory} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" stroke="#8b949e" />
+                  <YAxis type="category" dataKey="name" stroke="#8b949e" width={80} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+                  <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
       </div>
@@ -251,17 +255,19 @@ export default function StatisticsPage() {
             <option value={MONTHS_12}>12 {t("monthsShort")}</option>
           </select>
         </div>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="month" stroke="#8b949e" />
-            <YAxis stroke="#8b949e" />
-            <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
-            <Legend />
-            <Bar dataKey="income" name={t("incomeShort")} fill="#22c55e" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expense" name={t("expenseShort")} fill="#ef4444" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="w-full h-full min-w-0 overflow-hidden">
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="month" stroke="#8b949e" />
+              <YAxis stroke="#8b949e" />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+              <Legend />
+              <Bar dataKey="income" name={t("incomeShort")} fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expense" name={t("expenseShort")} fill="#ef4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {locationData.length > 0 && (
@@ -286,30 +292,34 @@ export default function StatisticsPage() {
             <p>{t("statisticsAddFieldsForProfit")}</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={fieldProfitData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" stroke="#8b949e" />
-              <YAxis stroke="#8b949e" />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
-              <Bar dataKey="profit" name={t("netProfit")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="w-full h-full min-w-0 overflow-hidden">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={fieldProfitData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" stroke="#8b949e" />
+                <YAxis stroke="#8b949e" />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+                <Bar dataKey="profit" name={t("netProfit")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
 
       {tempChartData.length > 0 && (
         <div className="bg-theme-card border border-theme rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-theme mb-4">{t("avgTempByField")}</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={tempChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" stroke="#8b949e" />
-              <YAxis stroke="#8b949e" />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `${Number(v ?? 0).toFixed(1)} °C`} />
-              <Bar dataKey="avgTemp" name="°C" fill="#f97316" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="w-full h-full min-w-0 overflow-hidden">
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={tempChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" stroke="#8b949e" />
+                <YAxis stroke="#8b949e" />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `${Number(v ?? 0).toFixed(1)} °C`} />
+                <Bar dataKey="avgTemp" name="°C" fill="#f97316" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </div>

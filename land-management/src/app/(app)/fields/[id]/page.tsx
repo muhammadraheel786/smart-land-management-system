@@ -258,15 +258,17 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
           {waterChartData.length > 0 && (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={waterChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="date" stroke="#8b949e" />
-                <YAxis stroke="#8b949e" />
-                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} />
-                <Bar dataKey="minutes" name={t("minutes")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="w-full h-full min-w-0 overflow-hidden">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={waterChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="date" stroke="#8b949e" />
+                  <YAxis stroke="#8b949e" />
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} />
+                  <Bar dataKey="minutes" name={t("minutes")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
       )}
@@ -284,16 +286,18 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
               <option value={MONTHS_12}>12 {t("monthsShort")}</option>
             </select>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="month" stroke="#8b949e" />
-              <YAxis stroke="#8b949e" />
-              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
-              <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="w-full h-full min-w-0 overflow-hidden">
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="month" stroke="#8b949e" />
+                <YAxis stroke="#8b949e" />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+                <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         <div className="bg-theme-card border border-theme rounded-2xl p-6">
@@ -327,15 +331,17 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
       {tempData.length > 0 && (
         <div className="bg-theme-card border border-theme rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-theme mb-4">{t("temperatureTrend")}</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={tempData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="date" stroke="#8b949e" />
-              <YAxis stroke="#8b949e" />
-              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
-              <Line type="monotone" dataKey="temp" name="°C" stroke="#f97316" strokeWidth={2} dot={{ fill: "#f97316" }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="w-full h-full min-w-0 overflow-hidden">
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={tempData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="date" stroke="#8b949e" />
+                <YAxis stroke="#8b949e" />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
+                <Line type="monotone" dataKey="temp" name="°C" stroke="#f97316" strokeWidth={2} dot={{ fill: "#f97316" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 
