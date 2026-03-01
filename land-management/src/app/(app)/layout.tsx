@@ -57,23 +57,25 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           }`}
       >
         <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b px-4 py-4 backdrop-blur sm:px-6 md:px-8"
+          className="sticky top-0 z-30 flex items-center justify-between border-b px-4 py-3 sm:py-4 backdrop-blur sm:px-6 md:px-8"
           style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--foreground)" }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0 pr-2 sm:pr-4">
             <button
               type="button"
               onClick={toggle}
-              className="hidden md:flex rounded-lg p-2 transition-colors hover:opacity-80"
+              className="hidden md:flex flex-shrink-0 items-center justify-center rounded-xl p-2 bg-theme-track border border-theme hover:bg-theme hover:text-green-500 transition-all"
               style={{ color: "var(--foreground)" }}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
             </button>
-            <h2 className="text-lg font-semibold sm:text-xl" style={{ color: "var(--foreground)" }}>{t("appTitle")}</h2>
+            <h2 className="text-base sm:text-lg md:text-xl font-semibold truncate" style={{ color: "var(--foreground)" }}>
+              {t("appTitle")}
+            </h2>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <ThemeToggle />
             <LanguageSwitcher />
             <VoiceCommand onCommand={handleVoiceCommand} compact />
