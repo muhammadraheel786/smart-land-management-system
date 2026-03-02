@@ -266,3 +266,62 @@ body {
 .pt-safe {
   padding-top: max(env(safe-area-inset-top), 12px);
 }
+
+/* ── Mobile-first utilities ──────────────────────────────────── */
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch-friendly tap areas (no gap accent flash on iOS) */
+@media (max-width: 767px) {
+
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent font inflation on iOS landscape */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Smooth momentum scrolling for horizontal strips */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  /* Every direct child in a snappable strip gets a snap point */
+  .overflow-x-auto>* {
+    scroll-snap-align: start;
+  }
+
+  /* Compact card shadows on mobile (save GPU) */
+  .shadow-lg {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+
+  /* Slightly tighter border radius on very small screens */
+  @media (max-width: 360px) {
+    .rounded-2xl {
+      border-radius: 14px;
+    }
+
+    .rounded-xl {
+      border-radius: 10px;
+    }
+  }
+}
+
+/* Divider-based list (no bottom border on last child) */
+.divide-theme>*+* {
+  border-top: 1px solid var(--border);
+}

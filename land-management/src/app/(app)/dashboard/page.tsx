@@ -14,15 +14,16 @@ import {
   ClipboardList,
   Target,
   Activity,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths, startOfMonth, startOfYear } from "date-fns";
 import { useLandStore } from "@/lib/store";
 import { useLocale } from "@/contexts/LocaleContext";
-import StatsCard from "@/components/StatsCard";
 
 const MONTHS_6 = 6;
-
 type TimeRangeKey = "all" | "this_year" | "last_6_months" | "this_month";
 
 function getDateFilter(range: TimeRangeKey): (dateStr: string) => boolean {
@@ -41,173 +42,182 @@ function getDateFilter(range: TimeRangeKey): (dateStr: string) => boolean {
   return (d) => d >= start && d <= today;
 }
 
+// ── tiny mobile-only collapsible section ──────────────────────────────────────
+function Section({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="bg-theme-card border border-theme rounded-2xl overflow-hidden shadow-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 md:py-4 text-left"
+      >
+        <span className="text-sm md:text-base font-semibold text-theme">{title}</span>
+        {open ? (
+          <ChevronUp className="w-4 h-4 text-[var(--muted)] flex-shrink-0" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-[var(--muted)] flex-shrink-0" />
+        )}
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+// ── compact stat chip ─────────────────────────────────────────────────────────
+function StatChip({
+  label,
+  value,
+  href,
+  color,
+}: {
+  label: string;
+  value: string | number;
+  href?: string;
+  color: "green" | "blue" | "yellow" | "red";
+}) {
+  const colorMap = {
+    green: { value: "text-green-400", bg: "bg-green-500/10" },
+    blue: { value: "text-blue-400", bg: "bg-blue-500/10" },
+    yellow: { value: "text-amber-400", bg: "bg-amber-500/10" },
+    red: { value: "text-red-400", bg: "bg-red-500/10" },
+  };
+  const c = colorMap[color];
+  const inner = (
+    <div className={`rounded-2xl border border-theme ${c.bg} p-3.5 min-w-[130px] flex-shrink-0 md:flex-shrink md:min-w-0`}>
+      <p className="text-xs text-[var(--muted)] mb-1 truncate">{label}</p>
+      <p className={`text-lg font-bold leading-tight ${c.value} truncate`}>{value}</p>
+    </div>
+  );
+  if (href) return <Link href={href} className="block">{inner}</Link>;
+  return inner;
+}
+
+// ── quick-action pill ─────────────────────────────────────────────────────────
+function QuickAction({ href, icon: Icon, label, color }: { href: string; icon: React.ComponentType<{ className?: string }>; label: string; color: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-theme-track border border-theme hover:border-green-500/40 hover:bg-green-500/5 transition-all active:scale-95 min-w-[72px] flex-shrink-0"
+    >
+      <Icon className={`w-5 h-5 ${color}`} />
+      <span className="text-[10px] font-semibold text-[var(--muted)] text-center leading-tight">{label}</span>
+    </Link>
+  );
+}
+
 export default function DashboardPage() {
   const { t } = useLocale();
   const {
-    fields,
-    expenses,
-    incomes,
-    waterRecords,
-    thakaRecords,
-    aiRecommendations,
-    fieldRecommendations,
-    fetchAll,
-    fetchFieldRecommendations,
-    generateAIRecommendations,
-    loading,
-    error,
+    fields, expenses, incomes, waterRecords, thakaRecords,
+    aiRecommendations, fieldRecommendations,
+    fetchAll, fetchFieldRecommendations, generateAIRecommendations,
+    loading, error,
   } = useLandStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRangeKey>("all");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
-    if (fields.length > 0) {
-      fetchFieldRecommendations().catch(() => { });
-    }
+    if (fields.length > 0) fetchFieldRecommendations().catch(() => { });
   }, [fields.length, fetchFieldRecommendations]);
 
   useEffect(() => {
-    if (fields.length > 0 || expenses.length > 0 || incomes.length > 0) {
+    if (fields.length > 0 || expenses.length > 0 || incomes.length > 0)
       generateAIRecommendations();
-    }
   }, [fields.length, expenses.length, incomes.length, generateAIRecommendations]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchAll()
-      .then(() => {
-        setLastUpdated(new Date());
-        return fetchFieldRecommendations().catch(() => { });
-      })
+      .then(() => { setLastUpdated(new Date()); return fetchFieldRecommendations().catch(() => { }); })
       .finally(() => setRefreshing(false));
   };
 
   useEffect(() => {
-    if (!loading && !error && lastUpdated === null) {
-      setLastUpdated(new Date());
-    }
+    if (!loading && !error && lastUpdated === null) setLastUpdated(new Date());
   }, [loading, error, lastUpdated]);
 
   const dateFilter = useMemo(() => getDateFilter(timeRange), [timeRange]);
 
   const totals = useMemo(() => {
     const totalArea = fields.reduce((a, f) => a + (f.area || 0), 0);
-    const filteredExpenses = expenses.filter((e) => dateFilter(e.date || ""));
-    const filteredIncomes = incomes.filter((i) => dateFilter(i.date || ""));
+    const filteredExp = expenses.filter((e) => dateFilter(e.date || ""));
+    const filteredInc = incomes.filter((i) => dateFilter(i.date || ""));
     const filteredWater = waterRecords.filter((w) => dateFilter(w.date || ""));
-    const totalExp = filteredExpenses.reduce((a, e) => a + e.amount, 0);
-    const totalInc = filteredIncomes.reduce((a, i) => a + i.amount, 0);
-    const totalWaterMins = filteredWater.reduce((a, w) => a + (w.durationMinutes || 0), 0);
+    const totalExp = filteredExp.reduce((a, e) => a + e.amount, 0);
+    const totalInc = filteredInc.reduce((a, i) => a + i.amount, 0);
+    const totalWaterMin = filteredWater.reduce((a, w) => a + (w.durationMinutes || 0), 0);
     const activeThaka = thakaRecords.filter((tr) => tr.status === "active").length;
-    return {
-      totalArea,
-      totalExp,
-      totalInc,
-      netProfit: totalInc - totalExp,
-      totalWaterMins,
-      activeThaka,
-      waterSessionCount: filteredWater.length,
-    };
+    return { totalArea, totalExp, totalInc, netProfit: totalInc - totalExp, totalWaterMin, activeThaka, waterSessions: filteredWater.length };
   }, [fields, expenses, incomes, waterRecords, thakaRecords, dateFilter]);
 
-  const cultivatedArea = useMemo(
-    () => fields.filter((f) => f.status === "cultivated").reduce((a, f) => a + (f.area || 0), 0),
-    [fields]
-  );
-  const thakaArea = useMemo(
-    () => fields.filter((f) => f.status === "thaka").reduce((a, f) => a + (f.area || 0), 0),
-    [fields]
-  );
-
+  const cultivatedArea = useMemo(() => fields.filter((f) => f.status === "cultivated").reduce((a, f) => a + (f.area || 0), 0), [fields]);
+  const thakaArea = useMemo(() => fields.filter((f) => f.status === "thaka").reduce((a, f) => a + (f.area || 0), 0), [fields]);
   const recHigh = useMemo(() => fieldRecommendations.filter((r) => r.priority === "high").length, [fieldRecommendations]);
-  const recMedium = useMemo(
-    () => fieldRecommendations.filter((r) => r.priority === "medium").length,
-    [fieldRecommendations]
-  );
+  const recMedium = useMemo(() => fieldRecommendations.filter((r) => r.priority === "medium").length, [fieldRecommendations]);
 
-  const monthlyData = useMemo(() => {
-    return Array.from({ length: MONTHS_6 }, (_, i) => {
+  const monthlyData = useMemo(() =>
+    Array.from({ length: MONTHS_6 }, (_, i) => {
       const m = subMonths(new Date(), MONTHS_6 - 1 - i);
       const mStr = format(m, "yyyy-MM");
-      const exp = expenses
-        .filter((e) => (e.date || "").slice(0, 7) === mStr)
-        .reduce((a, e) => a + e.amount, 0);
-      const inc = incomes
-        .filter((i) => (i.date || "").slice(0, 7) === mStr)
-        .reduce((a, i) => a + i.amount, 0);
+      const exp = expenses.filter((e) => (e.date || "").slice(0, 7) === mStr).reduce((a, e) => a + e.amount, 0);
+      const inc = incomes.filter((i) => (i.date || "").slice(0, 7) === mStr).reduce((a, i) => a + i.amount, 0);
       return { month: format(m, "MMM yy"), expense: exp, income: inc };
-    });
-  }, [expenses, incomes]);
+    }), [expenses, incomes]);
 
   const recentActivity = useMemo(() => {
-    const combined: { date: string; amount: number; type: "expense" | "income"; fieldId?: string; id: string }[] = [
-      ...expenses.map((e) => ({
-        date: e.date || "",
-        amount: e.amount,
-        type: "expense" as const,
-        fieldId: e.fieldId,
-        id: e.id || `e-${e.date}`,
-      })),
-      ...incomes.map((i) => ({
-        date: i.date || "",
-        amount: i.amount,
-        type: "income" as const,
-        fieldId: i.fieldId,
-        id: i.id || `i-${i.date}`,
-      })),
+    const combined = [
+      ...expenses.map((e) => ({ date: e.date || "", amount: e.amount, type: "expense" as const, id: e.id || `e-${e.date}` })),
+      ...incomes.map((i) => ({ date: i.date || "", amount: i.amount, type: "income" as const, id: i.id || `i-${i.date}` })),
     ];
-    return combined
-      .filter((x) => x.date)
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 10);
+    return combined.filter((x) => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
   }, [expenses, incomes]);
 
   const tooltipStyle = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" };
 
+  // ── loading skeleton ────────────────────────────────────────────────────────
   if (loading && fields.length === 0) {
     return (
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="h-10 w-64 rounded bg-theme-card animate-pulse" />
-          <div className="h-10 w-28 rounded bg-theme-card animate-pulse" />
+      <div className="space-y-4">
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 w-36 flex-shrink-0 rounded-2xl bg-theme-card border border-theme animate-pulse" />)}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-28 rounded-2xl bg-theme-card border border-theme animate-pulse" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-64 rounded-2xl bg-theme-card border border-theme animate-pulse" />
-          <div className="h-64 rounded-2xl bg-theme-card border border-theme animate-pulse" />
-        </div>
-        <div className="h-72 rounded-2xl bg-theme-card border border-theme animate-pulse" />
+        <div className="h-48 rounded-2xl bg-theme-card border border-theme animate-pulse" />
+        <div className="h-40 rounded-2xl bg-theme-card border border-theme animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-theme mb-2">{t("dashboard")}</h1>
-          <p className="text-theme-muted">{t("dashboardSubtitle")}</p>
+    <div className="space-y-3 md:space-y-6">
+
+      {/* ── PAGE HEADER ──────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-3xl font-bold text-theme leading-tight">{t("dashboard")}</h1>
           {lastUpdated && (
-            <p className="text-xs text-theme-muted mt-1">
-              {t("lastUpdated")}: {format(lastUpdated, "dd MMM yyyy, HH:mm")}
+            <p className="text-[10px] md:text-xs text-[var(--muted)] mt-0.5">
+              {t("lastUpdated")}: {format(lastUpdated, "dd MMM, HH:mm")}
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as TimeRangeKey)}
-            className="px-3 py-2 rounded-xl bg-theme-card border border-theme text-theme text-sm"
+            className="text-xs md:text-sm px-2 py-1.5 md:px-3 md:py-2 rounded-xl bg-theme-card border border-theme text-theme"
           >
             <option value="all">{t("timeRangeAll")}</option>
             <option value="this_year">{t("timeRangeThisYear")}</option>
@@ -218,293 +228,185 @@ export default function DashboardPage() {
             type="button"
             onClick={handleRefresh}
             disabled={refreshing || loading}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-theme-card border border-theme text-theme-muted hover:text-theme hover:border-green-500/50 transition disabled:opacity-50"
+            className="p-1.5 md:p-2 rounded-xl bg-theme-card border border-theme text-[var(--muted)] hover:text-theme hover:border-green-500/40 transition disabled:opacity-50"
+            aria-label="Refresh"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing || loading ? "animate-spin" : ""}`} />
-            {t("dashboardRefresh")}
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-red-200 text-sm">
           {t("dashboardError")}: {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5 [&>*]:min-w-0">
-        <StatsCard
-          href="/fields"
-          title={t("totalLandArea")}
-          value={`${totals.totalArea.toFixed(1)} ${t("acres")}`}
-          subtitle={`${fields.length} ${t("fieldsCount").toLowerCase()}`}
-          icon={Map}
-          color="green"
-        />
-        <StatsCard
-          href="/expenses"
-          title={t("totalInvestment")}
-          value={`Rs ${totals.totalExp.toLocaleString()}`}
-          icon={Wallet}
-          color="blue"
-        />
-        <StatsCard
-          href="/expenses?tab=income"
-          title={t("totalIncome")}
-          value={`Rs ${totals.totalInc.toLocaleString()}`}
-          icon={TrendingUp}
-          color="yellow"
-        />
-        <StatsCard
-          href="/expenses"
-          title={t("netProfit")}
-          value={`Rs ${totals.netProfit.toLocaleString()}`}
-          trend={totals.netProfit >= 0 ? "up" : "down"}
-          trendUpLabel={t("trendUp")}
-          trendDownLabel={t("trendDown")}
-          icon={TrendingUp}
-          color={totals.netProfit >= 0 ? "green" : "red"}
-        />
-        <StatsCard
-          href="/water"
-          title={t("totalIrrigation")}
-          value={`${totals.totalWaterMins} ${t("minutes")}`}
-          subtitle={totals.waterSessionCount ? `${totals.waterSessionCount} ${t("sessions")}` : undefined}
-          icon={Droplets}
-          color="blue"
-        />
-        <StatsCard
-          href="/fields"
-          title={t("fieldsCount")}
-          value={fields.length}
-          subtitle={totals.activeThaka > 0 ? `${totals.activeThaka} ${t("thaka")}` : undefined}
-          icon={Activity}
-          color="green"
-        />
+      {/* ── STAT CHIPS — horizontal scroll on mobile, grid on desktop ──── */}
+      <div className="flex gap-2.5 overflow-x-auto pb-1 md:hidden scrollbar-none -mx-3 px-3">
+        <StatChip href="/fields" label={t("totalLandArea")} value={`${totals.totalArea.toFixed(1)} ac`} color="green" />
+        <StatChip href="/expenses" label={t("totalInvestment")} value={`Rs ${totals.totalExp.toLocaleString()}`} color="blue" />
+        <StatChip href="/expenses?tab=income" label={t("totalIncome")} value={`Rs ${totals.totalInc.toLocaleString()}`} color="yellow" />
+        <StatChip href="/expenses" label={t("netProfit")} value={`Rs ${totals.netProfit.toLocaleString()}`} color={totals.netProfit >= 0 ? "green" : "red"} />
+        <StatChip href="/water" label={t("totalIrrigation")} value={`${totals.totalWaterMin} min`} color="blue" />
+        <StatChip href="/fields" label={t("fieldsCount")} value={`${fields.length} fields`} color="green" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-theme mb-4">{t("landDistribution")}</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-theme-muted">{t("cultivated")}</span>
-                <span className="text-green-600 dark:text-green-400 font-medium">
-                  {totals.totalArea ? ((cultivatedArea / totals.totalArea) * 100).toFixed(0) : 0}% — {cultivatedArea.toFixed(1)} {t("acres")}
-                </span>
-              </div>
-              <div className="w-full bg-theme-track rounded-full h-2.5">
-                <div
-                  className="h-2.5 rounded-full bg-green-500 transition-all"
-                  style={{ width: `${totals.totalArea ? (cultivatedArea / totals.totalArea) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-theme-muted">{t("onThaka")}</span>
-                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                  {totals.totalArea ? ((thakaArea / totals.totalArea) * 100).toFixed(0) : 0}% — {thakaArea.toFixed(1)} {t("acres")}
-                </span>
-              </div>
-              <div className="w-full bg-theme-track rounded-full h-2.5">
-                <div
-                  className="h-2.5 rounded-full bg-blue-500 transition-all"
-                  style={{ width: `${totals.totalArea ? (thakaArea / totals.totalArea) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Desktop stat grid (unchanged from before) */}
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {(
+          [
+            { href: "/fields", title: t("totalLandArea"), value: `${totals.totalArea.toFixed(1)} ${t("acres")}`, subtitle: `${fields.length} ${t("fieldsCount").toLowerCase()}`, color: "green" },
+            { href: "/expenses", title: t("totalInvestment"), value: `Rs ${totals.totalExp.toLocaleString()}`, color: "blue" },
+            { href: "/expenses?tab=income", title: t("totalIncome"), value: `Rs ${totals.totalInc.toLocaleString()}`, color: "yellow" },
+            { href: "/expenses", title: t("netProfit"), value: `Rs ${totals.netProfit.toLocaleString()}`, color: totals.netProfit >= 0 ? "green" : "red" },
+            { href: "/water", title: t("totalIrrigation"), value: `${totals.totalWaterMin} ${t("minutes")}`, subtitle: totals.waterSessions ? `${totals.waterSessions} ${t("sessions")}` : undefined, color: "blue" },
+            { href: "/fields", title: t("fieldsCount"), value: String(fields.length), subtitle: totals.activeThaka > 0 ? `${totals.activeThaka} Thaka` : undefined, color: "green" },
+          ] as { href: string; title: string; value: string; subtitle?: string; color: "green" | "blue" | "yellow" | "red" }[]
+        ).map((s) => {
+          const borderCls = s.color === "green" ? "border-green-500/25 bg-gradient-to-br from-green-500/10 to-emerald-600/5" : s.color === "blue" ? "border-blue-500/25 bg-gradient-to-br from-blue-500/10 to-cyan-600/5" : s.color === "yellow" ? "border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-yellow-600/5" : "border-red-500/25 bg-gradient-to-br from-red-500/10 to-rose-600/5";
+          const textCls = s.color === "green" ? "text-green-400" : s.color === "blue" ? "text-blue-400" : s.color === "yellow" ? "text-amber-400" : "text-red-400";
+          return (
+            <Link key={s.title} href={s.href} className={`block rounded-2xl border bg-theme-card p-5 shadow-sm transition hover:-translate-y-0.5 ${borderCls}`}>
+              <p className="text-xs text-[var(--muted)] mb-2 truncate">{s.title}</p>
+              <p className={`text-xl font-bold ${textCls}`}>{s.value}</p>
+              {s.subtitle && <p className={`text-xs mt-1 opacity-80 ${textCls}`}>{s.subtitle}</p>}
+            </Link>
+          );
+        })}
+      </div>
 
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-theme mb-4">{t("quickActions")}</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Link
-              href="/map"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <Map className="w-5 h-5 text-green-500" />
-              <span className="text-sm">{t("viewMap")}</span>
-            </Link>
-            <Link
-              href="/expenses"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <Wallet className="w-5 h-5 text-blue-500" />
-              <span className="text-sm">{t("addExpense")}</span>
-            </Link>
-            <Link
-              href="/expenses?tab=income"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <TrendingUp className="w-5 h-5 text-green-500" />
-              <span className="text-sm">{t("addIncome")}</span>
-            </Link>
-            <Link
-              href="/water"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <Droplets className="w-5 h-5 text-cyan-500" />
-              <span className="text-sm">{t("logWater")}</span>
-            </Link>
-            <Link
-              href="/thaka"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <ClipboardList className="w-5 h-5 text-yellow-500" />
-              <span className="text-sm">{t("thakaRecords")}</span>
-            </Link>
-            <Link
-              href="/data-bank"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <Activity className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm">{t("dataBankShort")}</span>
-            </Link>
-            <Link
-              href="/field-recommendations"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <Target className="w-5 h-5 text-orange-500" />
-              <span className="text-sm">{t("fieldRecommendations")}</span>
-            </Link>
-            <Link
-              href="/predictions"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <BarChart3 className="w-5 h-5 text-violet-500" />
-              <span className="text-sm">{t("predictions")}</span>
-            </Link>
-            <Link
-              href="/chatbot"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <MessageSquare className="w-5 h-5 text-green-500" />
-              <span className="text-sm">{t("askAI")}</span>
-            </Link>
-          </div>
+      {/* ── QUICK ACTIONS — horizontal scroll on mobile ─────────────────── */}
+      <div>
+        <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">{t("quickActions")}</p>
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible scrollbar-none">
+          <QuickAction href="/map" icon={Map} label={t("viewMap")} color="text-green-500" />
+          <QuickAction href="/activities" icon={Activity} label={t("activities")} color="text-emerald-500" />
+          <QuickAction href="/expenses" icon={Wallet} label={t("addExpense")} color="text-blue-500" />
+          <QuickAction href="/expenses?tab=income" icon={TrendingUp} label={t("addIncome")} color="text-green-500" />
+          <QuickAction href="/water" icon={Droplets} label={t("logWater")} color="text-cyan-500" />
+          <QuickAction href="/thaka" icon={ClipboardList} label={t("thakaRecords")} color="text-yellow-500" />
+          <QuickAction href="/field-recommendations" icon={Target} label={t("fieldRecommendations")} color="text-orange-500" />
+          <QuickAction href="/predictions" icon={BarChart3} label={t("predictions")} color="text-violet-500" />
+          <QuickAction href="/chatbot" icon={MessageSquare} label={t("askAI")} color="text-green-500" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-theme">{t("recommendationsSummary")}</h3>
-            <Link
-              href="/field-recommendations"
-              className="text-sm text-green-600 dark:text-green-400 hover:underline"
-            >
-              {t("viewAllRecommendations")}
-            </Link>
-          </div>
-          {fieldRecommendations.length === 0 ? (
-            <p className="text-theme-muted text-sm">
-              {fields.length === 0 ? t("frNoFields") : t("frEmptyHint")}
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {recHigh > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-600 dark:text-red-300 text-sm">
-                  {recHigh} {t("frHighPriority")}
-                </span>
-              )}
-              {recMedium > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 text-sm">
-                  {recMedium} {t("frMediumPriority")}
-                </span>
-              )}
-              <span className="text-theme-muted text-sm">
-                {t("frTotal")}: {fieldRecommendations.length}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-theme">{t("recentExpensesIncome")}</h3>
-            <Link
-              href="/expenses"
-              className="text-sm text-green-600 dark:text-green-400 hover:underline"
-            >
-              {t("expensesIncome")}
-            </Link>
-          </div>
-          {recentActivity.length === 0 ? (
-            <p className="text-theme-muted text-sm">{t("noRecentActivity")}</p>
-          ) : (
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
-              {recentActivity.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex justify-between items-center py-2 border-b border-theme last:border-0 text-sm"
-                >
-                  <span className="text-theme-muted">
-                    {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM yyyy") : "—"}
+      {/* ── LAND DISTRIBUTION + RECENT ACTIVITY (collapsed sections on mobile) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+        <Section title={t("landDistribution")}>
+          <div className="space-y-3">
+            {[
+              { label: t("cultivated"), area: cultivatedArea, color: "bg-green-500", textColor: "text-green-400" },
+              { label: t("onThaka"), area: thakaArea, color: "bg-blue-500", textColor: "text-blue-400" },
+            ].map((row) => (
+              <div key={row.label}>
+                <div className="flex justify-between items-center mb-1.5 text-sm">
+                  <span className="text-[var(--muted)]">{row.label}</span>
+                  <span className={`${row.textColor} font-medium text-xs`}>
+                    {totals.totalArea ? ((row.area / totals.totalArea) * 100).toFixed(0) : 0}% — {row.area.toFixed(1)} {t("acres")}
                   </span>
-                  <span className={item.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                </div>
+                <div className="w-full bg-theme-track rounded-full h-2">
+                  <div className={`h-2 rounded-full ${row.color} transition-all`}
+                    style={{ width: `${totals.totalArea ? (row.area / totals.totalArea) * 100 : 0}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section title={t("recentExpensesIncome")}>
+          {recentActivity.length === 0 ? (
+            <p className="text-[var(--muted)] text-sm">{t("noRecentActivity")}</p>
+          ) : (
+            <ul className="space-y-0 divide-y divide-theme">
+              {recentActivity.slice(0, 7).map((item) => (
+                <li key={item.id} className="flex justify-between items-center py-2 text-sm">
+                  <span className="text-[var(--muted)] text-xs">
+                    {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM") : "—"}
+                  </span>
+                  <span className={`font-semibold ${item.type === "income" ? "text-green-400" : "text-red-400"}`}>
                     {item.type === "income" ? "+" : "−"} Rs {item.amount.toLocaleString()}
                   </span>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+          <Link href="/expenses" className="flex items-center gap-1 text-xs text-green-500 hover:underline mt-2.5">
+            {t("expensesIncome")} <ArrowRight className="w-3 h-3" />
+          </Link>
+        </Section>
       </div>
 
-      <div className="bg-theme-card border border-theme rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-theme">{t("monthlyIncomeVsExpense")}</h3>
-          <Link
-            href="/statistics"
-            className="text-sm text-green-600 dark:text-green-400 hover:underline inline-flex items-center gap-1"
-          >
-            {t("viewAllStats")}
-          </Link>
+      {/* ── FIELD RECOMMENDATIONS BADGE ─────────────────────────────────── */}
+      {fieldRecommendations.length > 0 && (
+        <div className="bg-theme-card border border-theme rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm font-semibold text-theme">{t("recommendationsSummary")}</span>
+            <Link href="/field-recommendations" className="text-xs text-green-500 hover:underline flex items-center gap-1">
+              {t("viewAllRecommendations")} <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="px-4 pb-4 flex flex-wrap gap-2">
+            {recHigh > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium">
+                {recHigh} {t("frHighPriority")}
+              </span>
+            )}
+            {recMedium > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-medium">
+                {recMedium} {t("frMediumPriority")}
+              </span>
+            )}
+            <span className="text-[var(--muted)] text-xs self-center">{t("frTotal")}: {fieldRecommendations.length}</span>
+          </div>
         </div>
-        <p className="text-theme-muted text-sm mb-4">{t("last6Months")}</p>
-        <div className="w-full h-full min-w-0 overflow-hidden">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={monthlyData}>
+      )}
+
+      {/* ── MONTHLY CHART ───────────────────────────────────────────────── */}
+      <Section title={t("monthlyIncomeVsExpense")}>
+        <p className="text-[var(--muted)] text-xs mb-3">{t("last6Months")}</p>
+        <div className="w-full overflow-hidden">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={monthlyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="month" stroke="var(--muted)" />
-              <YAxis stroke="var(--muted)" />
+              <XAxis dataKey="month" stroke="var(--muted)" tick={{ fontSize: 10 }} />
+              <YAxis stroke="var(--muted)" tick={{ fontSize: 10 }} />
               <Tooltip
                 contentStyle={tooltipStyle}
                 formatter={(value: number | undefined) => `Rs ${Number(value ?? 0).toLocaleString()}`}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: "11px" }} />
               <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expense" name={t("expenseShort")} fill="var(--not-usable)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+        <Link href="/statistics" className="flex items-center gap-1 text-xs text-green-500 hover:underline mt-1.5">
+          {t("viewAllStats")} <ArrowRight className="w-3 h-3" />
+        </Link>
+      </Section>
 
-      <div className="bg-theme-card border border-theme rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-theme mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-500" />
-          {t("aiRecommendations")}
-        </h3>
-        {aiRecommendations.length === 0 ? (
-          <p className="text-theme-muted">{t("aiRecommendationsEmpty")}</p>
-        ) : (
-          <div className="space-y-3">
+      {/* ── AI RECOMMENDATIONS ──────────────────────────────────────────── */}
+      {aiRecommendations.length > 0 && (
+        <Section title={t("aiRecommendations")} defaultOpen={false}>
+          <div className="space-y-2.5">
             {aiRecommendations.slice(0, 5).map((r) => (
               <div
                 key={r.id}
-                className={`p-4 rounded-xl border-l-4 ${r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-yellow-500 bg-yellow-500/10"
-                  }`}
+                className={`px-3 py-2.5 rounded-xl border-l-4 ${r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-amber-500 bg-amber-500/10"}`}
               >
-                <p className="font-medium text-theme">{r.title}</p>
-                <p className="text-sm text-theme-muted">{r.message}</p>
+                <p className="font-semibold text-theme text-sm flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
+                  {r.title}
+                </p>
+                <p className="text-xs text-[var(--muted)] mt-0.5">{r.message}</p>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </Section>
+      )}
     </div>
   );
 }
