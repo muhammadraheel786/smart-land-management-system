@@ -75,8 +75,8 @@ export default function Sidebar() {
 
       <aside
         className={`fixed left-0 top-0 z-[60] flex h-screen flex-col border-r border-border bg-theme-card shadow-2xl md:shadow-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${collapsed
-            ? "-translate-x-full md:w-[80px] md:translate-x-0"
-            : "w-[280px] translate-x-0"
+          ? "-translate-x-full md:w-[80px] md:translate-x-0"
+          : "w-[280px] translate-x-0"
           }`}
       >
         {/* Header */}
@@ -87,8 +87,8 @@ export default function Sidebar() {
             </div>
             {!collapsed && (
               <div className="min-w-0 animate-fade-in">
-                <span className="truncate font-bold text-theme block text-lg">Mashori Farm</span>
-                <p className="truncate text-xs text-theme-muted font-medium">Smart Land System</p>
+                <span className="truncate font-bold text-theme block text-[15px]">Smart Land Mgt System</span>
+                <p className="truncate text-[10px] text-theme-muted font-medium">Smart Land System</p>
               </div>
             )}
           </Link>

@@ -46,14 +46,14 @@ export default function HomePage() {
 
       <section
         className="relative z-10 hidden lg:flex lg:w-1/2 flex-col justify-between p-8 xl:p-16"
-        aria-label="About Mashori Farm"
+        aria-label="About Smart Land Management System"
       >
         <div className="flex items-center gap-3 animate-fade-in">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg shadow-green-500/30" aria-hidden>
             <Map className="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">Mashori Farm</h1>
+            <h1 className="text-2xl font-black text-white tracking-tight">Smart Land Management System</h1>
             <p className="text-emerald-300 font-medium">Smart Land & Farm Management</p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function HomePage() {
               <Map className="w-8 h-8 text-white" />
             </div>
             <div className="text-center">
-              <h1 className="font-black text-white text-3xl tracking-tight">Mashori Farm</h1>
+              <h1 className="font-black text-white text-3xl tracking-tight">Smart Land Management System</h1>
               <p className="text-theme-muted mt-1 font-medium">Smart Land Management</p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl font-bold text-theme mb-2">Welcome back</h2>
             <p className="text-theme-muted mb-8 text-sm sm:text-base">Enter your credentials to access your dashboard</p>
 
-            <form onSubmit={handleLogin} className="space-y-5" aria-label="Sign in to Mashori Farm">
+            <form onSubmit={handleLogin} className="space-y-5" aria-label="Sign in to Smart Land Management System">
               <div className="space-y-1 block group">
                 <label htmlFor="login-email" className="block text-sm font-semibold text-theme-muted group-focus-within:text-green-500 transition-colors">Email Address</label>
                 <div className="relative">
@@ -175,7 +175,7 @@ export default function HomePage() {
           </div>
 
           <p className="text-center text-theme-muted text-xs mt-8">
-            © {new Date().getFullYear()} Mashori Farm. All rights reserved.
+            © {new Date().getFullYear()} Smart Land Management System. All rights reserved.
           </p>
         </div>
       </main>
