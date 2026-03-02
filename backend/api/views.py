@@ -1178,17 +1178,20 @@ def materials_list(request):
         return _json_response(items)
 
     body = _parse_body(request)
+    # Accept both old (currentStock) and new (stock_quantity) field names
+    stock = body.get('stock_quantity') if body.get('stock_quantity') is not None else body.get('currentStock', 0)
     doc = {
         'id': body.get('id') or generate_id(),
         'name': body.get('name', ''),
         'category': body.get('category', 'other'),
         'unit': body.get('unit', 'kg'),
-        'currentStock': body.get('currentStock', 0),
-        'createdAt': body.get('createdAt', ''),
+        'stock_quantity': float(stock or 0),
+        'price_per_unit': float(body.get('price_per_unit') or 0),
+        'created_at': body.get('created_at', ''),
     }
     from datetime import datetime
     now = datetime.utcnow().isoformat() + 'Z'
-    doc['createdAt'] = doc['createdAt'] or now
+    doc['created_at'] = doc['created_at'] or now
     col.insert_one(doc)
     del doc['_id']
     return _json_response(doc, 201)
@@ -1206,6 +1209,13 @@ def materials_detail(request, pk):
 
     if request.method == 'PUT':
         body = _parse_body(request)
+        # Normalize stock field — accept both old and new names
+        if 'stock_quantity' in body:
+            body['stock_quantity'] = float(body['stock_quantity'] or 0)
+        elif 'currentStock' in body:
+            body['stock_quantity'] = float(body.pop('currentStock') or 0)
+        if 'price_per_unit' in body:
+            body['price_per_unit'] = float(body['price_per_unit'] or 0)
         result = col.find_one_and_update(
             {'id': pk},
             {'$set': body},

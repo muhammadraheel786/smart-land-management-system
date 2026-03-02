@@ -5,6 +5,7 @@ export const translations: Record<Locale, Record<string, string>> = {
   en: {
     appTitle: 'Smart Land & Farm Management',
     dashboard: 'Dashboard',
+    activities: 'Activities',
     dataBank: 'Data Bank',
     materials: 'Materials',
     fieldRecommendations: 'Field recommendations',
@@ -321,6 +322,7 @@ export const translations: Record<Locale, Record<string, string>> = {
   ur: {
     appTitle: 'اسمارٹ لینڈ اینڈ فارم مینجمنٹ',
     dashboard: 'ڈیش بورڈ',
+    activities: 'سرگرمیاں',
     dataBank: 'ڈیٹا بینک',
     materials: 'مواد',
     fieldRecommendations: 'کھیت سفارشات',

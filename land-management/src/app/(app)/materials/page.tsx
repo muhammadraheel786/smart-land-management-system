@@ -36,6 +36,7 @@ export default function MaterialsPage() {
   const [category, setCategory] = useState<MaterialCategory>("other");
   const [unit, setUnit] = useState<MaterialUnit>("kg");
   const [stock, setStock] = useState("");
+  const [pricePerUnit, setPricePerUnit] = useState("");
   const [purchaseMaterialId, setPurchaseMaterialId] = useState("");
   const [purchaseQty, setPurchaseQty] = useState("");
   const [purchaseCost, setPurchaseCost] = useState("");
@@ -64,7 +65,13 @@ export default function MaterialsPage() {
     setSaving(true);
     try {
       if (editingMaterialId) {
-        await updateMaterial(editingMaterialId, { name: name.trim(), category, unit, stock_quantity: stock ? Number(stock) : 0 });
+        await updateMaterial(editingMaterialId, {
+          name: name.trim(),
+          category,
+          unit,
+          stock_quantity: stock ? Number(stock) : 0,
+          price_per_unit: pricePerUnit ? Number(pricePerUnit) : 0
+        });
         setEditingMaterialId(null);
         setName("");
         setStock("");
@@ -78,6 +85,7 @@ export default function MaterialsPage() {
         category,
         unit,
         stock_quantity: stock ? Number(stock) : 0,
+        price_per_unit: pricePerUnit ? Number(pricePerUnit) : 0,
       });
       if (ok) {
         setName("");
@@ -169,7 +177,7 @@ export default function MaterialsPage() {
 
       <div className="flex flex-wrap gap-3">
         <button
-          onClick={() => { setShowAddMaterial(true); setShowPurchase(false); setSubmitError(null); setEditingMaterialId(null); setName(""); setStock(""); }}
+          onClick={() => { setShowAddMaterial(true); setShowPurchase(false); setSubmitError(null); setEditingMaterialId(null); setName(""); setStock(""); setPricePerUnit(""); }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30"
         >
           <Plus className="w-4 h-4" /> {t("materialsAddMaterial")}
@@ -209,9 +217,15 @@ export default function MaterialsPage() {
                 </select>
               </div>
             </div>
-            <div>
-              <label className="block text-sm text-theme-muted mb-1">{t("materialsInitialStock")}</label>
-              <input type="number" min={0} step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-theme-muted mb-1">{t("materialsInitialStock")}</label>
+                <input type="number" min={0} step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" />
+              </div>
+              <div>
+                <label className="block text-sm text-theme-muted mb-1">Price / Unit (Rs) <span className="text-blue-400">(for auto-calc)</span></label>
+                <input type="number" min={0} step="0.01" value={pricePerUnit} onChange={(e) => setPricePerUnit(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" placeholder="0.00" />
+              </div>
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={saving} className="px-4 py-2.5 rounded-xl bg-green-600 text-theme font-medium disabled:opacity-50">{saving ? t("materialsSaving") : editingMaterialId ? t("update") : t("save")}</button>
@@ -286,8 +300,11 @@ export default function MaterialsPage() {
                         <td className="px-4 py-2.5">
                           <span className={(m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD ? "text-amber-400 font-medium" : ""}>{(m.stock_quantity || m.currentStock || 0)} {m.unit}</span>
                         </td>
+                        <td className="px-4 py-2.5 text-theme-muted text-xs">
+                          {m.price_per_unit ? `Rs ${m.price_per_unit}/${m.unit}` : "—"}
+                        </td>
                         <td className="px-4 py-2.5 flex gap-1">
-                          <button type="button" onClick={() => { setName(m.name); setCategory(m.category as MaterialCategory); setUnit(m.unit as MaterialUnit); setStock(String((m.stock_quantity || m.currentStock || 0) ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-white/10 rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => { setName(m.name); setCategory(m.category as MaterialCategory); setUnit(m.unit as MaterialUnit); setStock(String((m.stock_quantity || m.currentStock || 0) ?? 0)); setPricePerUnit(String(m.price_per_unit || "")); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-white/10 rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
                           <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="p-1.5 text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
                         </td>
                       </tr>
