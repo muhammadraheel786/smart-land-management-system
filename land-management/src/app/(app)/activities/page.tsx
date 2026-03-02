@@ -1,30 +1,117 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { Plus, Search, Filter, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp, Droplet, DollarSign, Leaf, ShoppingCart } from "lucide-react";
-
-// Inline Card Component 
-function Card({ children, className = '' }: { children: React.ReactNode, className?: string }) {
-    return <div className={`bg-theme-card rounded-2xl shadow-sm border border-theme ${className}`}>{children}</div>;
-}
-import { api } from "@/lib/api";
+import { useState, useEffect, useMemo } from "react";
+import {
+    Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
+    Droplet, DollarSign, Leaf, ShoppingCart, Users, Trash2, X,
+    CheckCircle, AlertCircle, Filter, ChevronDown, Package, BarChart3,
+    Calendar, FileText, Zap
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Activity, GeoFence, Material } from "@/types";
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
+function getAuthHeaders(): Record<string, string> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+}
+
+async function apiFetch(path: string, opts?: RequestInit) {
+    const res = await fetch(`${API_URL}${path}`, { ...opts, headers: { ...getAuthHeaders(), ...(opts?.headers ?? {}) } });
+    if (res.status === 204) return null;
+    return res.json();
+}
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+const ACTIVITY_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string }> = {
+    irrigation: { label: "Irrigation", icon: <Droplet className="w-4 h-4" />, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
+    fertilizer_application: { label: "Fertilizer", icon: <Leaf className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+    pesticide_spray: { label: "Pesticide Spray", icon: <Zap className="w-4 h-4" />, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+    seed_sowing: { label: "Seed Sowing", icon: <Sprout className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+    harvest: { label: "Harvest", icon: <TrendingUp className="w-4 h-4" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
+    material_purchase: { label: "Material Purchase", icon: <ShoppingCart className="w-4 h-4" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
+    labor: { label: "Labor", icon: <Users className="w-4 h-4" />, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+    expense: { label: "Other Expense", icon: <ArrowDownRight className="w-4 h-4" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
+    income: { label: "Other Income", icon: <ArrowUpRight className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+};
+
+// ─── Activity Badge ──────────────────────────────────────────────────────────
+
+function ActivityBadge({ type }: { type: string }) {
+    const meta = ACTIVITY_META[type] ?? { label: type, icon: <FileText className="w-4 h-4" />, color: "text-theme-muted", bg: "bg-theme-track", border: "border-theme" };
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${meta.color} ${meta.bg} ${meta.border}`}>
+            {meta.icon} {meta.label}
+        </span>
+    );
+}
+
+// ─── Stat Card ───────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, icon, gradient, textColor }: {
+    label: string; value: string; icon: React.ReactNode; gradient: string; textColor: string;
+}) {
+    return (
+        <div className={`relative overflow-hidden rounded-2xl p-6 border ${gradient}`}>
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-sm font-medium opacity-75 mb-1">{label}</p>
+                    <p className={`text-2xl font-bold ${textColor}`}>{value}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/10 backdrop-blur-sm">{icon}</div>
+            </div>
+            {/* Decorative blob */}
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full bg-white/5" />
+        </div>
+    );
+}
+
+// ─── Empty State ─────────────────────────────────────────────────────────────
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 border border-green-500/30 flex items-center justify-center mb-2">
+                <BarChart3 className="w-9 h-9 text-green-500" />
+            </div>
+            <h3 className="text-xl font-bold text-theme">No activities yet</h3>
+            <p className="text-theme-muted max-w-sm">Start recording your farm activities — irrigation, purchases, harvests, expenses and more.</p>
+            <button onClick={onAdd} className="mt-2 flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-all active:scale-95">
+                <Plus className="w-4 h-4" /> Record First Activity
+            </button>
+        </div>
+    );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
+
 export default function ActivitiesPage() {
-    const { isLoggedIn } = useAuth();
+    useAuth();
+
+    // Data
     const [activities, setActivities] = useState<Activity[]>([]);
     const [fields, setFields] = useState<GeoFence[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
+    const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // Filter
+    const [filterType, setFilterType] = useState<string>("all");
+
+    // Modal
+    const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
 
-    // Form State
-    const [activityType, setActivityType] = useState<Activity['activity_type']>('irrigation');
-    const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+    // Form fields
+    const [activityType, setActivityType] = useState<Activity["activity_type"]>("expense");
+    const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [fieldId, setFieldId] = useState("");
     const [materialId, setMaterialId] = useState("");
     const [quantity, setQuantity] = useState("");
@@ -32,344 +119,499 @@ export default function ActivitiesPage() {
     const [income, setIncome] = useState("");
     const [notes, setNotes] = useState("");
 
+    // Auto-calculate cost from material price × quantity
+    const selectedMaterial = useMemo(() => materials.find(m => m.id === materialId), [materials, materialId]);
+    const autoCalcCost = useMemo(() => {
+        if (!selectedMaterial || !quantity) return null;
+        const pricePerUnit = selectedMaterial.price_per_unit ?? 0;
+        if (!pricePerUnit) return null;
+        return (Number(quantity) * pricePerUnit).toFixed(2);
+    }, [selectedMaterial, quantity]);
+
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (autoCalcCost !== null && ["fertilizer_application", "pesticide_spray", "seed_sowing"].includes(activityType)) {
+            setCost(autoCalcCost);
+        }
+    }, [autoCalcCost, activityType]);
 
-    const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
-
+    // ── Fetch ──
     const fetchData = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
-            const headers: Record<string, string> = { "Content-Type": "application/json" };
-            if (token) headers["Authorization"] = `Bearer ${token}`;
-
-            const [actRes, fldRes, matRes] = await Promise.all([
-                fetch(`${API_URL}/api/activities`, { headers }).then(r => r.json()),
-                api.getFields(),
-                api.getMaterials()
+            const [acts, flds, mats] = await Promise.all([
+                apiFetch("/api/activities"),
+                apiFetch("/api/fields"),
+                apiFetch("/api/materials"),
             ]);
-
-            // Guard: ensure all responses are arrays before setting state
-            setActivities(Array.isArray(actRes) ? actRes : []);
-            setFields(Array.isArray(fldRes) ? fldRes : []);
-            setMaterials(Array.isArray(matRes) ? matRes : []);
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-            setActivities([]);
-            setFields([]);
-            setMaterials([]);
+            setActivities(Array.isArray(acts) ? acts : []);
+            setFields(Array.isArray(flds) ? flds : []);
+            setMaterials(Array.isArray(mats) ? mats : []);
+        } catch {
+            setActivities([]); setFields([]); setMaterials([]);
         } finally {
             setLoading(false);
         }
     };
 
+    useEffect(() => { fetchData(); }, []);
+
+    // ── Toast ──
+    const showToast = (type: "success" | "error", msg: string) => {
+        setToast({ type, msg });
+        setTimeout(() => setToast(null), 3500);
+    };
+
+    // ── Filtered list ──
+    const filtered = useMemo(() =>
+        filterType === "all" ? activities : activities.filter(a => a.activity_type === filterType),
+        [activities, filterType]
+    );
+
+    // ── Stats ──
+    const totalIncome = useMemo(() => activities.reduce((s, a) => s + (a.income || 0), 0), [activities]);
+    const totalExpense = useMemo(() => activities.reduce((s, a) => s + (a.cost || 0), 0), [activities]);
+    const netProfit = totalIncome - totalExpense;
+
+    // ── Reset form ──
+    const resetForm = () => {
+        setActivityType("expense"); setDate(new Date().toISOString().split("T")[0]);
+        setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setNotes("");
+    };
+
+    // ── Submit ──
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         try {
-            const payload: Partial<Activity> = {
+            const payload: Partial<Activity> & Record<string, unknown> = {
                 activity_type: activityType,
-                date: date,
-                notes: notes,
+                date,
+                notes,
             };
-
             if (fieldId) payload.field_id = fieldId;
             if (materialId) payload.material_id = materialId;
             if (quantity) payload.quantity_used = Number(quantity);
             if (cost) payload.cost = Number(cost);
             if (income) payload.income = Number(income);
 
-            const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
-            const headers: Record<string, string> = { "Content-Type": "application/json" };
-            if (token) headers["Authorization"] = `Bearer ${token}`;
-
-            await fetch(`${API_URL}/api/activities`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(payload),
-            });
-
-            setIsModalOpen(false);
-            resetForm();
-            fetchData();
-        } catch (error) {
-            console.error("Failed to save activity", error);
-            alert("Error saving. See console.");
+            const res = await apiFetch("/api/activities", { method: "POST", body: JSON.stringify(payload) });
+            if (res?.id || res?.activity_type) {
+                setOpen(false); resetForm(); fetchData();
+                showToast("success", "Activity recorded successfully!");
+            } else {
+                showToast("error", res?.error ?? "Failed to save activity.");
+            }
+        } catch {
+            showToast("error", "Network error. Please try again.");
         } finally {
             setSaving(false);
         }
     };
 
-    const resetForm = () => {
-        setActivityType('irrigation');
-        setDate(format(new Date(), "yyyy-MM-dd"));
-        setFieldId("");
-        setMaterialId("");
-        setQuantity("");
-        setCost("");
-        setIncome("");
-        setNotes("");
-    };
-
-    const deleteActivity = async (id: string) => {
-        if (!confirm("Delete this activity?")) return;
+    // ── Delete ──
+    const handleDelete = async (id: string) => {
         try {
-            const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
-            const headers: Record<string, string> = {};
-            if (token) headers["Authorization"] = `Bearer ${token}`;
-            await fetch(`${API_URL}/api/activities/${id}`, { method: "DELETE", headers });
-            fetchData();
-        } catch (error) {
-            console.error("Error deleting", error);
+            await apiFetch(`/api/activities/${id}`, { method: "DELETE" });
+            setDeleteId(null); fetchData();
+            showToast("success", "Activity deleted.");
+        } catch {
+            showToast("error", "Failed to delete.");
         }
     };
 
-    const getActivityIcon = (type: string) => {
-        switch (type) {
-            case 'irrigation': return <Droplet className="text-blue-500 w-5 h-5" />;
-            case 'fertilizer_application':
-            case 'pesticide_spray': return <Leaf className="text-emerald-500 w-5 h-5" />;
-            case 'seed_sowing': return <Sprout className="text-green-500 w-5 h-5" />;
-            case 'harvest': return <TrendingUp className="text-yellow-500 w-5 h-5" />;
-            case 'material_purchase': return <ShoppingCart className="text-purple-500 w-5 h-5" />;
-            case 'expense':
-            case 'labor': return <ArrowDownRight className="text-red-500 w-5 h-5" />;
-            case 'income': return <ArrowUpRight className="text-green-500 w-5 h-5" />;
-            default: return <Leaf className="text-theme-muted w-5 h-5" />;
-        }
-    };
-
-    const totalIncome = activities.reduce((acc, a) => acc + (a.income || 0), 0);
-    const totalExpense = activities.reduce((acc, a) => acc + (a.cost || 0), 0);
-    const netProfit = totalIncome - totalExpense;
+    // ── Which form fields to show ──
+    const needsField = ["irrigation", "fertilizer_application", "pesticide_spray", "seed_sowing", "harvest", "labor", "expense"].includes(activityType);
+    const needsMaterial = ["fertilizer_application", "pesticide_spray", "seed_sowing", "material_purchase"].includes(activityType);
+    const needsQuantity = ["fertilizer_application", "pesticide_spray", "seed_sowing", "material_purchase", "irrigation", "harvest"].includes(activityType);
+    const needsCost = ["material_purchase", "labor", "expense", "fertilizer_application", "pesticide_spray", "seed_sowing"].includes(activityType);
+    const needsIncome = ["harvest", "income"].includes(activityType);
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-8 h-[50vh]">
-                <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+            <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    <Loader2 className="h-7 w-7 animate-spin text-green-500" />
+                </div>
+                <p className="text-theme-muted text-sm">Loading activities...</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 animate-fade-in p-2 sm:p-4 max-w-7xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-theme">Farm Activities</h1>
-                    <p className="text-theme-muted mt-1">Unified ledger for all your farm operations</p>
+        <div className="min-h-screen bg-theme">
+            {/* ── Toast ── */}
+            {toast && (
+                <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-medium animate-fade-in
+          ${toast.type === "success"
+                        ? "bg-green-500/95 text-white border-green-400"
+                        : "bg-red-500/95 text-white border-red-400"}`}>
+                    {toast.type === "success" ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                    {toast.msg}
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl font-medium hover:shadow-lg hover:shadow-green-500/30 transition-all active:scale-95"
-                >
-                    <Plus className="w-5 h-5" />
-                    <span>New Activity</span>
-                </button>
-            </div>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-                <Card className="p-6 bg-gradient-to-br from-white to-green-50 dark:from-theme-card dark:to-green-950/20 border-green-500/20">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-theme-muted mb-1">Total Income</p>
-                            <h3 className="text-2xl font-bold text-green-500">Rs {totalIncome.toLocaleString()}</h3>
-                        </div>
-                        <div className="p-2.5 bg-green-500/10 rounded-xl"><ArrowUpRight className="w-5 h-5 text-green-500" /></div>
-                    </div>
-                </Card>
-                <Card className="p-6 bg-gradient-to-br from-white to-red-50 dark:from-theme-card dark:to-red-950/20 border-red-500/20">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-sm font-medium text-theme-muted mb-1">Total Expenses</p>
-                            <h3 className="text-2xl font-bold text-red-500">Rs {totalExpense.toLocaleString()}</h3>
-                        </div>
-                        <div className="p-2.5 bg-red-500/10 rounded-xl"><ArrowDownRight className="w-5 h-5 text-red-500" /></div>
-                    </div>
-                </Card>
-                <Card className="p-6 bg-gradient-to-br from-theme-card to-theme-card relative overflow-hidden">
-                    <div className="flex justify-between items-start relative z-10">
-                        <div>
-                            <p className="text-sm font-medium text-theme-muted mb-1">Net Profit</p>
-                            <h3 className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                Rs {netProfit.toLocaleString()}
-                            </h3>
-                        </div>
-                        <div className={`p-2.5 rounded-xl ${netProfit >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                            <DollarSign className={`w-5 h-5 ${netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`} />
-                        </div>
-                    </div>
-                </Card>
-            </div>
+            <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
 
-            <Card className="overflow-hidden bg-theme-card border-theme shadow-sm">
-                <div className="p-5 sm:p-6 border-b border-theme flex flex-col sm:flex-row gap-4 justify-between">
-                    <h2 className="text-lg font-bold text-theme">Activity Log</h2>
+                {/* ── Header ── */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+                                <BarChart3 className="w-5 h-5 text-white" />
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-theme tracking-tight">Farm Activities</h1>
+                        </div>
+                        <p className="text-theme-muted text-sm ml-[52px]">Unified ledger — income, expenses, operations & inventory</p>
+                    </div>
+                    <button
+                        onClick={() => { resetForm(); setOpen(true); }}
+                        className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-500 transition-all active:scale-95 whitespace-nowrap"
+                    >
+                        <Plus className="w-5 h-5" /> New Activity
+                    </button>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-theme-track/50 text-theme-muted uppercase text-xs">
-                            <tr>
-                                <th className="px-6 py-4 font-semibold">Activity</th>
-                                <th className="px-6 py-4 font-semibold">Date</th>
-                                <th className="px-6 py-4 font-semibold">Field / Material</th>
-                                <th className="px-6 py-4 font-semibold text-right">Financial Impact</th>
-                                <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-theme">
-                            {activities.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-theme-muted">
-                                        No activities recorded yet. Clean slate!
-                                    </td>
-                                </tr>
-                            ) : (
-                                activities.map(act => (
-                                    <tr key={act.id} className="hover:bg-theme-track/30 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-theme-track rounded-lg border border-theme">
-                                                    {getActivityIcon(act.activity_type)}
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-theme capitalize">{act.activity_type.replace('_', ' ')}</p>
-                                                    <p className="text-xs text-theme-muted max-w-[200px] truncate">{act.notes}</p>
+
+                {/* ── Stats ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <StatCard
+                        label="Total Income"
+                        value={`Rs ${totalIncome.toLocaleString()}`}
+                        icon={<ArrowUpRight className="w-5 h-5 text-white" />}
+                        gradient="bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500/50"
+                        textColor="text-white"
+                    />
+                    <StatCard
+                        label="Total Expenses"
+                        value={`Rs ${totalExpense.toLocaleString()}`}
+                        icon={<ArrowDownRight className="w-5 h-5 text-white" />}
+                        gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
+                        textColor="text-white"
+                    />
+                    <StatCard
+                        label="Net Profit"
+                        value={`Rs ${netProfit.toLocaleString()}`}
+                        icon={<DollarSign className="w-5 h-5 text-white" />}
+                        gradient={netProfit >= 0
+                            ? "bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500/50"
+                            : "bg-gradient-to-br from-orange-600 to-red-700 border-orange-500/50"}
+                        textColor="text-white"
+                    />
+                </div>
+
+                {/* ── Activity Log Table ── */}
+                <div className="rounded-2xl border border-theme bg-theme-card shadow-sm overflow-hidden">
+                    {/* Table Header */}
+                    <div className="px-6 py-4 border-b border-theme flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+                        <h2 className="text-base font-bold text-theme flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-theme-muted" /> Activity Log
+                            <span className="ml-1 px-2 py-0.5 rounded-full bg-theme-track border border-theme text-xs text-theme-muted font-medium">{activities.length}</span>
+                        </h2>
+                        {/* Filter */}
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted pointer-events-none" />
+                            <select
+                                value={filterType}
+                                onChange={e => setFilterType(e.target.value)}
+                                className="pl-8 pr-8 py-2 text-sm rounded-xl bg-theme-track border border-theme text-theme appearance-none focus:ring-2 focus:ring-green-500 focus:outline-none"
+                            >
+                                <option value="all">All Types</option>
+                                {Object.entries(ACTIVITY_META).map(([k, v]) => (
+                                    <option key={k} value={k}>{v.label}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted pointer-events-none" />
+                        </div>
+                    </div>
+
+                    {filtered.length === 0 ? (
+                        <EmptyState onAdd={() => { resetForm(); setOpen(true); }} />
+                    ) : (
+                        <>
+                            {/* Desktop Table */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-theme bg-theme-track/40 text-xs text-theme-muted uppercase tracking-wider">
+                                            <th className="px-6 py-3 text-left font-semibold">Activity</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Date</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Field</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Material / Qty</th>
+                                            <th className="px-4 py-3 text-right font-semibold">Cost</th>
+                                            <th className="px-4 py-3 text-right font-semibold">Income</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Notes</th>
+                                            <th className="px-4 py-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-theme">
+                                        {filtered.map(act => {
+                                            const field = fields.find(f => f.id === act.field_id);
+                                            const mat = materials.find(m => m.id === act.material_id);
+                                            return (
+                                                <tr key={act.id} className="hover:bg-theme-track/30 transition-colors group">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <ActivityBadge type={act.activity_type} />
+                                                    </td>
+                                                    <td className="px-4 py-4 whitespace-nowrap text-theme-muted text-xs">
+                                                        <span className="flex items-center gap-1">
+                                                            <Calendar className="w-3.5 h-3.5" />
+                                                            {act.date?.split("T")[0]}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-4 text-theme text-xs font-medium">
+                                                        {field?.name ?? <span className="text-theme-muted">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-xs">
+                                                        {mat ? (
+                                                            <span className="flex items-center gap-1 text-theme">
+                                                                <Package className="w-3 h-3 text-theme-muted" />
+                                                                {mat.name} {act.quantity_used ? `× ${act.quantity_used}` : ""}
+                                                            </span>
+                                                        ) : act.quantity_used ? (
+                                                            <span className="text-theme-muted">{act.quantity_used}</span>
+                                                        ) : <span className="text-theme-muted">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right whitespace-nowrap">
+                                                        {(act.cost ?? 0) > 0
+                                                            ? <span className="text-rose-400 font-semibold">- Rs {(act.cost ?? 0).toLocaleString()}</span>
+                                                            : <span className="text-theme-muted">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right whitespace-nowrap">
+                                                        {(act.income ?? 0) > 0
+                                                            ? <span className="text-emerald-400 font-semibold">+ Rs {(act.income ?? 0).toLocaleString()}</span>
+                                                            : <span className="text-theme-muted">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-4 max-w-[180px]">
+                                                        <p className="text-theme-muted text-xs truncate">{act.notes || "—"}</p>
+                                                    </td>
+                                                    <td className="px-4 py-4 text-right">
+                                                        <button
+                                                            onClick={() => setDeleteId(act.id)}
+                                                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="md:hidden divide-y divide-theme">
+                                {filtered.map(act => {
+                                    const field = fields.find(f => f.id === act.field_id);
+                                    const mat = materials.find(m => m.id === act.material_id);
+                                    return (
+                                        <div key={act.id} className="p-4 space-y-3">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <ActivityBadge type={act.activity_type} />
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-theme-muted">{act.date?.split("T")[0]}</span>
+                                                    <button onClick={() => setDeleteId(act.id)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-theme-muted">
-                                            {act.date?.split('T')[0]}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {act.field_id && <p className="text-theme">Field: <span className="font-medium">{fields.find(f => f.id === act.field_id)?.name || 'Unknown'}</span></p>}
-                                            {act.material_id && <p className="text-theme-muted text-xs mt-0.5">Material: {materials.find(m => m.id === act.material_id)?.name} ({act.quantity_used})</p>}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right font-medium">
-                                            {(act.cost || 0) > 0 && <span className="text-red-500 block">- Rs {act.cost?.toLocaleString()}</span>}
-                                            {(act.income || 0) > 0 && <span className="text-green-500 block">+ Rs {act.income?.toLocaleString()}</span>}
-                                            {((!act.cost || act.cost === 0) && (!act.income || act.income === 0)) && <span className="text-theme-muted">-</span>}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <button onClick={() => deleteActivity(act.id)} className="text-red-500 hover:text-red-600 text-sm font-medium">Delete</button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                {field && <div><span className="text-theme-muted">Field: </span><span className="text-theme font-medium">{field.name}</span></div>}
+                                                {mat && <div><span className="text-theme-muted">Material: </span><span className="text-theme">{mat.name} {act.quantity_used ? `×${act.quantity_used}` : ""}</span></div>}
+                                                {(act.cost ?? 0) > 0 && <div><span className="text-theme-muted">Cost: </span><span className="text-rose-400 font-semibold">Rs {(act.cost ?? 0).toLocaleString()}</span></div>}
+                                                {(act.income ?? 0) > 0 && <div><span className="text-theme-muted">Income: </span><span className="text-emerald-400 font-semibold">Rs {(act.income ?? 0).toLocaleString()}</span></div>}
+                                            </div>
+                                            {act.notes && <p className="text-xs text-theme-muted truncate">{act.notes}</p>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
                 </div>
-            </Card>
+            </div>
 
-            {/* Dynamic Activity Form Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-theme/80 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-                    <Card className="relative z-10 w-full max-w-lg bg-theme-card border-theme shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-theme shrink-0 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-theme">Record Activity</h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-theme-muted hover:text-red-500 transition-colors text-2xl leading-none">&times;</button>
+            {/* ══════════════ NEW ACTIVITY MODAL ══════════════ */}
+            {open && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+                    <div className="relative z-10 w-full sm:max-w-lg bg-theme-card rounded-t-3xl sm:rounded-2xl shadow-2xl border border-theme flex flex-col max-h-[92vh]">
+
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-theme shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                                    <Plus className="w-4 h-4 text-green-500" />
+                                </div>
+                                <h2 className="text-lg font-bold text-theme">Record Activity</h2>
+                            </div>
+                            <button onClick={() => setOpen(false)} className="p-2 rounded-xl hover:bg-theme-track text-theme-muted transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto">
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Modal Body */}
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
+                            {/* Activity Type */}
+                            <div>
+                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-2">Activity Type *</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {Object.entries(ACTIVITY_META).map(([k, v]) => (
+                                        <button
+                                            key={k} type="button"
+                                            onClick={() => { setActivityType(k as Activity["activity_type"]); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); }}
+                                            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-xs font-medium transition-all
+                        ${activityType === k
+                                                    ? `${v.bg} ${v.border} ${v.color} ring-2 ring-offset-1 ring-offset-theme-card ring-current`
+                                                    : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted"}`}
+                                        >
+                                            {v.icon} <span className="text-center leading-tight">{v.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Date */}
+                            <div>
+                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Date *</label>
+                                <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                                    className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                            </div>
+
+                            {/* Field */}
+                            {needsField && (
                                 <div>
-                                    <label className="block text-sm font-medium text-theme mb-1">Activity Type</label>
-                                    <select
-                                        value={activityType}
-                                        onChange={e => setActivityType(e.target.value as any)}
-                                        className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2.5 focus:ring-2 focus:ring-green-500"
-                                    >
-                                        <option value="irrigation">Irrigation</option>
-                                        <option value="fertilizer_application">Fertilizer Application</option>
-                                        <option value="pesticide_spray">Pesticide Spray</option>
-                                        <option value="seed_sowing">Seed Sowing</option>
-                                        <option value="harvest">Harvest</option>
-                                        <option value="material_purchase">Material Purchase</option>
-                                        <option value="labor">Labor</option>
-                                        <option value="expense">Other Expense</option>
-                                        <option value="income">Other Income</option>
+                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                        Field {activityType !== "expense" && "*"}
+                                    </label>
+                                    <select value={fieldId} onChange={e => setFieldId(e.target.value)}
+                                        required={activityType !== "expense" && activityType !== "income"}
+                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
+                                        <option value="">Select field...</option>
+                                        {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                                     </select>
                                 </div>
+                            )}
 
+                            {/* Material */}
+                            {needsMaterial && (
                                 <div>
-                                    <label className="block text-sm font-medium text-theme mb-1">Date</label>
-                                    <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                                        className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2.5" />
+                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Material *</label>
+                                    <select value={materialId} onChange={e => { setMaterialId(e.target.value); setQuantity(""); setCost(""); }}
+                                        required
+                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
+                                        <option value="">Select material...</option>
+                                        {materials.map(m => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.name} — {m.stock_quantity ?? m.currentStock ?? 0} {m.unit} in stock
+                                                {m.price_per_unit ? ` @ Rs ${m.price_per_unit}/${m.unit}` : ""}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {selectedMaterial?.price_per_unit && (
+                                        <p className="mt-1.5 text-xs text-blue-400 flex items-center gap-1">
+                                            <Zap className="w-3 h-3" /> Rs {selectedMaterial.price_per_unit} per {selectedMaterial.unit} — cost auto-calculated
+                                        </p>
+                                    )}
                                 </div>
+                            )}
 
-                                {/* Conditional Fields based on Activity Type */}
-
-                                {['irrigation', 'fertilizer_application', 'pesticide_spray', 'seed_sowing', 'harvest', 'labor', 'expense'].includes(activityType) && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-theme mb-1">Field</label>
-                                        <select value={fieldId} onChange={e => setFieldId(e.target.value)} required={activityType !== 'expense'}
-                                            className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2.5">
-                                            <option value="">Select a field...</option>
-                                            {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {['fertilizer_application', 'pesticide_spray', 'seed_sowing', 'material_purchase'].includes(activityType) && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-theme mb-1">Material</label>
-                                        <select value={materialId} onChange={e => setMaterialId(e.target.value)} required
-                                            className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2.5">
-                                            <option value="">Select material...</option>
-                                            {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.stock_quantity || m.currentStock || 0} in stock)</option>)}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {['fertilizer_application', 'pesticide_spray', 'seed_sowing', 'material_purchase', 'irrigation', 'harvest'].includes(activityType) && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-theme mb-1">
-                                            {activityType === 'irrigation' ? 'Duration (minutes)' :
-                                                activityType === 'harvest' ? 'Yield Quantity (kg)' : 'Quantity'}
-                                        </label>
-                                        <input type="number" min="0" step="0.01" value={quantity} onChange={e => setQuantity(e.target.value)} required={activityType !== 'irrigation'}
-                                            className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2.5" />
-                                    </div>
-                                )}
-
-                                {['material_purchase', 'labor', 'expense'].includes(activityType) && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-theme mb-1">Total Cost (Rs)</label>
-                                        <input type="number" min="0" value={cost} onChange={e => setCost(e.target.value)} required
-                                            className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2.5" />
-                                    </div>
-                                )}
-
-                                {['harvest', 'income'].includes(activityType) && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-theme mb-1">Total Income Generated (Rs)</label>
-                                        <input type="number" min="0" value={income} onChange={e => setIncome(e.target.value)} required
-                                            className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2.5" />
-                                    </div>
-                                )}
-
+                            {/* Quantity */}
+                            {needsQuantity && (
                                 <div>
-                                    <label className="block text-sm font-medium text-theme mb-1">Notes</label>
-                                    <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                                        className="w-full rounded-xl bg-theme-track border border-theme text-theme px-4 py-2" placeholder="Optional notes..."></textarea>
+                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                        {activityType === "irrigation" ? "Duration (minutes)" :
+                                            activityType === "harvest" ? "Yield Quantity (kg)" :
+                                                `Quantity ${selectedMaterial ? `(${selectedMaterial.unit})` : ""}`}
+                                        {activityType !== "irrigation" && " *"}
+                                    </label>
+                                    <input type="number" min="0" step="0.01" value={quantity}
+                                        onChange={e => setQuantity(e.target.value)}
+                                        required={activityType !== "irrigation"}
+                                        placeholder="0.00"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
                                 </div>
+                            )}
 
-                                <div className="pt-4 border-t border-theme sticky bottom-0 bg-theme-card flex gap-3">
-                                    <button type="submit" disabled={saving}
-                                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50">
-                                        {saving ? 'Saving...' : 'Save Activity'}
-                                    </button>
-                                    <button type="button" onClick={() => setIsModalOpen(false)}
-                                        className="flex-1 bg-theme-track text-theme hover:bg-theme-track/80 py-2.5 rounded-xl font-semibold transition-colors">
-                                        Cancel
-                                    </button>
+                            {/* Cost */}
+                            {needsCost && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                        Total Cost (Rs) *
+                                        {autoCalcCost && needsMaterial && <span className="ml-2 font-normal text-amber-400 normal-case">auto-calculated</span>}
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
+                                        <input type="number" min="0" step="0.01" value={cost}
+                                            onChange={e => setCost(e.target.value)}
+                                            required
+                                            placeholder="0.00"
+                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
+                        ${autoCalcCost && needsMaterial ? "border-amber-500/50 bg-amber-500/5" : "border-theme"}`} />
+                                    </div>
                                 </div>
-                            </form>
+                            )}
+
+                            {/* Income */}
+                            {needsIncome && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Income Generated (Rs) *</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
+                                        <input type="number" min="0" step="0.01" value={income}
+                                            onChange={e => setIncome(e.target.value)}
+                                            required
+                                            placeholder="0.00"
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            <div>
+                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Notes</label>
+                                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                                    placeholder="Optional description..."
+                                    className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm resize-none focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                            </div>
+
+                            {/* Submit */}
+                            <div className="flex gap-3 pt-2 pb-1">
+                                <button type="submit" disabled={saving}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/20">
+                                    {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><CheckCircle className="w-4 h-4" /> Save Activity</>}
+                                </button>
+                                <button type="button" onClick={() => setOpen(false)}
+                                    className="px-5 py-3 rounded-xl bg-theme-track border border-theme text-theme-muted hover:text-theme font-semibold transition-colors">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════════ DELETE CONFIRM MODAL ══════════════ */}
+            {deleteId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
+                    <div className="relative z-10 bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                            <Trash2 className="w-6 h-6 text-red-500" />
                         </div>
-                    </Card>
+                        <h3 className="text-lg font-bold text-theme text-center mb-2">Delete Activity?</h3>
+                        <p className="text-theme-muted text-sm text-center mb-6">This will also revert any stock quantity changes associated with this activity.</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => handleDelete(deleteId)}
+                                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-semibold transition-colors">
+                                Yes, Delete
+                            </button>
+                            <button onClick={() => setDeleteId(null)}
+                                className="flex-1 bg-theme-track border border-theme text-theme-muted hover:text-theme py-2.5 rounded-xl font-semibold transition-colors">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
