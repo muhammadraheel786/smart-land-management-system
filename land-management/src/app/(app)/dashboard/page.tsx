@@ -43,62 +43,41 @@ function getDateFilter(range: TimeRangeKey): (dateStr: string) => boolean {
 }
 
 // ── tiny mobile-only collapsible section ──────────────────────────────────────
-function Section({
-  title,
-  defaultOpen = true,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
+function Section({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
-    <div className="bg-theme-card border border-theme rounded-2xl overflow-hidden shadow-sm">
+    <div className="bg-theme-card border border-theme rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
       <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 md:py-4 text-left"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-theme-track/40 transition-colors group"
       >
-        <span className="text-sm md:text-base font-semibold text-theme">{title}</span>
-        {open ? (
-          <ChevronUp className="w-4 h-4 text-[var(--muted)] flex-shrink-0" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-[var(--muted)] flex-shrink-0" />
-        )}
+        <span className="text-[13px] font-bold text-theme uppercase tracking-widest">{title}</span>
+        <div className={`p-1 rounded-lg bg-theme-track/60 border border-theme transform transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>
+          <ChevronDown className="w-3.5 h-3.5 text-theme-muted group-hover:text-green-400" />
+        </div>
       </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
+      <div
+        className={`transition-all duration-300 ease-in-out ${isOpen ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+          }`}
+      >
+        <div className="px-5 pb-5 border-t border-theme/30 pt-4">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
 
 // ── compact stat chip ─────────────────────────────────────────────────────────
-function StatChip({
-  label,
-  value,
-  href,
-  color,
-}: {
-  label: string;
-  value: string | number;
-  href?: string;
-  color: "green" | "blue" | "yellow" | "red";
-}) {
-  const colorMap = {
-    green: { value: "text-green-400", bg: "bg-green-500/10" },
-    blue: { value: "text-blue-400", bg: "bg-blue-500/10" },
-    yellow: { value: "text-amber-400", bg: "bg-amber-500/10" },
-    red: { value: "text-red-400", bg: "bg-red-500/10" },
-  };
-  const c = colorMap[color];
-  const inner = (
-    <div className={`rounded-2xl border border-theme ${c.bg} p-3.5 min-w-[130px] flex-shrink-0 md:flex-shrink md:min-w-0`}>
-      <p className="text-xs text-[var(--muted)] mb-1 truncate">{label}</p>
-      <p className={`text-lg font-bold leading-tight ${c.value} truncate`}>{value}</p>
-    </div>
+function StatChip({ href, label, value, color }: { href: string; label: string; value: string; color: "green" | "blue" | "yellow" | "red" }) {
+  const colorCls = color === "green" ? "bg-green-500/10 text-green-400 border-green-500/20" : color === "blue" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : color === "yellow" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
+  return (
+    <Link href={href} className={`flex-shrink-0 flex flex-col justify-center px-4 py-2.5 rounded-2xl border ${colorCls} min-w-[130px] active:scale-95 transition-transform`}>
+      <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 mb-0.5 truncate">{label}</span>
+      <span className="text-sm font-black truncate">{value}</span>
+    </Link>
   );
-  if (href) return <Link href={href} className="block">{inner}</Link>;
-  return inner;
 }
 
 // ── quick-action pill ─────────────────────────────────────────────────────────

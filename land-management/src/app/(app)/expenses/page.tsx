@@ -172,17 +172,17 @@ function ExpensesContent() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-theme-card border border-theme rounded-2xl p-6">
-              <p className="text-[#8b949e] text-sm">{t("totalInvestment")}</p>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 scrollbar-none">
+            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+              <p className="text-[#8b949e] text-sm font-medium">{t("totalInvestment")}</p>
               <p className="text-2xl font-bold text-red-400">Rs {totalExp.toLocaleString()}</p>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-6">
-              <p className="text-[#8b949e] text-sm">{t("totalIncome")}</p>
+            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+              <p className="text-[#8b949e] text-sm font-medium">{t("totalIncome")}</p>
               <p className="text-2xl font-bold text-green-400">Rs {totalInc.toLocaleString()}</p>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-6">
-              <p className="text-[#8b949e] text-sm">{t("netProfit")}</p>
+            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+              <p className="text-[#8b949e] text-sm font-medium">{t("netProfit")}</p>
               <p className={`text-2xl font-bold ${netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
                 Rs {netProfit.toLocaleString()}
               </p>
@@ -289,33 +289,44 @@ function ExpensesContent() {
               {combinedRecords.length === 0 ? (
                 <p className="text-[#8b949e] py-8">{t("expensesNoRecordsYet")}</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {combinedRecords.map((r) => (
-                    <div key={r.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${r._t === "expense" ? "bg-red-500/10 border-red-500/20" : "bg-green-500/10 border-green-500/20"}`}>
+                    <div key={r.id} className={`flex items-center justify-between gap-3 p-4 rounded-2xl border transition-all active:scale-[0.98] ${r._t === "expense" ? "bg-red-500/5 border-red-500/10" : "bg-green-500/5 border-green-500/10"}`}>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-theme">{fields.find((f) => f.id === r.fieldId)?.name ?? t("field")}</p>
-                        <p className="text-xs text-[#8b949e]">{format(new Date(r.date), "MMM d, yyyy")} • {r._t === "expense" ? t(expenseCategories.find((c) => c.value === (r as Expense).category)?.labelKey as keyof typeof t) || (r as Expense).category : (r as Income).type === "crop" ? t("expensesCropIncome") : t("expensesThakaIncome")}</p>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="font-bold text-theme truncate">{fields.find((f) => f.id === r.fieldId)?.name ?? t("field")}</p>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${r._t === "expense" ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                            {r._t === "expense" ? t("expShort") : t("incShort")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#8b949e] font-medium flex items-center gap-2">
+                          <span className="opacity-70">{format(new Date(r.date), "MMM d, yyyy")}</span>
+                          <span className="w-1 h-1 rounded-full bg-theme-muted/30" />
+                          <span className="truncate">{r._t === "expense" ? t(expenseCategories.find((c) => c.value === (r as Expense).category)?.labelKey as keyof typeof t) || (r as Expense).category : (r as Income).type === "crop" ? t("expensesCropIncome") : t("expensesThakaIncome")}</span>
+                        </p>
                       </div>
-                      <p className={`font-semibold shrink-0 ${r._t === "expense" ? "text-red-400" : "text-green-400"}`}>
-                        {r._t === "expense" ? "−" : "+"} Rs {r.amount.toLocaleString()}
-                      </p>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => { setTab(r._t); setEditingId(r.id); setEditingType(r._t); setSubmitError(null); setSuccess(false); }}
-                          className="p-2 rounded-lg text-[#8b949e] hover:text-theme hover:bg-white/10 transition"
-                          title={t("edit")}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setDeleteConfirmId(r.id); setDeleteConfirmType(r._t); }}
-                          className="p-2 rounded-lg text-[#8b949e] hover:text-red-400 hover:bg-red-500/10 transition"
-                          title={t("delete")}
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
+                      <div className="flex items-center gap-3">
+                        <p className={`font-black text-sm shrink-0 ${r._t === "expense" ? "text-red-400" : "text-green-400"}`}>
+                          {r._t === "expense" ? "−" : "+"}Rs {r.amount.toLocaleString()}
+                        </p>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => { setTab(r._t); setEditingId(r.id); setEditingType(r._t); setSubmitError(null); setSuccess(false); }}
+                            className="p-2 rounded-xl text-[#8b949e] hover:text-theme hover:bg-theme-track transition-colors"
+                            title={t("edit")}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setDeleteConfirmId(r.id); setDeleteConfirmType(r._t); }}
+                            className="p-2 rounded-xl text-[#8b949e] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title={t("delete")}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

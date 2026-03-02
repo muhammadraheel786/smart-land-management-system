@@ -5,7 +5,7 @@ import {
     Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
     Droplet, DollarSign, Leaf, ShoppingCart, Users, Trash2, X,
     CheckCircle, AlertCircle, Filter, ChevronDown, Package, BarChart3,
-    Calendar, FileText, Zap
+    Calendar, FileText, Zap, Map as MapIcon
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Activity, GeoFence, Material } from "@/types";
@@ -272,30 +272,36 @@ export default function ActivitiesPage() {
                 </div>
 
                 {/* ── Stats ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <StatCard
-                        label="Total Income"
-                        value={`Rs ${totalIncome.toLocaleString()}`}
-                        icon={<ArrowUpRight className="w-5 h-5 text-white" />}
-                        gradient="bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500/50"
-                        textColor="text-white"
-                    />
-                    <StatCard
-                        label="Total Expenses"
-                        value={`Rs ${totalExpense.toLocaleString()}`}
-                        icon={<ArrowDownRight className="w-5 h-5 text-white" />}
-                        gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
-                        textColor="text-white"
-                    />
-                    <StatCard
-                        label="Net Profit"
-                        value={`Rs ${netProfit.toLocaleString()}`}
-                        icon={<DollarSign className="w-5 h-5 text-white" />}
-                        gradient={netProfit >= 0
-                            ? "bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500/50"
-                            : "bg-gradient-to-br from-orange-600 to-red-700 border-orange-500/50"}
-                        textColor="text-white"
-                    />
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 scrollbar-none">
+                    <div className="flex-shrink-0 w-[240px] sm:w-full">
+                        <StatCard
+                            label="Total Income"
+                            value={`Rs ${totalIncome.toLocaleString()}`}
+                            icon={<ArrowUpRight className="w-5 h-5 text-white" />}
+                            gradient="bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500/50"
+                            textColor="text-white"
+                        />
+                    </div>
+                    <div className="flex-shrink-0 w-[240px] sm:w-full">
+                        <StatCard
+                            label="Total Expenses"
+                            value={`Rs ${totalExpense.toLocaleString()}`}
+                            icon={<ArrowDownRight className="w-5 h-5 text-white" />}
+                            gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
+                            textColor="text-white"
+                        />
+                    </div>
+                    <div className="flex-shrink-0 w-[240px] sm:w-full">
+                        <StatCard
+                            label="Net Profit"
+                            value={`Rs ${netProfit.toLocaleString()}`}
+                            icon={<DollarSign className="w-5 h-5 text-white" />}
+                            gradient={netProfit >= 0
+                                ? "bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500/50"
+                                : "bg-gradient-to-br from-orange-600 to-red-700 border-orange-500/50"}
+                            textColor="text-white"
+                        />
+                    </div>
                 </div>
 
                 {/* ── Activity Log Table ── */}
@@ -398,29 +404,59 @@ export default function ActivitiesPage() {
                                 </table>
                             </div>
 
-                            {/* Mobile Cards */}
+                            {/* Mobile Cards - App-like experience */}
                             <div className="md:hidden divide-y divide-theme">
                                 {filtered.map(act => {
                                     const field = fields.find(f => f.id === act.field_id);
                                     const mat = materials.find(m => m.id === act.material_id);
+                                    const meta = ACTIVITY_META[act.activity_type];
                                     return (
-                                        <div key={act.id} className="p-4 space-y-3">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <ActivityBadge type={act.activity_type} />
+                                        <div key={act.id} className="p-4 space-y-2.5 active:bg-theme-track/50 transition-colors">
+                                            <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-theme-muted">{act.date?.split("T")[0]}</span>
-                                                    <button onClick={() => setDeleteId(act.id)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10">
-                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    <div className={`p-1.5 rounded-lg ${meta?.bg || "bg-theme-track"} border ${meta?.border || "border-theme"}`}>
+                                                        {meta?.icon || <FileText className="w-4 h-4 text-theme-muted" />}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-theme leading-tight">{meta?.label || act.activity_type}</h4>
+                                                        <p className="text-[10px] text-theme-muted">{act.date?.split("T")[0]}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="text-right mr-1">
+                                                        {(act.income ?? 0) > 0 && <p className="text-[13px] font-bold text-green-400">+Rs {(act.income ?? 0).toLocaleString()}</p>}
+                                                        {(act.cost ?? 0) > 0 && <p className="text-[13px] font-bold text-red-400">-Rs {(act.cost ?? 0).toLocaleString()}</p>}
+                                                    </div>
+                                                    <button onClick={() => setDeleteId(act.id)} className="p-2 rounded-xl text-theme-muted hover:text-red-500 hover:bg-red-500/10 transition-colors">
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                                {field && <div><span className="text-theme-muted">Field: </span><span className="text-theme font-medium">{field.name}</span></div>}
-                                                {mat && <div><span className="text-theme-muted">Material: </span><span className="text-theme">{mat.name} {act.quantity_used ? `×${act.quantity_used}` : ""}</span></div>}
-                                                {(act.cost ?? 0) > 0 && <div><span className="text-theme-muted">Cost: </span><span className="text-rose-400 font-semibold">Rs {(act.cost ?? 0).toLocaleString()}</span></div>}
-                                                {(act.income ?? 0) > 0 && <div><span className="text-theme-muted">Income: </span><span className="text-emerald-400 font-semibold">Rs {(act.income ?? 0).toLocaleString()}</span></div>}
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                {field && (
+                                                    <div className="flex items-center gap-1 text-[11px] text-theme-muted">
+                                                        <MapIcon className="w-3 h-3" />
+                                                        <span className="font-medium text-theme">{field.name}</span>
+                                                    </div>
+                                                )}
+                                                {mat && (
+                                                    <div className="flex items-center gap-1 text-[11px] text-theme-muted">
+                                                        <Package className="w-3 h-3" />
+                                                        <span className="text-theme">{mat.name} {act.quantity_used ? `× ${act.quantity_used}` : ""}</span>
+                                                    </div>
+                                                )}
+                                                {act.quantity_used && !mat && (
+                                                    <div className="flex items-center gap-1 text-[11px] text-theme-muted">
+                                                        <BarChart3 className="w-3 h-3" />
+                                                        <span className="text-theme">{act.quantity_used} units</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            {act.notes && <p className="text-xs text-theme-muted truncate">{act.notes}</p>}
+                                            {act.notes && (
+                                                <p className="text-[11px] text-theme-muted bg-theme-track/40 p-2 rounded-lg border border-theme/30 italic">
+                                                    "{act.notes}"
+                                                </p>
+                                            )}
                                         </div>
                                     );
                                 })}

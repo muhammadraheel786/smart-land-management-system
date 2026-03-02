@@ -157,21 +157,23 @@ export default function MaterialsPage() {
         <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-4 text-green-200">{success}</div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-sm">{t("materialsTotalItems")}</p>
+      <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 scrollbar-none">
+        <div className="flex-shrink-0 w-[220px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+          <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("materialsTotalItems")}</p>
           <p className="text-2xl font-bold text-theme">{materials.length}</p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-sm">{t("materialsTotalTransactions")}</p>
+        <div className="flex-shrink-0 w-[220px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+          <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("materialsTotalTransactions")}</p>
           <p className="text-2xl font-bold text-blue-400">{materialTransactions.length}</p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-sm">{t("materialsLowStock")}</p>
-          <p className={`text-2xl font-bold ${lowStockCount > 0 ? "text-amber-400" : "text-theme"}`}>
-            {lowStockCount}
-            {lowStockCount > 0 && <AlertTriangle className="w-5 h-5 inline-block ml-1 align-middle" />}
-          </p>
+        <div className="flex-shrink-0 w-[220px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+          <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("materialsLowStock")}</p>
+          <div className="flex items-center gap-2">
+            <p className={`text-2xl font-bold ${lowStockCount > 0 ? "text-amber-400" : "text-theme"}`}>
+              {lowStockCount}
+            </p>
+            {lowStockCount > 0 && <AlertTriangle className="w-5 h-5 text-amber-400" />}
+          </div>
         </div>
       </div>
 

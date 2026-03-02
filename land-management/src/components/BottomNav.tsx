@@ -25,13 +25,7 @@ export default function BottomNav() {
 
     return (
         <div
-            className="md:hidden fixed bottom-0 left-0 right-0 z-[40]"
-            style={{
-                background: "var(--card)",
-                borderTop: "1px solid var(--border)",
-                boxShadow: "0 -2px 16px rgba(0,0,0,0.12)",
-                paddingBottom: "max(env(safe-area-inset-bottom), 6px)",
-            }}
+            className="md:hidden fixed bottom-0 left-0 right-0 z-[40] glass-effect border-t border-theme shadow-[0_-4px_20px_rgba(0,0,0,0.15)] pb-safe"
         >
             <div className="flex items-stretch justify-around">
                 {navItems.map((item) => {

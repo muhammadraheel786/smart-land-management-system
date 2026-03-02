@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLandStore } from "@/lib/store";
-import { Map, ChevronRight, Search, BarChart2 } from "lucide-react";
+import { Map as MapIcon, ChevronRight, Search, BarChart2, Droplets, Thermometer } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 
 type SortKey = "name" | "area" | "profit" | "status";
@@ -80,21 +80,21 @@ export default function FieldsPage() {
         </div>
       ) : fields.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-theme-card border border-theme rounded-2xl p-5">
-              <p className="text-theme-muted text-sm">{t("fieldsCount")}</p>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 scrollbar-none">
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("fieldsCount")}</p>
               <p className="text-2xl font-bold text-theme">{fields.length}</p>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-5">
-              <p className="text-theme-muted text-sm">{t("totalLandArea")}</p>
-              <p className="text-2xl font-bold text-theme">{totals.totalArea.toFixed(1)} {t("acres")}</p>
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("totalLandArea")}</p>
+              <p className="text-2xl font-bold text-theme">{totals.totalArea.toFixed(1)} <span className="text-sm font-normal text-theme-muted">{t("acres")}</span></p>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-5">
-              <p className="text-theme-muted text-sm">{t("totalInvestment")}</p>
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("totalInvestment")}</p>
               <p className="text-2xl font-bold text-red-400">Rs {totals.totalExp.toLocaleString()}</p>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-5">
-              <p className="text-theme-muted text-sm">{t("netProfit")}</p>
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("netProfit")}</p>
               <p className={`text-2xl font-bold ${totals.netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
                 Rs {totals.netProfit.toLocaleString()}
               </p>
@@ -135,27 +135,48 @@ export default function FieldsPage() {
             <Link
               key={f.id}
               href={`/fields/${f.id}`}
-              className="bg-theme-card border border-theme rounded-2xl p-6 hover:border-green-500/50 transition group"
+              className="bg-theme-card border border-theme rounded-2xl p-5 hover:border-green-500/50 transition-all group active:scale-[0.98]"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-2 rounded-lg bg-green-500/20">
-                  <Map className="w-5 h-5 text-green-400" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20 group-hover:bg-green-500/20 transition-colors">
+                    <MapIcon className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-theme leading-tight group-hover:text-green-400 transition-colors">{f.name}</h3>
+                    <p className="text-[11px] text-theme-muted font-medium uppercase tracking-wider">
+                      {f.area?.toFixed(1) ?? "—"} {t("acres")} • {t(f.status as keyof typeof t) || f.status}
+                    </p>
+                  </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-theme-muted group-hover:text-green-400 transition" />
+                <ChevronRight className="w-5 h-5 text-theme-muted group-hover:text-green-400 transition-transform group-hover:translate-x-1" />
               </div>
-              <h3 className="font-semibold text-theme mb-1">{f.name}</h3>
-              <p className="text-sm text-theme-muted mb-4">
-                {f.area?.toFixed(1) ?? "—"} {t("acres")} • {t(f.status as keyof typeof t) || f.status}
-              </p>
-              <div className="flex flex-wrap gap-3 text-sm">
-                <span className="text-red-400">Rs {exp.toLocaleString()} {t("expShort")}</span>
-                <span className="text-green-400">Rs {inc.toLocaleString()} {t("incShort")}</span>
-                <span className={profit >= 0 ? "text-green-400" : "text-red-400"}>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-theme-track/40 p-3 rounded-xl border border-theme/30">
+                  <p className="text-[10px] text-theme-muted font-bold uppercase mb-1">{t("expShort")}</p>
+                  <p className="text-sm font-black text-red-400">Rs {exp.toLocaleString()}</p>
+                </div>
+                <div className="bg-theme-track/40 p-3 rounded-xl border border-theme/30">
+                  <p className="text-[10px] text-theme-muted font-bold uppercase mb-1">{t("incShort")}</p>
+                  <p className="text-sm font-black text-green-400">Rs {inc.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-theme/30 pt-3">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-xs text-theme-muted font-medium">
+                    <Droplets className="w-3.5 h-3.5 text-blue-400" />
+                    {waterCount}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-theme-muted font-medium">
+                    <Thermometer className="w-3.5 h-3.5 text-orange-400" />
+                    {tempCount}
+                  </div>
+                </div>
+                <div className={`text-xs font-black px-2 py-1 rounded-lg ${profit >= 0 ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
                   Rs {profit.toLocaleString()} {t("netShort")}
-                </span>
-              </div>
-              <div className="mt-2 text-xs text-theme-muted">
-                {waterCount} {t("waterShort")} • {tempCount} {t("tempShort")}
+                </div>
               </div>
             </Link>
           ))}
@@ -170,7 +191,7 @@ export default function FieldsPage() {
 
       {!loading && fields.length === 0 && (
         <div className="text-center py-16 text-theme-muted">
-          <Map className="w-16 h-16 mx-auto mb-4 opacity-50" />
+          <MapIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p>{t("fieldAnalyticsNoFields")}</p>
           <Link href="/map" className="mt-4 inline-block text-green-400 hover:underline">{t("goToMap")}</Link>
         </div>

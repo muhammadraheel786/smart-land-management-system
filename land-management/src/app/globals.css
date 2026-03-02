@@ -269,14 +269,51 @@ body {
 
 /* ── Mobile-first utilities ──────────────────────────────────── */
 
-/* Hide scrollbar but keep scroll functionality */
-.scrollbar-none {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* Mobile-first improvements */
+@media (max-width: 640px) {
+  .pb-safe {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+    /* Prevent iOS zoom */
+  }
+
+  /* Optimized containers */
+  .container-app {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Tap targets */
+  button,
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
+/* Hide scrollbar but keep scroll functionality */
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Glassmorphism utility */
+.glass-effect {
+  background: rgba(var(--theme-card-rgb, 13, 17, 23), 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Touch-friendly tap areas (no gap accent flash on iOS) */
