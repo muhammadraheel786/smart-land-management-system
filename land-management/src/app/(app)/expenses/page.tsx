@@ -172,12 +172,12 @@ function ExpensesContent() {
         </div>
       ) : (
         <>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 scrollbar-none">
-            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+          <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 scrollbar-none snap-x">
+            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6 snap-start">
               <p className="text-[#8b949e] text-sm font-medium">{t("totalInvestment")}</p>
               <p className="text-2xl font-bold text-red-400">Rs {totalExp.toLocaleString()}</p>
             </div>
-            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
+            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6 snap-start">
               <p className="text-[#8b949e] text-sm font-medium">{t("totalIncome")}</p>
               <p className="text-2xl font-bold text-green-400">Rs {totalInc.toLocaleString()}</p>
             </div>

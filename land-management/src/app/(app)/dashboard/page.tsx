@@ -50,10 +50,10 @@ function Section({ title, children, defaultOpen = true }: { title: string; child
     <div className="bg-theme-card border border-theme rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-theme-track/40 transition-colors group"
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-theme-track/40 transition-colors group"
       >
-        <span className="text-[13px] font-bold text-theme uppercase tracking-widest">{title}</span>
-        <div className={`p-1 rounded-lg bg-theme-track/60 border border-theme transform transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>
+        <span className="text-xs font-bold text-theme uppercase tracking-widest truncate">{title}</span>
+        <div className={`p-1 rounded-lg bg-theme-track/60 border border-theme transform transition-transform duration-300 flex-shrink-0 ml-2 ${isOpen ? "rotate-180" : ""}`}>
           <ChevronDown className="w-3.5 h-3.5 text-theme-muted group-hover:text-green-400" />
         </div>
       </button>
@@ -61,7 +61,7 @@ function Section({ title, children, defaultOpen = true }: { title: string; child
         className={`transition-all duration-300 ease-in-out ${isOpen ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
           }`}
       >
-        <div className="px-5 pb-5 border-t border-theme/30 pt-4">
+        <div className="px-4 pb-4 border-t border-theme/30 pt-3">
           {children}
         </div>
       </div>
@@ -73,7 +73,7 @@ function Section({ title, children, defaultOpen = true }: { title: string; child
 function StatChip({ href, label, value, color }: { href: string; label: string; value: string; color: "green" | "blue" | "yellow" | "red" }) {
   const colorCls = color === "green" ? "bg-green-500/10 text-green-400 border-green-500/20" : color === "blue" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : color === "yellow" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
   return (
-    <Link href={href} className={`flex-shrink-0 flex flex-col justify-center px-4 py-2.5 rounded-2xl border ${colorCls} min-w-[130px] active:scale-95 transition-transform`}>
+    <Link href={href} className={`flex-shrink-0 flex flex-col justify-center px-4 py-2.5 rounded-2xl border ${colorCls} min-w-[120px] active:scale-95 transition-transform scroll-ml-4`}>
       <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 mb-0.5 truncate">{label}</span>
       <span className="text-sm font-black truncate">{value}</span>
     </Link>
@@ -85,10 +85,10 @@ function QuickAction({ href, icon: Icon, label, color }: { href: string; icon: R
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-theme-track border border-theme hover:border-green-500/40 hover:bg-green-500/5 transition-all active:scale-95 min-w-[72px] flex-shrink-0"
+      className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-theme-track border border-theme hover:border-green-500/40 hover:bg-green-500/5 transition-all active:scale-95 min-w-[72px] flex-shrink-0 scroll-ml-4"
     >
       <Icon className={`w-5 h-5 ${color}`} />
-      <span className="text-[10px] font-semibold text-[var(--muted)] text-center leading-tight">{label}</span>
+      <span className="text-[10px] font-semibold text-[var(--muted)] text-center leading-tight truncate px-1 max-w-[70px]">{label}</span>
     </Link>
   );
 }
@@ -180,14 +180,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-3 md:space-y-6">
+    <div className="space-y-4 md:space-y-6">
 
       {/* ── PAGE HEADER ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-3xl font-bold text-theme leading-tight">{t("dashboard")}</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-theme leading-tight truncate">{t("dashboard")}</h1>
           {lastUpdated && (
-            <p className="text-[10px] md:text-xs text-[var(--muted)] mt-0.5">
+            <p className="text-[10px] md:text-xs text-[var(--muted)] mt-0.5 truncate">
               {t("lastUpdated")}: {format(lastUpdated, "dd MMM, HH:mm")}
             </p>
           )}
@@ -196,7 +196,7 @@ export default function DashboardPage() {
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as TimeRangeKey)}
-            className="text-xs md:text-sm px-2 py-1.5 md:px-3 md:py-2 rounded-xl bg-theme-card border border-theme text-theme"
+            className="text-xs md:text-sm px-2 py-1.5 md:px-3 md:py-2 rounded-xl bg-theme-card border border-theme text-theme max-w-[150px] truncate"
           >
             <option value="all">{t("timeRangeAll")}</option>
             <option value="this_year">{t("timeRangeThisYear")}</option>
@@ -222,13 +222,15 @@ export default function DashboardPage() {
       )}
 
       {/* ── STAT CHIPS — horizontal scroll on mobile, grid on desktop ──── */}
-      <div className="flex gap-2.5 overflow-x-auto pb-1 md:hidden scrollbar-none -mx-3 px-3">
-        <StatChip href="/fields" label={t("totalLandArea")} value={`${totals.totalArea.toFixed(1)} ac`} color="green" />
-        <StatChip href="/expenses" label={t("totalInvestment")} value={`Rs ${totals.totalExp.toLocaleString()}`} color="blue" />
-        <StatChip href="/expenses?tab=income" label={t("totalIncome")} value={`Rs ${totals.totalInc.toLocaleString()}`} color="yellow" />
-        <StatChip href="/expenses" label={t("netProfit")} value={`Rs ${totals.netProfit.toLocaleString()}`} color={totals.netProfit >= 0 ? "green" : "red"} />
-        <StatChip href="/water" label={t("totalIrrigation")} value={`${totals.totalWaterMin} min`} color="blue" />
-        <StatChip href="/fields" label={t("fieldsCount")} value={`${fields.length} fields`} color="green" />
+      <div className="w-[calc(100%+24px)] -ml-3 md:ml-0 md:w-full md:hidden">
+        <div className="flex gap-2.5 overflow-x-auto pb-2 px-3 scrollbar-none snap-x pointer-events-auto">
+          <StatChip href="/fields" label={t("totalLandArea")} value={`${totals.totalArea.toFixed(1)} ac`} color="green" />
+          <StatChip href="/expenses" label={t("totalInvestment")} value={`Rs ${totals.totalExp.toLocaleString()}`} color="blue" />
+          <StatChip href="/expenses?tab=income" label={t("totalIncome")} value={`Rs ${totals.totalInc.toLocaleString()}`} color="yellow" />
+          <StatChip href="/expenses" label={t("netProfit")} value={`Rs ${totals.netProfit.toLocaleString()}`} color={totals.netProfit >= 0 ? "green" : "red"} />
+          <StatChip href="/water" label={t("totalIrrigation")} value={`${totals.totalWaterMin} min`} color="blue" />
+          <StatChip href="/fields" label={t("fieldsCount")} value={`${fields.length} fields`} color="green" />
+        </div>
       </div>
 
       {/* Desktop stat grid (unchanged from before) */}
@@ -257,37 +259,39 @@ export default function DashboardPage() {
 
       {/* ── QUICK ACTIONS — horizontal scroll on mobile ─────────────────── */}
       <div>
-        <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">{t("quickActions")}</p>
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible scrollbar-none">
-          <QuickAction href="/map" icon={Map} label={t("viewMap")} color="text-green-500" />
-          <QuickAction href="/activities" icon={Activity} label={t("activities")} color="text-emerald-500" />
-          <QuickAction href="/expenses" icon={Wallet} label={t("addExpense")} color="text-blue-500" />
-          <QuickAction href="/expenses?tab=income" icon={TrendingUp} label={t("addIncome")} color="text-green-500" />
-          <QuickAction href="/water" icon={Droplets} label={t("logWater")} color="text-cyan-500" />
-          <QuickAction href="/thaka" icon={ClipboardList} label={t("thakaRecords")} color="text-yellow-500" />
-          <QuickAction href="/field-recommendations" icon={Target} label={t("fieldRecommendations")} color="text-orange-500" />
-          <QuickAction href="/predictions" icon={BarChart3} label={t("predictions")} color="text-violet-500" />
-          <QuickAction href="/chatbot" icon={MessageSquare} label={t("askAI")} color="text-green-500" />
+        <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2 truncate">{t("quickActions")}</p>
+        <div className="w-[calc(100%+24px)] -ml-3 md:ml-0 md:w-full overflow-hidden">
+          <div className="flex gap-2 overflow-x-auto pb-2 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible scrollbar-none snap-x">
+            <QuickAction href="/map" icon={Map} label={t("viewMap")} color="text-green-500" />
+            <QuickAction href="/activities" icon={Activity} label={t("activities")} color="text-emerald-500" />
+            <QuickAction href="/expenses" icon={Wallet} label={t("addExpense")} color="text-blue-500" />
+            <QuickAction href="/expenses?tab=income" icon={TrendingUp} label={t("addIncome")} color="text-green-500" />
+            <QuickAction href="/water" icon={Droplets} label={t("logWater")} color="text-cyan-500" />
+            <QuickAction href="/thaka" icon={ClipboardList} label={t("thakaRecords")} color="text-yellow-500" />
+            <QuickAction href="/field-recommendations" icon={Target} label={t("fieldRecommendations")} color="text-orange-500" />
+            <QuickAction href="/predictions" icon={BarChart3} label={t("predictions")} color="text-violet-500" />
+            <QuickAction href="/chatbot" icon={MessageSquare} label={t("askAI")} color="text-green-500" />
+          </div>
         </div>
       </div>
 
       {/* ── LAND DISTRIBUTION + RECENT ACTIVITY (collapsed sections on mobile) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <Section title={t("landDistribution")}>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[
               { label: t("cultivated"), area: cultivatedArea, color: "bg-green-500", textColor: "text-green-400" },
               { label: t("onThaka"), area: thakaArea, color: "bg-blue-500", textColor: "text-blue-400" },
             ].map((row) => (
               <div key={row.label}>
-                <div className="flex justify-between items-center mb-1.5 text-sm">
-                  <span className="text-[var(--muted)]">{row.label}</span>
-                  <span className={`${row.textColor} font-medium text-xs`}>
+                <div className="flex justify-between items-center mb-1.5 text-sm gap-2">
+                  <span className="text-[var(--muted)] text-xs truncate flex-shrink-0 max-w-[50%]">{row.label}</span>
+                  <span className={`${row.textColor} font-medium text-xs flex-shrink-0 text-right`}>
                     {totals.totalArea ? ((row.area / totals.totalArea) * 100).toFixed(0) : 0}% — {row.area.toFixed(1)} {t("acres")}
                   </span>
                 </div>
-                <div className="w-full bg-theme-track rounded-full h-2">
-                  <div className={`h-2 rounded-full ${row.color} transition-all`}
+                <div className="w-full bg-theme-track rounded-full h-1.5">
+                  <div className={`h-1.5 rounded-full ${row.color} transition-all`}
                     style={{ width: `${totals.totalArea ? (row.area / totals.totalArea) * 100 : 0}%` }} />
                 </div>
               </div>
@@ -300,20 +304,20 @@ export default function DashboardPage() {
             <p className="text-[var(--muted)] text-sm">{t("noRecentActivity")}</p>
           ) : (
             <ul className="space-y-0 divide-y divide-theme">
-              {recentActivity.slice(0, 7).map((item) => (
-                <li key={item.id} className="flex justify-between items-center py-2 text-sm">
-                  <span className="text-[var(--muted)] text-xs">
+              {recentActivity.slice(0, 5).map((item) => (
+                <li key={item.id} className="flex justify-between items-center py-2.5 text-sm gap-2">
+                  <span className="text-[var(--muted)] text-xs flex-shrink-0 w-12 truncate">
                     {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM") : "—"}
                   </span>
-                  <span className={`font-semibold ${item.type === "income" ? "text-green-400" : "text-red-400"}`}>
+                  <span className={`font-semibold flex-1 text-right truncate ${item.type === "income" ? "text-green-400" : "text-red-400"}`}>
                     {item.type === "income" ? "+" : "−"} Rs {item.amount.toLocaleString()}
                   </span>
                 </li>
               ))}
             </ul>
           )}
-          <Link href="/expenses" className="flex items-center gap-1 text-xs text-green-500 hover:underline mt-2.5">
-            {t("expensesIncome")} <ArrowRight className="w-3 h-3" />
+          <Link href="/expenses" className="flex items-center gap-1 text-xs text-green-500 hover:text-green-400 font-medium transition-colors mt-3">
+            {t("expensesIncome")} <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </Section>
       </div>

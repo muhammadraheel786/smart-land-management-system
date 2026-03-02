@@ -80,20 +80,20 @@ export default function FieldsPage() {
         </div>
       ) : fields.length > 0 ? (
         <>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 scrollbar-none">
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+          <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 lg:grid-cols-4 scrollbar-none snap-x">
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
               <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("fieldsCount")}</p>
               <p className="text-2xl font-bold text-theme">{fields.length}</p>
             </div>
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
               <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("totalLandArea")}</p>
               <p className="text-2xl font-bold text-theme">{totals.totalArea.toFixed(1)} <span className="text-sm font-normal text-theme-muted">{t("acres")}</span></p>
             </div>
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
               <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("totalInvestment")}</p>
               <p className="text-2xl font-bold text-red-400">Rs {totals.totalExp.toLocaleString()}</p>
             </div>
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5">
+            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
               <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("netProfit")}</p>
               <p className={`text-2xl font-bold ${totals.netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
                 Rs {totals.netProfit.toLocaleString()}
@@ -181,21 +181,26 @@ export default function FieldsPage() {
             </Link>
           ))}
         </div>
-      )}
+      )
+      }
 
-      {!loading && fields.length > 0 && filteredAndSorted.length === 0 && (
-        <div className="text-center py-12 text-theme-muted">
-          <p>{t("noFieldsMatchSearch")}</p>
-        </div>
-      )}
+      {
+        !loading && fields.length > 0 && filteredAndSorted.length === 0 && (
+          <div className="text-center py-12 text-theme-muted">
+            <p>{t("noFieldsMatchSearch")}</p>
+          </div>
+        )
+      }
 
-      {!loading && fields.length === 0 && (
-        <div className="text-center py-16 text-theme-muted">
-          <MapIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <p>{t("fieldAnalyticsNoFields")}</p>
-          <Link href="/map" className="mt-4 inline-block text-green-400 hover:underline">{t("goToMap")}</Link>
-        </div>
-      )}
-    </div>
+      {
+        !loading && fields.length === 0 && (
+          <div className="text-center py-16 text-theme-muted">
+            <MapIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p>{t("fieldAnalyticsNoFields")}</p>
+            <Link href="/map" className="mt-4 inline-block text-green-400 hover:underline">{t("goToMap")}</Link>
+          </div>
+        )
+      }
+    </div >
   );
 }

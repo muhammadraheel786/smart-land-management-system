@@ -272,8 +272,8 @@ export default function ActivitiesPage() {
                 </div>
 
                 {/* ── Stats ── */}
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 scrollbar-none">
-                    <div className="flex-shrink-0 w-[240px] sm:w-full">
+                <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 scrollbar-none snap-x">
+                    <div className="flex-shrink-0 w-[240px] sm:w-full snap-start">
                         <StatCard
                             label="Total Income"
                             value={`Rs ${totalIncome.toLocaleString()}`}
@@ -282,7 +282,7 @@ export default function ActivitiesPage() {
                             textColor="text-white"
                         />
                     </div>
-                    <div className="flex-shrink-0 w-[240px] sm:w-full">
+                    <div className="flex-shrink-0 w-[240px] sm:w-full snap-start">
                         <StatCard
                             label="Total Expenses"
                             value={`Rs ${totalExpense.toLocaleString()}`}
@@ -291,7 +291,7 @@ export default function ActivitiesPage() {
                             textColor="text-white"
                         />
                     </div>
-                    <div className="flex-shrink-0 w-[240px] sm:w-full">
+                    <div className="flex-shrink-0 w-[240px] sm:w-full snap-start">
                         <StatCard
                             label="Net Profit"
                             value={`Rs ${netProfit.toLocaleString()}`}
