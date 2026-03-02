@@ -287,15 +287,6 @@ body {
     padding-left: 1rem;
     padding-right: 1rem;
   }
-
-  /* Tap targets */
-  button,
-  a {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
 }
 
 /* Hide scrollbar but keep scroll functionality */
