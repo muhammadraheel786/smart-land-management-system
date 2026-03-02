@@ -31,16 +31,15 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
-  { href: "/data-bank", icon: BookOpen, labelKey: "dataBank" },
-  { href: "/materials", icon: Package, labelKey: "materials" },
-  { href: "/field-recommendations", icon: Lightbulb, labelKey: "fieldRecommendations" },
-  { href: "/map", icon: Map, labelKey: "landMap" },
-  { href: "/expenses", icon: Wallet, labelKey: "expensesIncome" },
-  { href: "/thaka", icon: FileText, labelKey: "thakaManagement" },
-  { href: "/water", icon: Droplets, labelKey: "waterManagement" },
-  { href: "/temperature", icon: Thermometer, labelKey: "temperatureManagement" },
-  { href: "/statistics", icon: BarChart3, labelKey: "statistics" },
+  { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard", fallbackLabel: "Dashboard" },
+  { href: "/activities", icon: BookOpen, labelKey: "activities", fallbackLabel: "Activities" },
+  { href: "/materials", icon: Package, labelKey: "materials", fallbackLabel: "Materials" },
+  { href: "/field-recommendations", icon: Lightbulb, labelKey: "fieldRecommendations", fallbackLabel: "Field Recs" },
+  { href: "/map", icon: Map, labelKey: "landMap", fallbackLabel: "Map View" },
+  // Expenses and Water are now unified inside Activities
+  { href: "/thaka", icon: FileText, labelKey: "thakaManagement", fallbackLabel: "Lease (Thaka)" },
+  { href: "/temperature", icon: Thermometer, labelKey: "temperatureManagement", fallbackLabel: "Temperature" },
+  { href: "/statistics", icon: BarChart3, labelKey: "statistics", fallbackLabel: "Statistics" },
   { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics" },
   { href: "/predictions", icon: TrendingUp, labelKey: "predictions" },
   { href: "/satellite", icon: Satellite, labelKey: "satelliteMonitor" },
@@ -130,13 +129,13 @@ export default function Sidebar() {
                       }`}
                   >
                     <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110 group-hover:text-green-500"}`} />
-                    {!collapsed && <span className="truncate tracking-wide">{t(item.labelKey)}</span>}
+                    {!collapsed && <span className="truncate tracking-wide">{item.fallbackLabel || t(item.labelKey)}</span>}
                   </Link>
                   {/* Tooltip for collapsed desktop view */}
                   {collapsed && (
                     <div className="absolute left-[85px] top-1/2 -translate-y-1/2 hidden md:group-hover:flex items-center pointer-events-none z-[100] animate-fade-in">
                       <div className="bg-theme text-white border border-border px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
-                        {t(item.labelKey)}
+                        {item.fallbackLabel || t(item.labelKey)}
                       </div>
                     </div>
                   )}

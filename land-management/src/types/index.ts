@@ -147,10 +147,13 @@ export type MaterialUnit = 'kg' | 'L' | 'bag' | 'pack' | 'unit';
 export interface Material {
   id: string;
   name: string;
-  category: MaterialCategory;
-  unit: MaterialUnit;
-  currentStock: number;
-  createdAt?: string;
+  category: string;
+  unit: string;
+  stock_quantity: number;
+  price_per_unit?: number;
+  created_at?: string;
+  // Fallbacks for legacy components
+  currentStock?: number;
 }
 
 export type MaterialTransactionType = 'in' | 'out';
@@ -182,4 +185,30 @@ export interface DailyRegisterEntry {
   laborCost?: number;
   waterMinutes?: number;
   notes?: string;
+}
+
+// --- Unified Activities System ---
+
+export type ActivityType =
+  | 'irrigation'
+  | 'fertilizer_application'
+  | 'pesticide_spray'
+  | 'seed_sowing'
+  | 'harvest'
+  | 'material_purchase'
+  | 'labor'
+  | 'expense'
+  | 'income';
+
+export interface Activity {
+  id: string;
+  date: string;
+  field_id?: string;
+  activity_type: ActivityType;
+  material_id?: string;
+  quantity_used?: number;
+  cost?: number;
+  income?: number;
+  notes?: string;
+  created_at?: string;
 }

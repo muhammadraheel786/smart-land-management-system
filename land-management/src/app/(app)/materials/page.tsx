@@ -64,7 +64,7 @@ export default function MaterialsPage() {
     setSaving(true);
     try {
       if (editingMaterialId) {
-        await updateMaterial(editingMaterialId, { name: name.trim(), category, unit, currentStock: stock ? Number(stock) : 0 });
+        await updateMaterial(editingMaterialId, { name: name.trim(), category, unit, stock_quantity: stock ? Number(stock) : 0 });
         setEditingMaterialId(null);
         setName("");
         setStock("");
@@ -77,7 +77,7 @@ export default function MaterialsPage() {
         name: name.trim(),
         category,
         unit,
-        currentStock: stock ? Number(stock) : 0,
+        stock_quantity: stock ? Number(stock) : 0,
       });
       if (ok) {
         setName("");
@@ -127,7 +127,7 @@ export default function MaterialsPage() {
     }
   };
 
-  const lowStockCount = useMemo(() => materials.filter((m) => m.currentStock < LOW_STOCK_THRESHOLD).length, [materials]);
+  const lowStockCount = useMemo(() => materials.filter((m) => (m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD).length, [materials]);
   const recentTx = useMemo(() => [...materialTransactions].sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 30), [materialTransactions]);
 
   return (
@@ -231,7 +231,7 @@ export default function MaterialsPage() {
               <select value={purchaseMaterialId} onChange={(e) => setPurchaseMaterialId(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme">
                 <option value="">{t("materialsSelectMaterial")}</option>
                 {materials.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name} ({t("materialsCurrent")}: {m.currentStock} {m.unit})</option>
+                  <option key={m.id} value={m.id}>{m.name} ({t("materialsCurrent")}: {(m.stock_quantity || m.currentStock || 0)} {m.unit})</option>
                 ))}
               </select>
             </div>
@@ -280,14 +280,14 @@ export default function MaterialsPage() {
                     </tr>
                   ) : (
                     materials.map((m) => (
-                      <tr key={m.id} className={`border-b border-theme/50 hover:bg-theme-track ${m.currentStock < LOW_STOCK_THRESHOLD ? "bg-amber-500/5" : ""}`}>
+                      <tr key={m.id} className={`border-b border-theme/50 hover:bg-theme-track ${(m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD ? "bg-amber-500/5" : ""}`}>
                         <td className="px-4 py-2.5 font-medium">{m.name}</td>
                         <td className="px-4 py-2.5 capitalize">{m.category}</td>
                         <td className="px-4 py-2.5">
-                          <span className={m.currentStock < LOW_STOCK_THRESHOLD ? "text-amber-400 font-medium" : ""}>{m.currentStock} {m.unit}</span>
+                          <span className={(m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD ? "text-amber-400 font-medium" : ""}>{(m.stock_quantity || m.currentStock || 0)} {m.unit}</span>
                         </td>
                         <td className="px-4 py-2.5 flex gap-1">
-                          <button type="button" onClick={() => { setName(m.name); setCategory(m.category); setUnit(m.unit); setStock(String(m.currentStock ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-white/10 rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => { setName(m.name); setCategory(m.category as MaterialCategory); setUnit(m.unit as MaterialUnit); setStock(String((m.stock_quantity || m.currentStock || 0) ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-white/10 rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
                           <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="p-1.5 text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
                         </td>
                       </tr>
@@ -304,17 +304,17 @@ export default function MaterialsPage() {
                 </div>
               ) : (
                 materials.map((m) => (
-                  <div key={m.id} className={`bg-theme-card border rounded-xl p-4 shadow-sm flex items-center justify-between gap-2 ${m.currentStock < LOW_STOCK_THRESHOLD ? "border-amber-500/30 bg-amber-500/5" : "border-theme"}`}>
+                  <div key={m.id} className={`bg-theme-card border rounded-xl p-4 shadow-sm flex items-center justify-between gap-2 ${(m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD ? "border-amber-500/30 bg-amber-500/5" : "border-theme"}`}>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-theme truncate">{m.name}</p>
                       <p className="text-sm text-theme-muted capitalize mt-0.5">{m.category}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`text-sm font-bold ${m.currentStock < LOW_STOCK_THRESHOLD ? "text-amber-400" : "text-theme"}`}>
-                        {m.currentStock} {m.unit}
+                      <span className={`text-sm font-bold ${(m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD ? "text-amber-400" : "text-theme"}`}>
+                        {(m.stock_quantity || m.currentStock || 0)} {m.unit}
                       </span>
                       <div className="flex gap-1">
-                        <button type="button" onClick={() => { setName(m.name); setCategory(m.category); setUnit(m.unit); setStock(String(m.currentStock ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted bg-theme-track hover:text-theme border border-theme rounded-lg" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => { setName(m.name); setCategory(m.category as MaterialCategory); setUnit(m.unit as MaterialUnit); setStock(String((m.stock_quantity || m.currentStock || 0) ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted bg-theme-track hover:text-theme border border-theme rounded-lg" title={t("edit")}><Pencil className="w-4 h-4" /></button>
                         <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="p-1.5 text-red-500 hover:text-white bg-red-500/10 border border-red-500/20 rounded-lg" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>

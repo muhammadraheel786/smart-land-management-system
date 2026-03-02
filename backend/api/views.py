@@ -919,18 +919,24 @@ def dashboard(request):
 
     try:
         fields = list(get_collection("fields").find({}, {"_id": 0}))
-        expenses = list(get_collection("expenses").find({}, {"_id": 0}))
-        incomes = list(get_collection("incomes").find({}, {"_id": 0}))
+        activities = list(get_collection("activities").find({}, {"_id": 0}))
         thaka = list(get_collection("thaka_records").find({}, {"_id": 0}))
-        water = list(get_collection("water_records").find({}, {"_id": 0}))
         temp = list(get_collection("temperature_records").find({}, {"_id": 0}))
+        
+        # Shim for transition: map old structures to activities so things don't immediately crash if partially updated
+        expenses_shim = [{"id": a.get("id"), "amount": a.get("cost", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("cost", 0) > 0]
+        incomes_shim = [{"id": a.get("id"), "amount": a.get("income", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("income", 0) > 0]
+        water_shim = [{"id": a.get("id"), "durationMinutes": a.get("quantity_used", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("activity_type") == "irrigation"]
+
         return _json_response({
             "fields": fields,
-            "expenses": expenses,
-            "incomes": incomes,
+            "activities": activities,
             "thakaRecords": thaka,
-            "waterRecords": water,
             "temperatureRecords": temp,
+            # Legacy shims (can be removed once frontend fully refactored)
+            "expenses": expenses_shim,
+            "incomes": incomes_shim,
+            "waterRecords": water_shim,
         })
     except Exception as e:
         logger.exception("dashboard: failed to load data")

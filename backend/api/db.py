@@ -17,14 +17,10 @@ _indexes_ensured = False
 # Required collections for the app (used by readiness check)
 REQUIRED_COLLECTIONS = [
     "fields",
-    "expenses",
-    "incomes",
     "thaka_records",
-    "water_records",
     "temperature_records",
     "materials",
-    "material_transactions",
-    "daily_register",
+    "activities",
 ]
 
 
@@ -61,13 +57,9 @@ def ensure_indexes():
         return
     try:
         db = get_db()
-        # Non-unique indexes (safe with existing duplicate ids)
-        db["expenses"].create_index([("fieldId", 1), ("date", -1)])
-        db["incomes"].create_index([("fieldId", 1), ("date", -1)])
-        db["water_records"].create_index([("fieldId", 1), ("date", -1)])
+        db["activities"].create_index([("field_id", 1), ("date", -1)])
+        db["activities"].create_index([("activity_type", 1)])
         db["temperature_records"].create_index([("fieldId", 1), ("date", -1)])
-        db["daily_register"].create_index([("date", -1), ("fieldId", 1)])
-        db["material_transactions"].create_index([("materialId", 1), ("date", -1)])
         db["fields"].create_index("id")  # non-unique so existing duplicates don't break
         db["materials"].create_index("id")
         _indexes_ensured = True
