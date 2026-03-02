@@ -3,7 +3,7 @@ export type Locale = 'en' | 'ur';
 
 export const translations: Record<Locale, Record<string, string>> = {
   en: {
-    appTitle: 'Smart Land & Farm Management',
+    appTitle: 'Mashori Farm',
     dashboard: 'Dashboard',
     activities: 'Activities',
     dataBank: 'Data Bank',
@@ -323,7 +323,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     sessions: 'sessions',
   },
   ur: {
-    appTitle: 'اسمارٹ لینڈ اینڈ فارم مینجمنٹ',
+    appTitle: 'مشوری فارم',
     dashboard: 'ڈیش بورڈ',
     activities: 'سرگرمیاں',
     dataBank: 'ڈیٹا بینک',
