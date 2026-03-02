@@ -36,19 +36,30 @@ export default function ActivitiesPage() {
         fetchData();
     }, []);
 
+    const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
     const fetchData = async () => {
         try {
             setLoading(true);
+            const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
             const [actRes, fldRes, matRes] = await Promise.all([
-                fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/activities`).then(r => r.json()),
+                fetch(`${API_URL}/api/activities`, { headers }).then(r => r.json()),
                 api.getFields(),
                 api.getMaterials()
             ]);
-            setActivities(actRes || []);
-            setFields(fldRes || []);
-            setMaterials(matRes || []);
+
+            // Guard: ensure all responses are arrays before setting state
+            setActivities(Array.isArray(actRes) ? actRes : []);
+            setFields(Array.isArray(fldRes) ? fldRes : []);
+            setMaterials(Array.isArray(matRes) ? matRes : []);
         } catch (error) {
             console.error("Failed to fetch data:", error);
+            setActivities([]);
+            setFields([]);
+            setMaterials([]);
         } finally {
             setLoading(false);
         }
@@ -70,9 +81,13 @@ export default function ActivitiesPage() {
             if (cost) payload.cost = Number(cost);
             if (income) payload.income = Number(income);
 
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/activities`, {
+            const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            await fetch(`${API_URL}/api/activities`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 body: JSON.stringify(payload),
             });
 
@@ -101,9 +116,10 @@ export default function ActivitiesPage() {
     const deleteActivity = async (id: string) => {
         if (!confirm("Delete this activity?")) return;
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/activities/${id}`, {
-                method: "DELETE"
-            });
+            const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
+            const headers: Record<string, string> = {};
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+            await fetch(`${API_URL}/api/activities/${id}`, { method: "DELETE", headers });
             fetchData();
         } catch (error) {
             console.error("Error deleting", error);
