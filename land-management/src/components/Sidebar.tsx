@@ -40,13 +40,13 @@ const navItems = [
   { href: "/thaka", icon: FileText, labelKey: "thakaManagement", fallbackLabel: "Lease (Thaka)" },
   { href: "/temperature", icon: Thermometer, labelKey: "temperatureManagement", fallbackLabel: "Temperature" },
   { href: "/statistics", icon: BarChart3, labelKey: "statistics", fallbackLabel: "Statistics" },
-  { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics" },
-  { href: "/predictions", icon: TrendingUp, labelKey: "predictions" },
-  { href: "/satellite", icon: Satellite, labelKey: "satelliteMonitor" },
-  { href: "/ai", icon: Brain, labelKey: "aiInsights" },
-  { href: "/chatbot", icon: MessageCircle, labelKey: "aiChatbot" },
-  { href: "/voice", icon: Mic, labelKey: "voiceCommands" },
-  { href: "/export", icon: Download, labelKey: "exportData" },
+  { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics", fallbackLabel: "Field Stats" },
+  { href: "/predictions", icon: TrendingUp, labelKey: "predictions", fallbackLabel: "Predictions" },
+  { href: "/satellite", icon: Satellite, labelKey: "satelliteMonitor", fallbackLabel: "Satellite" },
+  { href: "/ai", icon: Brain, labelKey: "aiInsights", fallbackLabel: "AI Insights" },
+  { href: "/chatbot", icon: MessageCircle, labelKey: "aiChatbot", fallbackLabel: "Chatbot" },
+  { href: "/voice", icon: Mic, labelKey: "voiceCommands", fallbackLabel: "Voice" },
+  { href: "/export", icon: Download, labelKey: "exportData", fallbackLabel: "Export" },
 ];
 
 export default function Sidebar() {
@@ -129,13 +129,13 @@ export default function Sidebar() {
                       }`}
                   >
                     <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110 group-hover:text-green-500"}`} />
-                    {!collapsed && <span className="truncate tracking-wide">{item.fallbackLabel || t(item.labelKey)}</span>}
+                    {!collapsed && <span className="truncate tracking-wide">{t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallbackLabel}</span>}
                   </Link>
                   {/* Tooltip for collapsed desktop view */}
                   {collapsed && (
                     <div className="absolute left-[85px] top-1/2 -translate-y-1/2 hidden md:group-hover:flex items-center pointer-events-none z-[100] animate-fade-in">
                       <div className="bg-theme text-white border border-border px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
-                        {item.fallbackLabel || t(item.labelKey)}
+                        {t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallbackLabel}
                       </div>
                     </div>
                   )}

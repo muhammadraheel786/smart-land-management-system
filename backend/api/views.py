@@ -1268,8 +1268,12 @@ def material_transactions_list(request):
     mat_col = get_collection('materials')
     mat = mat_col.find_one({'id': doc['materialId']})
     if mat:
-        delta = doc['quantity'] if doc['type'] == 'in' else -doc['quantity']
-        mat_col.update_one({'id': doc['materialId']}, {'$inc': {'currentStock': delta}})
+        delta = float(doc['quantity']) if doc['type'] == 'in' else -float(doc['quantity'])
+        # Update both for safety/compatibility, but primarily stock_quantity
+        mat_col.update_one(
+            {'id': doc['materialId']}, 
+            {'$inc': {'stock_quantity': delta, 'currentStock': delta}}
+        )
     del doc['_id']
     return _json_response(doc, 201)
 
@@ -1299,8 +1303,8 @@ def material_transactions_detail(request, pk):
         qty_old = old.get('quantity', 0)
         type_old = old.get('type', 'in')
         if mid_old:
-            delta_old = qty_old if type_old == 'in' else -qty_old
-            mat_col.update_one({'id': mid_old}, {'$inc': {'currentStock': -delta_old}})
+            delta_old = float(qty_old) if type_old == 'in' else -float(qty_old)
+            mat_col.update_one({'id': mid_old}, {'$inc': {'stock_quantity': -delta_old, 'currentStock': -delta_old}})
         result = col.find_one_and_update(
             {'id': pk}, {'$set': update}, return_document=True
         )
@@ -1308,8 +1312,8 @@ def material_transactions_detail(request, pk):
         qty_new = result.get('quantity', 0)
         type_new = result.get('type', 'in')
         if mid_new:
-            delta_new = qty_new if type_new == 'in' else -qty_new
-            mat_col.update_one({'id': mid_new}, {'$inc': {'currentStock': delta_new}})
+            delta_new = float(qty_new) if type_new == 'in' else -float(qty_new)
+            mat_col.update_one({'id': mid_new}, {'$inc': {'stock_quantity': delta_new, 'currentStock': delta_new}})
         del result['_id']
         return _json_response(result)
     if request.method == 'DELETE':
@@ -1320,8 +1324,8 @@ def material_transactions_detail(request, pk):
         qty = doc.get('quantity', 0)
         t = doc.get('type', 'in')
         if mid:
-            add_back = qty if t == 'in' else -qty
-            mat_col.update_one({'id': mid}, {'$inc': {'currentStock': -add_back}})
+            add_back = float(qty) if t == 'in' else -float(qty)
+            mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': -add_back, 'currentStock': -add_back}})
         col.delete_one({'id': pk})
         return _json_response({}, 204)
 
@@ -1376,7 +1380,7 @@ def daily_register_list(request):
             'notes': f"Daily register: {doc.get('activity', '')}",
         }
         trans_col.insert_one(tdoc)
-        mat_col.update_one({'id': mid}, {'$inc': {'currentStock': -qty}})
+        mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': -float(qty), 'currentStock': -float(qty)}})
     del doc['_id']
     return _json_response(doc, 201)
 
@@ -1422,7 +1426,7 @@ def daily_register_detail(request, pk):
                 qty = mu.get('quantity', 0)
                 if mid and qty > 0:
                     # Revert stock (was 'out', so add back)
-                    mat_col.update_one({'id': mid}, {'$inc': {'currentStock': qty}})
+                    mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': float(qty), 'currentStock': float(qty)}})
                     # Delete the 'out' transaction created by this register entry
                     trans_col.delete_many({
                         'materialId': mid,

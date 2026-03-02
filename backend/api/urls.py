@@ -28,6 +28,8 @@ urlpatterns = [
     # Materials
     path('materials', views.materials_list),
     path('materials/<str:pk>', views.materials_detail),
+    path('material-transactions', views.material_transactions_list),
+    path('material-transactions/<str:pk>', views.material_transactions_detail),
     
     # Keeping this for ML/Suggestions if used
     path('field-recommendations', views.field_recommendations),
