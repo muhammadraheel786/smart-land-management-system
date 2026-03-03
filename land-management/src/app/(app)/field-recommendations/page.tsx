@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Lightbulb, Droplets, Activity, RefreshCw, BookOpen } from "lucide-react";
+import { Lightbulb, Droplets, Activity, RefreshCw } from "lucide-react";
 import { useLandStore } from "@/lib/store";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { FieldRecommendation } from "@/lib/store";
@@ -158,18 +158,14 @@ export default function FieldRecommendationsPage() {
                   <p className="text-theme-muted flex-1 min-w-[200px]">{rec.message}</p>
                   <div className="flex flex-wrap gap-2 flex-shrink-0">
                     {rec.reason === "irrigation" && (
-                      <Link href="/water" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/40 hover:bg-blue-500/30 text-sm font-medium">
+                      <Link
+                        href="/water"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/40 hover:bg-blue-500/30 text-sm font-medium"
+                      >
                         <Droplets className="w-4 h-4" />
                         {t("frLogWater")}
                       </Link>
                     )}
-                    <Link
-                      href={`/data-bank?field=${rec.fieldId}`}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30 text-sm font-medium"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      {t("frOpenDataBank")}
-                    </Link>
                   </div>
                 </div>
               ))}

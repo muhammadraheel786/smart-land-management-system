@@ -35,8 +35,9 @@ const navItems = [
   { href: "/activities", icon: BookOpen, labelKey: "activities", fallbackLabel: "Activities" },
   { href: "/materials", icon: Package, labelKey: "materials", fallbackLabel: "Materials" },
   { href: "/field-recommendations", icon: Lightbulb, labelKey: "fieldRecommendations", fallbackLabel: "Field Recs" },
+  { href: "/water", icon: Droplets, labelKey: "waterManagement", fallbackLabel: "Water Log" },
   { href: "/map", icon: Map, labelKey: "landMap", fallbackLabel: "Map View" },
-  // Expenses and Water are now unified inside Activities
+  // Expenses are now unified inside Activities
   { href: "/thaka", icon: FileText, labelKey: "thakaManagement", fallbackLabel: "Lease (Thaka)" },
   { href: "/temperature", icon: Thermometer, labelKey: "temperatureManagement", fallbackLabel: "Temperature" },
   { href: "/statistics", icon: BarChart3, labelKey: "statistics", fallbackLabel: "Statistics" },
