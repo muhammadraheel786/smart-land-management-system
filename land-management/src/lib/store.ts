@@ -235,9 +235,26 @@ export const useLandStore = create<LandState>((set, get) => ({
 
   addWaterRecord: async (record) => {
     try {
-      const fromApi = await api.addWaterRecord(record);
-      set((s) => ({ waterRecords: [...s.waterRecords, fromApi] }));
-      return fromApi;
+      // Prefer unified Activities API so it works even if /water is not deployed.
+      const activity = await api.addActivity({
+        activity_type: 'irrigation',
+        field_id: record.fieldId,
+        date: record.date,
+        quantity_used: record.durationMinutes,
+        notes: record.notes,
+      });
+
+      // Map created activity into a WaterRecord shape (same as dashboard shim).
+      const waterRecord: WaterRecord = {
+        id: activity.id,
+        fieldId: activity.field_id,
+        date: activity.date,
+        durationMinutes: activity.quantity_used ?? 0,
+        notes: activity.notes,
+      };
+
+      set((s) => ({ waterRecords: [...s.waterRecords, waterRecord] }));
+      return waterRecord;
     } catch (e) {
       console.error('Add water record failed:', e);
       return null;

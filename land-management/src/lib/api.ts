@@ -138,6 +138,7 @@ export const api = {
     return fetchJson<void>(`/thaka/${id}`, { method: 'DELETE' });
   },
 
+  // Legacy water endpoints (kept for backward compatibility in case the backend exposes /water)
   async getWaterRecords() {
     return fetchJson<import('@/types').WaterRecord[]>('/water');
   },
@@ -155,6 +156,25 @@ export const api = {
   },
   async deleteWaterRecord(id: string) {
     return fetchJson<void>(`/water/${id}`, { method: 'DELETE' });
+  },
+
+  /**
+   * Unified Activities endpoint.
+   * Used by Water Management to log irrigation as activities when /water is not available on backend.
+   */
+  async addActivity(payload: {
+    activity_type: string;
+    field_id: string;
+    date: string;
+    quantity_used?: number;
+    cost?: number;
+    income?: number;
+    notes?: string;
+  }) {
+    return fetchJson<any>('/activities', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 
   /** Water management: AI analysis, warnings, and next-water suggestions per field. */
