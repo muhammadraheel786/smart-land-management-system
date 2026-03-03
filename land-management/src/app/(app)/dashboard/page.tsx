@@ -19,7 +19,7 @@ import {
   TrendingDown,
   Calendar,
   Layers,
-  Plant
+  Sprout
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths, startOfMonth, startOfYear } from "date-fns";
@@ -267,7 +267,7 @@ export default function DashboardPage() {
           <QuickAction href="/expenses?tab=income" icon={TrendingUp} label={t("addIncome")} />
           <QuickAction href="/water" icon={Droplets} label={t("logWater")} />
           <QuickAction href="/thaka" icon={ClipboardList} label={t("thakaRecords")} />
-          <QuickAction href="/field-recommendations" icon={Plant} label={t("fieldRecommendations")} />
+          <QuickAction href="/field-recommendations" icon={Sprout} label={t("fieldRecommendations")} />
           <QuickAction href="/predictions" icon={BarChart3} label={t("predictions")} />
           <QuickAction href="/chatbot" icon={MessageSquare} label={t("askAI")} />
         </div>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
                   <div key={r.id} className="p-4 rounded-2xl bg-theme-track border border-theme flex flex-col gap-2">
                     <div className="flex items-start justify-between">
                       <h4 className="font-semibold text-theme text-sm flex items-center gap-2">
-                        {r.type === 'warning' ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <Plant className="w-4 h-4 text-green-500" />}
+                        {r.type === 'warning' ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <Sprout className="w-4 h-4 text-green-500" />}
                         {r.title}
                       </h4>
                     </div>
