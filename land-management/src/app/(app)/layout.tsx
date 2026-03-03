@@ -56,12 +56,12 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         className={`min-h-screen transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${collapsed ? "ml-0 md:ml-[80px]" : "ml-0 md:ml-[280px]"
           }`}
       >
-        {/* Header: hidden on mobile/tablet so it doesn't truncate "Mashori Farm"; show only on lg+ */}
+        {/* Global app header: compact and fully responsive on mobile */}
         <header
-          className="hidden lg:flex sticky top-0 z-30 items-center justify-between border-b px-4 py-3 sm:py-4 backdrop-blur sm:px-6 md:px-8"
+          className="flex sticky top-0 z-30 items-center justify-between border-b px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 backdrop-blur"
           style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--foreground)" }}
         >
-          <div className="flex items-center gap-3 flex-1 min-w-0 pr-2 sm:pr-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 pr-2 sm:pr-4">
             <button
               type="button"
               onClick={toggle}
@@ -72,14 +72,17 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             >
               {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
             </button>
-            <h2 className="text-base sm:text-lg md:text-xl font-semibold truncate" style={{ color: "var(--foreground)" }}>
+            <h2 className="text-sm sm:text-base md:text-lg font-semibold truncate" style={{ color: "var(--foreground)" }}>
               {t("appTitle")}
             </h2>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <ThemeToggle />
             <LanguageSwitcher />
-            <VoiceCommand onCommand={handleVoiceCommand} compact />
+            {/* Hide voice command on very small screens to save space */}
+            <div className="hidden sm:flex">
+              <VoiceCommand onCommand={handleVoiceCommand} compact />
+            </div>
           </div>
         </header>
         {showBanner && (
