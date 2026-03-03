@@ -36,18 +36,18 @@ export default function BottomNav() {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-w-0 relative"
+                            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-3 min-w-0 relative"
                             aria-label={label}
                         >
                             {active && (
                                 <span className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-7 rounded-xl bg-green-500/15 -z-0 pointer-events-none" />
                             )}
                             <item.icon
-                                className={`w-[19px] h-[19px] relative z-10 transition-all duration-200 ${active ? "text-green-500" : "text-[var(--muted)]"}`}
+                                className={`w-5 h-5 relative z-10 transition-all duration-200 ${active ? "text-green-500" : "text-[var(--muted)]"}`}
                                 strokeWidth={active ? 2.3 : 1.75}
                             />
                             <span
-                                className={`text-[9.5px] font-semibold leading-none relative z-10 transition-colors duration-200 ${active ? "text-green-500" : "text-[var(--muted)]"}`}
+                                className={`text-[10px] font-semibold mt-1 leading-none relative z-10 transition-colors duration-200 ${active ? "text-green-500" : "text-[var(--muted)]"}`}
                             >
                                 {short}
                             </span>
@@ -55,21 +55,20 @@ export default function BottomNav() {
                     );
                 })}
 
-                {/* More / Sidebar toggle */}
                 <button
                     onClick={toggle}
-                    className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-w-0 relative"
+                    className="flex flex-col items-center justify-center gap-0.5 flex-1 py-3 min-w-0 relative"
                     aria-label="More"
                 >
                     {!collapsed && (
                         <span className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-7 rounded-xl bg-green-500/15 -z-0 pointer-events-none" />
                     )}
                     <MoreHorizontal
-                        className={`w-[19px] h-[19px] relative z-10 transition-all duration-200 ${!collapsed ? "text-green-500" : "text-[var(--muted)]"}`}
+                        className={`w-5 h-5 relative z-10 transition-all duration-200 ${!collapsed ? "text-green-500" : "text-[var(--muted)]"}`}
                         strokeWidth={!collapsed ? 2.3 : 1.75}
                     />
                     <span
-                        className={`text-[9.5px] font-semibold leading-none relative z-10 transition-colors duration-200 ${!collapsed ? "text-green-500" : "text-[var(--muted)]"}`}
+                        className={`text-[10px] font-semibold mt-1 leading-none relative z-10 transition-colors duration-200 ${!collapsed ? "text-green-500" : "text-[var(--muted)]"}`}
                     >
                         More
                     </span>

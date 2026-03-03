@@ -282,6 +282,30 @@ body {
     /* Prevent iOS zoom */
   }
 
+  /* Global Typography Scaling for Mobile */
+  .text-3xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  .text-xl {
+    font-size: 1.125rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .p-6 {
+    padding: 1rem !important;
+  }
+
+  .p-8 {
+    padding: 1.25rem !important;
+  }
+
   /* Optimized containers */
   .container-app {
     padding-left: 1rem;

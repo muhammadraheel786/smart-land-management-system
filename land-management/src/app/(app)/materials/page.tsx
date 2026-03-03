@@ -145,7 +145,7 @@ export default function MaterialsPage() {
           <Package className="w-6 h-6 text-blue-400" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-theme">{t("materials")}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-theme">{t("materials")}</h1>
           <p className="text-theme-muted">{t("materialsSubtitle")}</p>
         </div>
       </div>

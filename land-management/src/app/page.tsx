@@ -59,7 +59,7 @@ export default function HomePage() {
         </div>
 
         <div className="animate-slide-up-fade">
-          <h2 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
+          <h2 className="text-3xl xl:text-5xl font-bold text-white mb-6 leading-tight">
             Cultivate success with <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-300">AI-Powered</span> Insights.
           </h2>
           <p className="text-emerald-100 max-w-lg mb-10 text-lg leading-relaxed mix-blend-lighten">
@@ -103,13 +103,13 @@ export default function HomePage() {
               <Map className="w-8 h-8 text-white" />
             </div>
             <div className="text-center">
-              <h1 className="font-black text-white text-3xl tracking-tight">Smart Land Management System</h1>
-              <p className="text-theme-muted mt-1 font-medium">Smart Land Management</p>
+              <h1 className="font-black text-white text-2xl sm:text-3xl tracking-tight text-balance">Smart Land Management System</h1>
+              <p className="text-theme-muted mt-1 font-medium text-sm">Smart Land Management</p>
             </div>
           </div>
 
           <div className="bg-theme-card/80 backdrop-blur-xl border border-theme shadow-2xl rounded-3xl p-6 sm:p-8 w-full transform transition-all animate-slide-up-fade">
-            <h2 className="text-2xl sm:text-3xl font-bold text-theme mb-2">Welcome back</h2>
+            <h2 className="text-xl sm:text-3xl font-bold text-theme mb-2">Welcome back</h2>
             <p className="text-theme-muted mb-8 text-sm sm:text-base">Enter your credentials to access your dashboard</p>
 
             <form onSubmit={handleLogin} className="space-y-5" aria-label="Sign in to Smart Land Management System">

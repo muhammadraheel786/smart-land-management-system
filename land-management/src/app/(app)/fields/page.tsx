@@ -62,7 +62,7 @@ export default function FieldsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-theme mb-2">{t("fieldAnalytics")}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-theme mb-2">{t("fieldAnalytics")}</h1>
         <p className="text-theme-muted">{t("fieldAnalyticsSubtitle")}</p>
       </div>
 

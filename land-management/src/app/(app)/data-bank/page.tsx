@@ -162,7 +162,7 @@ function DataBankContent() {
           <BookOpen className="w-6 h-6 text-amber-400" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-theme">{t("dataBank")}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-theme">{t("dataBank")}</h1>
           <p className="text-theme-muted">{t("dataBankSubtitle")}</p>
         </div>
       </div>
