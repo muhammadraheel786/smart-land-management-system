@@ -15,8 +15,11 @@ import {
   Target,
   Activity,
   ChevronDown,
-  ChevronUp,
   ArrowRight,
+  TrendingDown,
+  Calendar,
+  Layers,
+  Plant
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths, startOfMonth, startOfYear } from "date-fns";
@@ -42,26 +45,25 @@ function getDateFilter(range: TimeRangeKey): (dateStr: string) => boolean {
   return (d) => d >= start && d <= today;
 }
 
-// ── tiny mobile-only collapsible section ──────────────────────────────────────
-function Section({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+// ── clean modern collapsible section ──────────────────────────────────────
+function Section({ title, icon: Icon, children, defaultOpen = true, action }: { title: string; icon?: React.ElementType, children: React.ReactNode; defaultOpen?: boolean, action?: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="bg-theme-card border border-theme rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-theme-track/40 transition-colors group"
-      >
-        <span className="text-xs font-bold text-theme uppercase tracking-widest truncate">{title}</span>
-        <div className={`p-1 rounded-lg bg-theme-track/60 border border-theme transform transition-transform duration-300 flex-shrink-0 ml-2 ${isOpen ? "rotate-180" : ""}`}>
-          <ChevronDown className="w-3.5 h-3.5 text-theme-muted group-hover:text-green-400" />
-        </div>
-      </button>
-      <div
-        className={`transition-all duration-300 ease-in-out ${isOpen ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-          }`}
-      >
-        <div className="px-4 pb-4 border-t border-theme/30 pt-3">
+    <div className="bg-theme-card/50 backdrop-blur-sm border border-theme rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-theme/50">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 flex-1 text-left group"
+        >
+          {Icon && <Icon className="w-5 h-5 text-theme-muted group-hover:text-green-500 transition-colors" />}
+          <span className="font-semibold text-theme tracking-wide truncate">{title}</span>
+          <ChevronDown className={`w-4 h-4 text-theme-muted transition-transform duration-300 ml-1 ${isOpen ? "rotate-180" : ""}`} />
+        </button>
+        {action && <div className="ml-4">{action}</div>}
+      </div>
+      <div className={`transition-all duration-300 ease-in-out flex-1 flex flex-col ${isOpen ? "opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
+        <div className="px-5 py-5 flex-1 flex flex-col">
           {children}
         </div>
       </div>
@@ -69,26 +71,38 @@ function Section({ title, children, defaultOpen = true }: { title: string; child
   );
 }
 
-// ── compact stat chip ─────────────────────────────────────────────────────────
-function StatChip({ href, label, value, color }: { href: string; label: string; value: string; color: "green" | "blue" | "yellow" | "red" }) {
-  const colorCls = color === "green" ? "bg-green-500/10 text-green-400 border-green-500/20" : color === "blue" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : color === "yellow" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
+// ── elegant stat card ─────────────────────────────────────────────────────────
+function StatCard({ href, label, value, subValue, icon: Icon, trend }: { href: string; label: string; value: string; subValue?: string; icon: React.ElementType, trend?: 'up' | 'down' | 'neutral' }) {
   return (
-    <Link href={href} className={`flex-shrink-0 flex flex-col justify-center px-4 py-2.5 rounded-2xl border ${colorCls} min-w-[120px] active:scale-95 transition-transform scroll-ml-4`}>
-      <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 mb-0.5 truncate">{label}</span>
-      <span className="text-sm font-black truncate">{value}</span>
+    <Link href={href} className="group flex flex-col justify-between p-5 rounded-3xl bg-theme-card border border-theme hover:border-green-500/30 hover:shadow-lg hover:shadow-green-500/5 transition-all duration-300 translate-y-0 hover:-translate-y-1">
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-theme-track flex items-center justify-center group-hover:bg-green-500/10 group-hover:text-green-500 transition-colors text-theme-muted">
+          <Icon className="w-6 h-6 stroke-[1.5]" />
+        </div>
+        {trend && (
+          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend === 'up' ? 'text-green-500 bg-green-500/10' : trend === 'down' ? 'text-red-500 bg-red-500/10' : 'text-theme-muted bg-theme-track'}`}>
+            {trend === 'up' ? <TrendingUp className="w-3 h-3" /> : trend === 'down' ? <TrendingDown className="w-3 h-3" /> : <Activity className="w-3 h-3" />}
+          </div>
+        )}
+      </div>
+      <div>
+        <h3 className="text-sm font-medium text-theme-muted mb-1">{label}</h3>
+        <p className="text-2xl font-bold text-theme tracking-tight">{value}</p>
+        {subValue && <p className="text-xs text-theme-muted mt-1 font-medium">{subValue}</p>}
+      </div>
     </Link>
   );
 }
 
-// ── quick-action pill ─────────────────────────────────────────────────────────
-function QuickAction({ href, icon: Icon, label, color }: { href: string; icon: React.ComponentType<{ className?: string }>; label: string; color: string }) {
+// ── modern quick-action pill ─────────────────────────────────────────────────
+function QuickAction({ href, icon: Icon, label, highlight = false }: { href: string; icon: React.ComponentType<{ className?: string }>; label: string; highlight?: boolean }) {
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-theme-track border border-theme hover:border-green-500/40 hover:bg-green-500/5 transition-all active:scale-95 min-w-[72px] flex-shrink-0 scroll-ml-4"
+      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all duration-300 active:scale-95 ${highlight ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-400/50 shadow-lg shadow-green-500/20 text-white hover:shadow-xl hover:shadow-green-500/30' : 'bg-theme-card border-theme text-theme hover:border-green-500/50 hover:bg-theme-track'}`}
     >
-      <Icon className={`w-5 h-5 ${color}`} />
-      <span className="text-[10px] font-semibold text-[var(--muted)] text-center leading-tight truncate px-1 max-w-[70px]">{label}</span>
+      <Icon className={`w-6 h-6 ${highlight ? 'text-white' : 'text-theme-muted group-hover:text-green-500'}`} />
+      <span className="text-xs font-semibold text-center leading-tight">{label}</span>
     </Link>
   );
 }
@@ -153,7 +167,7 @@ export default function DashboardPage() {
       const mStr = format(m, "yyyy-MM");
       const exp = expenses.filter((e) => (e.date || "").slice(0, 7) === mStr).reduce((a, e) => a + e.amount, 0);
       const inc = incomes.filter((i) => (i.date || "").slice(0, 7) === mStr).reduce((a, i) => a + i.amount, 0);
-      return { month: format(m, "MMM yy"), expense: exp, income: inc };
+      return { month: format(m, "MMM"), expense: exp, income: inc };
     }), [expenses, incomes]);
 
   const recentActivity = useMemo(() => {
@@ -161,235 +175,225 @@ export default function DashboardPage() {
       ...expenses.map((e) => ({ date: e.date || "", amount: e.amount, type: "expense" as const, id: e.id || `e-${e.date}` })),
       ...incomes.map((i) => ({ date: i.date || "", amount: i.amount, type: "income" as const, id: i.id || `i-${i.date}` })),
     ];
-    return combined.filter((x) => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+    return combined.filter((x) => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   }, [expenses, incomes]);
 
-  const tooltipStyle = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" };
+  const tooltipStyle = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: "12px", color: "var(--foreground)", padding: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" };
 
   // ── loading skeleton ────────────────────────────────────────────────────────
   if (loading && fields.length === 0) {
     return (
-      <div className="space-y-4">
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 w-36 flex-shrink-0 rounded-2xl bg-theme-card border border-theme animate-pulse" />)}
+      <div className="space-y-6 animate-pulse">
+        <div className="flex justify-between items-center pb-4">
+          <div className="h-8 w-48 bg-theme-track rounded-lg"></div>
+          <div className="h-8 w-10 bg-theme-track rounded-lg"></div>
         </div>
-        <div className="h-48 rounded-2xl bg-theme-card border border-theme animate-pulse" />
-        <div className="h-40 rounded-2xl bg-theme-card border border-theme animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-32 rounded-3xl bg-theme-track" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-80 rounded-3xl bg-theme-track" />
+          <div className="h-80 rounded-3xl bg-theme-track" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-8 animate-fade-in">
 
       {/* ── PAGE HEADER ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl md:text-3xl font-bold text-theme leading-tight truncate">{t("dashboard")}</h1>
-          {lastUpdated && (
-            <p className="text-[10px] md:text-xs text-[var(--muted)] mt-0.5 truncate">
-              {t("lastUpdated")}: {format(lastUpdated, "dd MMM, HH:mm")}
-            </p>
-          )}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-black text-theme tracking-tight flex items-center gap-3">
+            {t("dashboard")}
+            {refreshing && <RefreshCw className="w-5 h-5 text-green-500 animate-spin" />}
+          </h1>
+          <p className="text-sm text-theme-muted mt-1 flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            {lastUpdated ? `${t("lastUpdated")}: ${format(lastUpdated, "MMM do, HH:mm")}` : 'Up to date'}
+          </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as TimeRangeKey)}
-            className="text-xs md:text-sm px-2 py-1.5 md:px-3 md:py-2 rounded-xl bg-theme-card border border-theme text-theme max-w-[150px] truncate"
-          >
-            <option value="all">{t("timeRangeAll")}</option>
-            <option value="this_year">{t("timeRangeThisYear")}</option>
-            <option value="last_6_months">{t("timeRangeLast6Months")}</option>
-            <option value="this_month">{t("timeRangeThisMonth")}</option>
-          </select>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value as TimeRangeKey)}
+              className="appearance-none pl-4 pr-10 py-2.5 rounded-xl bg-theme-track border border-theme text-sm font-medium text-theme focus:ring-2 focus:ring-green-500 focus:outline-none transition-all cursor-pointer"
+            >
+              <option value="all">{t("timeRangeAll")}</option>
+              <option value="this_year">{t("timeRangeThisYear")}</option>
+              <option value="last_6_months">{t("timeRangeLast6Months")}</option>
+              <option value="this_month">{t("timeRangeThisMonth")}</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
+          </div>
           <button
             type="button"
             onClick={handleRefresh}
             disabled={refreshing || loading}
-            className="p-1.5 md:p-2 rounded-xl bg-theme-card border border-theme text-[var(--muted)] hover:text-theme hover:border-green-500/40 transition disabled:opacity-50"
-            aria-label="Refresh"
+            className="p-2.5 rounded-xl bg-theme-track border border-theme hover:bg-theme-card hover:border-green-500/50 transition-all text-theme-muted active:scale-95"
+            aria-label="Refresh Data"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing || loading ? "animate-spin" : ""}`} />
+            <RefreshCw className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-red-200 text-sm">
-          {t("dashboardError")}: {error}
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-500 font-medium flex items-center gap-3 shadow-sm">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span>{t("dashboardError")}: {error}</span>
         </div>
       )}
 
-      {/* ── STAT CHIPS — horizontal scroll on mobile, grid on desktop ──── */}
-      <div className="w-[calc(100%+24px)] -ml-3 md:ml-0 md:w-full md:hidden">
-        <div className="flex gap-2.5 overflow-x-auto pb-2 px-3 scrollbar-none snap-x pointer-events-auto">
-          <StatChip href="/fields" label={t("totalLandArea")} value={`${totals.totalArea.toFixed(1)} ac`} color="green" />
-          <StatChip href="/expenses" label={t("totalInvestment")} value={`Rs ${totals.totalExp.toLocaleString()}`} color="blue" />
-          <StatChip href="/expenses?tab=income" label={t("totalIncome")} value={`Rs ${totals.totalInc.toLocaleString()}`} color="yellow" />
-          <StatChip href="/expenses" label={t("netProfit")} value={`Rs ${totals.netProfit.toLocaleString()}`} color={totals.netProfit >= 0 ? "green" : "red"} />
-          <StatChip href="/water" label={t("totalIrrigation")} value={`${totals.totalWaterMin} min`} color="blue" />
-          <StatChip href="/fields" label={t("fieldsCount")} value={`${fields.length} fields`} color="green" />
-        </div>
+      {/* ── STAT CARDS GRID ──────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <StatCard href="/fields" icon={Map} label={t("totalLandArea")} value={`${totals.totalArea.toFixed(1)} ${t("acres")}`} subValue={`${fields.length} Active Fields`} />
+        <StatCard href="/expenses" icon={Wallet} label={t("totalInvestment")} value={`Rs ${totals.totalExp.toLocaleString()}`} trend="down" />
+        <StatCard href="/expenses?tab=income" icon={TrendingUp} label={t("totalIncome")} value={`Rs ${totals.totalInc.toLocaleString()}`} trend="up" />
+        <StatCard href="/expenses" icon={Activity} label={t("netProfit")} value={`Rs ${totals.netProfit.toLocaleString()}`} trend={totals.netProfit >= 0 ? "up" : "down"} />
       </div>
 
-      {/* Desktop stat grid (unchanged from before) */}
-      <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {(
-          [
-            { href: "/fields", title: t("totalLandArea"), value: `${totals.totalArea.toFixed(1)} ${t("acres")}`, subtitle: `${fields.length} ${t("fieldsCount").toLowerCase()}`, color: "green" },
-            { href: "/expenses", title: t("totalInvestment"), value: `Rs ${totals.totalExp.toLocaleString()}`, color: "blue" },
-            { href: "/expenses?tab=income", title: t("totalIncome"), value: `Rs ${totals.totalInc.toLocaleString()}`, color: "yellow" },
-            { href: "/expenses", title: t("netProfit"), value: `Rs ${totals.netProfit.toLocaleString()}`, color: totals.netProfit >= 0 ? "green" : "red" },
-            { href: "/water", title: t("totalIrrigation"), value: `${totals.totalWaterMin} ${t("minutes")}`, subtitle: totals.waterSessions ? `${totals.waterSessions} ${t("sessions")}` : undefined, color: "blue" },
-            { href: "/fields", title: t("fieldsCount"), value: String(fields.length), subtitle: totals.activeThaka > 0 ? `${totals.activeThaka} Thaka` : undefined, color: "green" },
-          ] as { href: string; title: string; value: string; subtitle?: string; color: "green" | "blue" | "yellow" | "red" }[]
-        ).map((s) => {
-          const borderCls = s.color === "green" ? "border-green-500/25 bg-gradient-to-br from-green-500/10 to-emerald-600/5" : s.color === "blue" ? "border-blue-500/25 bg-gradient-to-br from-blue-500/10 to-cyan-600/5" : s.color === "yellow" ? "border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-yellow-600/5" : "border-red-500/25 bg-gradient-to-br from-red-500/10 to-rose-600/5";
-          const textCls = s.color === "green" ? "text-green-400" : s.color === "blue" ? "text-blue-400" : s.color === "yellow" ? "text-amber-400" : "text-red-400";
-          return (
-            <Link key={s.title} href={s.href} className={`block rounded-2xl border bg-theme-card p-5 shadow-sm transition hover:-translate-y-0.5 ${borderCls}`}>
-              <p className="text-xs text-[var(--muted)] mb-2 truncate">{s.title}</p>
-              <p className={`text-xl font-bold ${textCls}`}>{s.value}</p>
-              {s.subtitle && <p className={`text-xs mt-1 opacity-80 ${textCls}`}>{s.subtitle}</p>}
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* ── QUICK ACTIONS — horizontal scroll on mobile ─────────────────── */}
+      {/* ── QUICK ACTIONS ────────────────────────────────────────────────── */}
       <div>
-        <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2 truncate">{t("quickActions")}</p>
-        <div className="w-[calc(100%+24px)] -ml-3 md:ml-0 md:w-full overflow-hidden">
-          <div className="flex gap-2 overflow-x-auto pb-2 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible scrollbar-none snap-x">
-            <QuickAction href="/map" icon={Map} label={t("viewMap")} color="text-green-500" />
-            <QuickAction href="/activities" icon={Activity} label={t("activities")} color="text-emerald-500" />
-            <QuickAction href="/expenses" icon={Wallet} label={t("addExpense")} color="text-blue-500" />
-            <QuickAction href="/expenses?tab=income" icon={TrendingUp} label={t("addIncome")} color="text-green-500" />
-            <QuickAction href="/water" icon={Droplets} label={t("logWater")} color="text-cyan-500" />
-            <QuickAction href="/thaka" icon={ClipboardList} label={t("thakaRecords")} color="text-yellow-500" />
-            <QuickAction href="/field-recommendations" icon={Target} label={t("fieldRecommendations")} color="text-orange-500" />
-            <QuickAction href="/predictions" icon={BarChart3} label={t("predictions")} color="text-violet-500" />
-            <QuickAction href="/chatbot" icon={MessageSquare} label={t("askAI")} color="text-green-500" />
-          </div>
+        <h2 className="text-lg font-bold text-theme mb-4 flex items-center gap-2">
+          <Target className="w-5 h-5 text-green-500" /> Quick Actions
+        </h2>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-9 gap-3 sm:gap-4">
+          <QuickAction href="/map" icon={Map} label={t("viewMap")} highlight />
+          <QuickAction href="/activities" icon={Activity} label={t("activities")} />
+          <QuickAction href="/expenses" icon={Wallet} label={t("addExpense")} />
+          <QuickAction href="/expenses?tab=income" icon={TrendingUp} label={t("addIncome")} />
+          <QuickAction href="/water" icon={Droplets} label={t("logWater")} />
+          <QuickAction href="/thaka" icon={ClipboardList} label={t("thakaRecords")} />
+          <QuickAction href="/field-recommendations" icon={Plant} label={t("fieldRecommendations")} />
+          <QuickAction href="/predictions" icon={BarChart3} label={t("predictions")} />
+          <QuickAction href="/chatbot" icon={MessageSquare} label={t("askAI")} />
         </div>
       </div>
 
-      {/* ── LAND DISTRIBUTION + RECENT ACTIVITY (collapsed sections on mobile) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <Section title={t("landDistribution")}>
-          <div className="space-y-4">
-            {[
-              { label: t("cultivated"), area: cultivatedArea, color: "bg-green-500", textColor: "text-green-400" },
-              { label: t("onThaka"), area: thakaArea, color: "bg-blue-500", textColor: "text-blue-400" },
-            ].map((row) => (
-              <div key={row.label}>
-                <div className="flex justify-between items-center mb-1.5 text-sm gap-2">
-                  <span className="text-[var(--muted)] text-xs truncate flex-shrink-0 max-w-[50%]">{row.label}</span>
-                  <span className={`${row.textColor} font-medium text-xs flex-shrink-0 text-right`}>
-                    {totals.totalArea ? ((row.area / totals.totalArea) * 100).toFixed(0) : 0}% — {row.area.toFixed(1)} {t("acres")}
-                  </span>
-                </div>
-                <div className="w-full bg-theme-track rounded-full h-1.5">
-                  <div className={`h-1.5 rounded-full ${row.color} transition-all`}
-                    style={{ width: `${totals.totalArea ? (row.area / totals.totalArea) * 100 : 0}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
+      {/* ── MAIN DASHBOARD LAYOUT ────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <Section title={t("recentExpensesIncome")}>
-          {recentActivity.length === 0 ? (
-            <p className="text-[var(--muted)] text-sm">{t("noRecentActivity")}</p>
-          ) : (
-            <ul className="space-y-0 divide-y divide-theme">
-              {recentActivity.slice(0, 5).map((item) => (
-                <li key={item.id} className="flex justify-between items-center py-2.5 text-sm gap-2">
-                  <span className="text-[var(--muted)] text-xs flex-shrink-0 w-12 truncate">
-                    {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM") : "—"}
-                  </span>
-                  <span className={`font-semibold flex-1 text-right truncate ${item.type === "income" ? "text-green-400" : "text-red-400"}`}>
-                    {item.type === "income" ? "+" : "−"} Rs {item.amount.toLocaleString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
+        {/* Left Column (Charts & AI) */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <Section
+            title={t("monthlyIncomeVsExpense")}
+            icon={BarChart3}
+            action={
+              <Link href="/statistics" className="text-sm font-medium text-green-500 hover:text-green-600 flex items-center gap-1">
+                Details <ArrowRight className="w-4 h-4" />
+              </Link>
+            }
+          >
+            <div className="w-full h-[300px] mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="month" stroke="var(--muted)" tick={{ fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis stroke="var(--muted)" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(value) => `Rs ${value / 1000}k`} />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'transparent' }} formatter={(value: number) => `Rs ${value.toLocaleString()}`} />
+                  <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="circle" />
+                  <Bar dataKey="income" name={t("incomeShort")} fill="#22c55e" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="expense" name={t("expenseShort")} fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Section>
+
+          {/* AI Recommendations */}
+          {aiRecommendations.length > 0 && (
+            <Section title={t("aiRecommendations")} icon={AlertTriangle}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {aiRecommendations.slice(0, 4).map((r) => (
+                  <div key={r.id} className="p-4 rounded-2xl bg-theme-track border border-theme flex flex-col gap-2">
+                    <div className="flex items-start justify-between">
+                      <h4 className="font-semibold text-theme text-sm flex items-center gap-2">
+                        {r.type === 'warning' ? <AlertTriangle className="w-4 h-4 text-red-500" /> : <Plant className="w-4 h-4 text-green-500" />}
+                        {r.title}
+                      </h4>
+                    </div>
+                    <p className="text-sm text-theme-muted leading-relaxed line-clamp-3">{r.message}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
           )}
-          <Link href="/expenses" className="flex items-center gap-1 text-xs text-green-500 hover:text-green-400 font-medium transition-colors mt-3">
-            {t("expensesIncome")} <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </Section>
-      </div>
-
-      {/* ── FIELD RECOMMENDATIONS BADGE ─────────────────────────────────── */}
-      {fieldRecommendations.length > 0 && (
-        <div className="bg-theme-card border border-theme rounded-2xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm font-semibold text-theme">{t("recommendationsSummary")}</span>
-            <Link href="/field-recommendations" className="text-xs text-green-500 hover:underline flex items-center gap-1">
-              {t("viewAllRecommendations")} <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="px-4 pb-4 flex flex-wrap gap-2">
-            {recHigh > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium">
-                {recHigh} {t("frHighPriority")}
-              </span>
-            )}
-            {recMedium > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-medium">
-                {recMedium} {t("frMediumPriority")}
-              </span>
-            )}
-            <span className="text-[var(--muted)] text-xs self-center">{t("frTotal")}: {fieldRecommendations.length}</span>
-          </div>
         </div>
-      )}
 
-      {/* ── MONTHLY CHART ───────────────────────────────────────────────── */}
-      <Section title={t("monthlyIncomeVsExpense")}>
-        <p className="text-[var(--muted)] text-xs mb-3">{t("last6Months")}</p>
-        <div className="w-full overflow-hidden">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="month" stroke="var(--muted)" tick={{ fontSize: 10 }} />
-              <YAxis stroke="var(--muted)" tick={{ fontSize: 10 }} />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                formatter={(value: number | undefined) => `Rs ${Number(value ?? 0).toLocaleString()}`}
-              />
-              <Legend wrapperStyle={{ fontSize: "11px" }} />
-              <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" name={t("expenseShort")} fill="var(--not-usable)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <Link href="/statistics" className="flex items-center gap-1 text-xs text-green-500 hover:underline mt-1.5">
-          {t("viewAllStats")} <ArrowRight className="w-3 h-3" />
-        </Link>
-      </Section>
-
-      {/* ── AI RECOMMENDATIONS ──────────────────────────────────────────── */}
-      {aiRecommendations.length > 0 && (
-        <Section title={t("aiRecommendations")} defaultOpen={false}>
-          <div className="space-y-2.5">
-            {aiRecommendations.slice(0, 5).map((r) => (
-              <div
-                key={r.id}
-                className={`px-3 py-2.5 rounded-xl border-l-4 ${r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-amber-500 bg-amber-500/10"}`}
-              >
-                <p className="font-semibold text-theme text-sm flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
-                  {r.title}
-                </p>
-                <p className="text-xs text-[var(--muted)] mt-0.5">{r.message}</p>
+        {/* Right Column (Distribution & Activities) */}
+        <div className="flex flex-col gap-6">
+          <Section title={t("landDistribution")} icon={Layers}>
+            <div className="space-y-6 pt-2">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-3xl font-black text-theme">{totals.totalArea.toFixed(1)}</p>
+                  <p className="text-sm text-theme-muted font-medium">{t("totalLandArea")} ({t("acres")})</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <Map className="w-6 h-6 text-green-500" />
+                </div>
               </div>
-            ))}
-          </div>
-        </Section>
-      )}
+
+              <div className="space-y-5">
+                {[
+                  { label: t("cultivated"), area: cultivatedArea, color: "bg-green-500", text: "text-green-500" },
+                  { label: "On Thaka", area: thakaArea, color: "bg-blue-500", text: "text-blue-500" },
+                ].map((row) => {
+                  const percentage = totals.totalArea ? Math.round((row.area / totals.totalArea) * 100) : 0;
+                  return (
+                    <div key={row.label}>
+                      <div className="flex justify-between items-center mb-2 font-medium">
+                        <span className="text-sm text-theme-muted">{row.label}</span>
+                        <span className={`text-sm ${row.text}`}>{percentage}% — {row.area.toFixed(1)} ac</span>
+                      </div>
+                      <div className="w-full bg-theme-track rounded-full h-2.5 overflow-hidden">
+                        <div className={`h-full ${row.color} rounded-full transition-all duration-1000 ease-out`} style={{ width: `${percentage}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title={t("recentExpensesIncome")}
+            icon={Activity}
+            action={
+              <Link href="/expenses" className="text-sm font-medium text-theme-muted hover:text-theme flex items-center gap-1">
+                View All
+              </Link>
+            }
+          >
+            {recentActivity.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Wallet className="w-10 h-10 text-theme-muted opacity-50 mb-3" />
+                <p className="text-theme font-medium">No Recent Activity</p>
+                <p className="text-sm text-theme-muted">{t("noRecentActivity")}</p>
+              </div>
+            ) : (
+              <ul className="space-y-4">
+                {recentActivity.map((item) => (
+                  <li key={item.id} className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.type === 'income' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                      {item.type === 'income' ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-theme capitalize truncate">{item.type}</p>
+                      <p className="text-xs text-theme-muted">{item.date ? format(new Date(item.date + "T12:00:00"), "MMM do, yyyy") : "—"}</p>
+                    </div>
+                    <div className={`font-bold whitespace-nowrap ${item.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                      {item.type === 'income' ? '+' : '−'} Rs {item.amount.toLocaleString()}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        </div>
+      </div>
     </div>
   );
 }

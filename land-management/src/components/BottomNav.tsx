@@ -24,30 +24,28 @@ export default function BottomNav() {
         pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
     return (
-        <div
-            className="md:hidden fixed bottom-0 left-0 right-0 z-[40] glass-effect border-t border-theme shadow-[0_-4px_20px_rgba(0,0,0,0.15)] pb-safe"
-        >
-            <div className="flex items-stretch justify-around">
+        <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[40]">
+            <div className="flex items-center justify-around bg-theme-card/90 backdrop-blur-2xl border border-theme shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-3xl p-2 px-3 pb-safe-offset">
                 {navItems.map((item) => {
                     const active = isActive(item.href);
                     const label = t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallback;
+                    // Provide a cleaner string truncation
                     const short = label.length > 7 ? label.slice(0, 6) + "…" : label;
+
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-3 min-w-0 relative"
+                            className={`flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-2xl relative transition-all duration-300 ${active ? "bg-green-500/15" : "hover:bg-theme-track"
+                                }`}
                             aria-label={label}
                         >
-                            {active && (
-                                <span className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-7 rounded-xl bg-green-500/15 -z-0 pointer-events-none" />
-                            )}
                             <item.icon
-                                className={`w-5 h-5 relative z-10 transition-all duration-200 ${active ? "text-green-500" : "text-[var(--muted)]"}`}
-                                strokeWidth={active ? 2.3 : 1.75}
+                                className={`w-[22px] h-[22px] transition-colors duration-300 ${active ? "text-green-500" : "text-theme-muted"}`}
+                                strokeWidth={active ? 2.5 : 2}
                             />
                             <span
-                                className={`text-[10px] font-semibold mt-1 leading-none relative z-10 transition-colors duration-200 ${active ? "text-green-500" : "text-[var(--muted)]"}`}
+                                className={`text-[10px] font-semibold tracking-wide transition-colors duration-300 ${active ? "text-green-500" : "text-theme-muted"}`}
                             >
                                 {short}
                             </span>
@@ -57,18 +55,16 @@ export default function BottomNav() {
 
                 <button
                     onClick={toggle}
-                    className="flex flex-col items-center justify-center gap-0.5 flex-1 py-3 min-w-0 relative"
-                    aria-label="More"
+                    className={`flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-2xl relative transition-all duration-300 ${!collapsed ? "bg-green-500/15" : "hover:bg-theme-track"
+                        }`}
+                    aria-label="More Options"
                 >
-                    {!collapsed && (
-                        <span className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-7 rounded-xl bg-green-500/15 -z-0 pointer-events-none" />
-                    )}
                     <MoreHorizontal
-                        className={`w-5 h-5 relative z-10 transition-all duration-200 ${!collapsed ? "text-green-500" : "text-[var(--muted)]"}`}
-                        strokeWidth={!collapsed ? 2.3 : 1.75}
+                        className={`w-[22px] h-[22px] transition-colors duration-300 ${!collapsed ? "text-green-500" : "text-theme-muted"}`}
+                        strokeWidth={!collapsed ? 2.5 : 2}
                     />
                     <span
-                        className={`text-[10px] font-semibold mt-1 leading-none relative z-10 transition-colors duration-200 ${!collapsed ? "text-green-500" : "text-[var(--muted)]"}`}
+                        className={`text-[10px] font-semibold tracking-wide transition-colors duration-300 ${!collapsed ? "text-green-500" : "text-theme-muted"}`}
                     >
                         More
                     </span>
