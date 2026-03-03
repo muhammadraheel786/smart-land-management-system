@@ -148,7 +148,7 @@ export default function MaterialsPage() {
             </div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("materialsTitle")}</h1>
           </div>
-          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">Inventory tracking & stock management</p>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("materialsSubtitle")}</p>
         </div>
         <div className="flex gap-2 shrink-0">
           <button
@@ -189,7 +189,9 @@ export default function MaterialsPage() {
               {lowStockCount}
             </p>
             {lowStockCount > 0 && (
-              <div className="animate-pulse px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500 uppercase">Attention</div>
+              <div className="animate-pulse px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500 uppercase">
+                {t("materialsAttention")}
+              </div>
             )}
           </div>
         </div>
@@ -238,7 +240,7 @@ export default function MaterialsPage() {
                   <input type="number" min={0} step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">Price / Unit (Rs)</label>
+                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("materialsPricePerUnit")}</label>
                   <input type="number" min={0} step="0.01" value={pricePerUnit} onChange={(e) => setPricePerUnit(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="0.00" />
                 </div>
               </div>
@@ -246,7 +248,9 @@ export default function MaterialsPage() {
                 <div className="p-1.5 rounded-lg bg-blue-500/10">
                   <Package className="w-4 h-4 text-blue-400" />
                 </div>
-                <p className="text-[11px] text-theme-muted leading-relaxed">Defining a price per unit allows the system to auto-calculate costs for farm activities using this material.</p>
+                <p className="text-[11px] text-theme-muted leading-relaxed">
+                  {t("materialsPriceHint")}
+                </p>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" disabled={saving} className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50">
