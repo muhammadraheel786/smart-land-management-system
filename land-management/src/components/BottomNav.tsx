@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map as MapIcon, Wallet, Menu, BarChart2 } from "lucide-react";
+import { LayoutDashboard, Map as MapIcon, Menu, BarChart2 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 
@@ -18,12 +18,13 @@ export default function BottomNav() {
         { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
         { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics" },
         { href: "/map", icon: MapIcon, labelKey: "landMap" },
-        { href: "/expenses", icon: Wallet, labelKey: "expensesIncome" },
+        // Mobile should use unified Activities page instead of the old Expenses/Income page
+        { href: "/activities", icon: BarChart2, labelKey: "activities" },
     ];
 
     const isActive = (href: string) => {
         if (pathname === href) return true;
-        if (href === "/fields" || href === "/map" || href === "/expenses") return pathname.startsWith(href);
+        if (href === "/fields" || href === "/map" || href === "/activities") return pathname.startsWith(href);
         return false;
     };
 
