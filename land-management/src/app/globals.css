@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 /* Class-based dark mode: dark: applies when data-theme="dark" on root */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -195,13 +195,9 @@ body {
 /* Interactive elements scaling for touch */
 @media (max-width: 640px) {
 
-  button,
-  a {
+  button {
     min-height: 44px;
     /* iOS Human Interface Guidelines */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 
   input,
