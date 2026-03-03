@@ -313,7 +313,7 @@ export default function ActivitiesPage() {
                             <span className="ml-1 px-2 py-0.5 rounded-full bg-theme-track border border-theme text-xs text-theme-muted font-medium">{activities.length}</span>
                         </h2>
                         {/* Filter */}
-                        <div className="relative w-full sm:w-auto sm:ml-auto">
+                        <div className="relative w-full sm:w-auto sm:ml-auto mt-1 sm:mt-0">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted pointer-events-none" />
                             <select
                                 value={filterType}
