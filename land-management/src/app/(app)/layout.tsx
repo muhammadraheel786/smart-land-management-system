@@ -56,8 +56,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         className={`min-h-screen transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${collapsed ? "ml-0 md:ml-[80px]" : "ml-0 md:ml-[280px]"
           }`}
       >
+        {/* Header: hidden on mobile/tablet so it doesn't truncate "Mashori Farm"; show only on lg+ */}
         <header
-          className="hidden md:flex sticky top-0 z-30 items-center justify-between border-b px-4 py-3 sm:py-4 backdrop-blur sm:px-6 md:px-8"
+          className="hidden lg:flex sticky top-0 z-30 items-center justify-between border-b px-4 py-3 sm:py-4 backdrop-blur sm:px-6 md:px-8"
           style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--foreground)" }}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0 pr-2 sm:pr-4">

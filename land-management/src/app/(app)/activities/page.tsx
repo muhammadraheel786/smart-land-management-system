@@ -271,9 +271,9 @@ export default function ActivitiesPage() {
                     </button>
                 </div>
 
-                {/* ── Stats ── */}
-                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="xs:col-span-1">
+                {/* ── Stats: same-width cards on all screens ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
                         <StatCard
                             label="Total Income"
                             value={`Rs ${totalIncome.toLocaleString()}`}
@@ -282,7 +282,7 @@ export default function ActivitiesPage() {
                             textColor="text-white"
                         />
                     </div>
-                    <div className="xs:col-span-1">
+                    <div>
                         <StatCard
                             label="Total Expenses"
                             value={`Rs ${totalExpense.toLocaleString()}`}
@@ -291,7 +291,7 @@ export default function ActivitiesPage() {
                             textColor="text-white"
                         />
                     </div>
-                    <div className="flex-shrink-0 w-[240px] sm:w-full snap-start">
+                    <div className="sm:col-span-2 lg:col-span-1">
                         <StatCard
                             label="Net Profit"
                             value={`Rs ${netProfit.toLocaleString()}`}
@@ -306,26 +306,25 @@ export default function ActivitiesPage() {
 
                 {/* ── Activity Log Table ── */}
                 <div className="rounded-2xl border border-theme bg-theme-card shadow-sm overflow-hidden">
-                    {/* Table Header */}
-                    <div className="px-6 py-4 border-b border-theme flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+                    {/* Table Header: stacked on mobile, filter full width */}
+                    <div className="px-4 sm:px-6 py-4 border-b border-theme space-y-3">
                         <h2 className="text-base font-bold text-theme flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-theme-muted" /> Activity Log
-                            <span className="ml-1 px-2 py-0.5 rounded-full bg-theme-track border border-theme text-xs text-theme-muted font-medium">{activities.length}</span>
+                            <FileText className="w-4 h-4 text-theme-muted shrink-0" /> Activity Log
+                            <span className="px-2 py-0.5 rounded-full bg-theme-track border border-theme text-xs text-theme-muted font-medium">{activities.length}</span>
                         </h2>
-                        {/* Filter */}
-                        <div className="relative w-full sm:w-auto sm:ml-auto mt-1 sm:mt-0">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted pointer-events-none" />
+                        <div className="relative w-full min-w-0">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none shrink-0" />
                             <select
                                 value={filterType}
                                 onChange={e => setFilterType(e.target.value)}
-                                className="pl-8 pr-8 py-2 text-sm rounded-xl bg-theme-track border border-theme text-theme appearance-none focus:ring-2 focus:ring-green-500 focus:outline-none"
+                                className="w-full min-w-0 pl-10 pr-10 py-3 text-sm rounded-xl bg-theme-track border border-theme text-theme appearance-none focus:ring-2 focus:ring-green-500 focus:outline-none"
                             >
                                 <option value="all">All Types</option>
                                 {Object.entries(ACTIVITY_META).map(([k, v]) => (
                                     <option key={k} value={k}>{v.label}</option>
                                 ))}
                             </select>
-                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted pointer-events-none" />
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
                         </div>
                     </div>
 
