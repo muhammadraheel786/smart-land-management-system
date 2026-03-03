@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -291,7 +291,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-theme-muted">{t("cultivated")}</span>
                 <span className="text-green-600 dark:text-green-400 font-medium">
-                  {totals.totalArea ? ((cultivatedArea / totals.totalArea) * 100).toFixed(0) : 0}% ΓÇö {cultivatedArea.toFixed(1)} {t("acres")}
+                  {totals.totalArea ? ((cultivatedArea / totals.totalArea) * 100).toFixed(0) : 0}% — {cultivatedArea.toFixed(1)} {t("acres")}
                 </span>
               </div>
               <div className="w-full bg-theme-track rounded-full h-2.5">
@@ -305,7 +305,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-theme-muted">{t("onThaka")}</span>
                 <span className="text-blue-600 dark:text-blue-400 font-medium">
-                  {totals.totalArea ? ((thakaArea / totals.totalArea) * 100).toFixed(0) : 0}% ΓÇö {thakaArea.toFixed(1)} {t("acres")}
+                  {totals.totalArea ? ((thakaArea / totals.totalArea) * 100).toFixed(0) : 0}% — {thakaArea.toFixed(1)} {t("acres")}
                 </span>
               </div>
               <div className="w-full bg-theme-track rounded-full h-2.5">
@@ -442,10 +442,10 @@ export default function DashboardPage() {
                   className="flex justify-between items-center py-2 border-b border-theme last:border-0 text-sm"
                 >
                   <span className="text-theme-muted">
-                    {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM yyyy") : "ΓÇö"}
+                    {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM yyyy") : "—"}
                   </span>
                   <span className={item.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                    {item.type === "income" ? "+" : "ΓêÆ"} Rs {item.amount.toLocaleString()}
+                    {item.type === "income" ? "+" : "−"} Rs {item.amount.toLocaleString()}
                   </span>
                 </li>
               ))}

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,13 @@ export default function HomePage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Basic front-end validation to avoid sending obviously invalid requests
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter both email and password.");
+      return;
+    }
+
     setLoading(true);
     try {
       const { token, email: userEmail } = await api.login(email, password);
@@ -25,6 +32,7 @@ export default function HomePage() {
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please check your credentials.");
+    } finally {
       setLoading(false);
     }
   };
@@ -136,7 +144,7 @@ export default function HomePage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó"
+                  placeholder="••••••••"
                   autoComplete="current-password"
                   className="w-full px-4 py-3.5 min-h-[52px] rounded-xl bg-theme-track border border-theme text-theme placeholder-theme-muted focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-base shadow-sm"
                   required
