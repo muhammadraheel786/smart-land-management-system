@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
 
   // Hide the dev indicator (circular "N" icon) in development
   devIndicators: false,
-  
+
   // Image optimization - use remotePatterns instead of domains
   images: {
     remotePatterns: [
@@ -18,10 +18,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'server.arcgisonline.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },
-  
+
   // Security headers
   async headers() {
     return [
@@ -60,15 +64,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  
+
   // Output configuration for Docker
   output: 'standalone',
-  
+
   env: {
     // Mapbox token - prefer .env.local for security
     NEXT_PUBLIC_MAPBOX_TOKEN: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "",
   },
-  
+
   serverExternalPackages: ['@/lib/api'],
 };
 
