@@ -293,7 +293,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="month" stroke="var(--muted)" tick={{ fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dy={10} />
                   <YAxis stroke="var(--muted)" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(value) => `Rs ${value / 1000}k`} />
-                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'transparent' }} formatter={(value: number) => `Rs ${value.toLocaleString()}`} />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'transparent' }} formatter={(value: number | undefined) => `Rs ${(value ?? 0).toLocaleString()}`} />
                   <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="circle" />
                   <Bar dataKey="income" name={t("incomeShort")} fill="#22c55e" radius={[6, 6, 0, 0]} maxBarSize={40} />
                   <Bar dataKey="expense" name={t("expenseShort")} fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={40} />
