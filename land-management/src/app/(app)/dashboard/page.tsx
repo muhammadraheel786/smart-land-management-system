@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (fields.length > 0) {
-      fetchFieldRecommendations().catch(() => {});
+      fetchFieldRecommendations().catch(() => { });
     }
   }, [fields.length, fetchFieldRecommendations]);
 
@@ -83,7 +83,7 @@ export default function DashboardPage() {
     fetchAll()
       .then(() => {
         setLastUpdated(new Date());
-        return fetchFieldRecommendations().catch(() => {});
+        return fetchFieldRecommendations().catch(() => { });
       })
       .finally(() => setRefreshing(false));
   };
@@ -472,7 +472,7 @@ export default function DashboardPage() {
             <YAxis stroke="var(--muted)" />
             <Tooltip
               contentStyle={tooltipStyle}
-              formatter={(v: number) => `Rs ${Number(v).toLocaleString()}`}
+              formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`}
             />
             <Legend />
             <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
@@ -493,9 +493,8 @@ export default function DashboardPage() {
             {aiRecommendations.slice(0, 5).map((r) => (
               <div
                 key={r.id}
-                className={`p-4 rounded-xl border-l-4 ${
-                  r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-yellow-500 bg-yellow-500/10"
-                }`}
+                className={`p-4 rounded-xl border-l-4 ${r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-yellow-500 bg-yellow-500/10"
+                  }`}
               >
                 <p className="font-medium text-theme">{r.title}</p>
                 <p className="text-sm text-theme-muted">{r.message}</p>
