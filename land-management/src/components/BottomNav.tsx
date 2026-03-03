@@ -1,73 +1,69 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Package, Map as MapIcon, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Map as MapIcon, Wallet, Menu, BarChart2 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useSidebar } from "@/contexts/SidebarContext";
-
-const navItems = [
-    { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard", fallback: "Home" },
-    { href: "/activities", icon: BookOpen, labelKey: "activities", fallback: "Farm" },
-    { href: "/materials", icon: Package, labelKey: "materials", fallback: "Stock" },
-    { href: "/map", icon: MapIcon, labelKey: "landMap", fallback: "Map" },
-];
 
 export default function BottomNav() {
     const pathname = usePathname();
     const { t } = useLocale();
     const { toggle, collapsed } = useSidebar();
 
+    // Hide bottom nav on specific pages, like login/landing page if pathname is "/"
     if (pathname === "/") return null;
 
-    const isActive = (href: string) =>
-        pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+    const navItems = [
+        { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
+        { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics" },
+        { href: "/map", icon: MapIcon, labelKey: "landMap" },
+        { href: "/expenses", icon: Wallet, labelKey: "expensesIncome" },
+    ];
+
+    const isActive = (href: string) => {
+        if (pathname === href) return true;
+        if (href === "/fields" || href === "/map" || href === "/expenses") return pathname.startsWith(href);
+        return false;
+    };
 
     return (
-        <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] z-[40]">
-            <div className="flex items-center justify-around bg-theme-card/90 backdrop-blur-2xl border border-theme shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-3xl p-2 px-3 pb-safe-offset">
+        <div className="md:hidden fixed bottom-0 left-0 w-full z-[40] bg-[var(--card)] border-t border-[var(--border)] backdrop-blur-lg bg-opacity-90 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)] transition-transform duration-300">
+            <div className="flex items-center justify-around px-2 py-2">
                 {navItems.map((item) => {
                     const active = isActive(item.href);
-                    const label = t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallback;
-                    // Provide a cleaner string truncation
-                    const short = label.length > 7 ? label.slice(0, 6) + "…" : label;
-
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-2xl relative transition-all duration-300 ${active ? "bg-green-500/15" : "hover:bg-theme-track"
+                            className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all duration-200 ${active ? "text-green-500" : "text-theme-muted hover:text-theme"
                                 }`}
-                            aria-label={label}
                         >
-                            <item.icon
-                                className={`w-[22px] h-[22px] transition-colors duration-300 ${active ? "text-green-500" : "text-theme-muted"}`}
-                                strokeWidth={active ? 2.5 : 2}
-                            />
-                            <span
-                                className={`text-[10px] font-semibold tracking-wide transition-colors duration-300 ${active ? "text-green-500" : "text-theme-muted"}`}
+                            <div
+                                className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 transition-all duration-200 ${active ? "bg-green-500/20" : "bg-transparent"
+                                    }`}
                             >
-                                {short}
+                                <item.icon className={`w-5 h-5 ${active ? "fill-green-500/10" : "opacity-80"}`} />
+                            </div>
+                            <span className="text-[10px] font-medium tracking-wide truncate w-full text-center">
+                                {t(item.labelKey)}
                             </span>
                         </Link>
                     );
                 })}
-
+                {/* Menu Toggle */}
                 <button
                     onClick={toggle}
-                    className={`flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-2xl relative transition-all duration-300 ${!collapsed ? "bg-green-500/15" : "hover:bg-theme-track"
+                    className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all duration-200 ${!collapsed ? "text-green-500" : "text-theme-muted hover:text-theme"
                         }`}
-                    aria-label="More Options"
                 >
-                    <MoreHorizontal
-                        className={`w-[22px] h-[22px] transition-colors duration-300 ${!collapsed ? "text-green-500" : "text-theme-muted"}`}
-                        strokeWidth={!collapsed ? 2.5 : 2}
-                    />
-                    <span
-                        className={`text-[10px] font-semibold tracking-wide transition-colors duration-300 ${!collapsed ? "text-green-500" : "text-theme-muted"}`}
+                    <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 transition-all duration-200 ${!collapsed ? "bg-green-500/20" : "bg-transparent"
+                            }`}
                     >
-                        More
-                    </span>
+                        <Menu className={`w-5 h-5 ${!collapsed ? "" : "opacity-80"}`} />
+                    </div>
+                    <span className="text-[10px] font-medium tracking-wide">Menu</span>
                 </button>
             </div>
         </div>
