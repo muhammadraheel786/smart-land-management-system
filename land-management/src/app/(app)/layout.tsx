@@ -64,7 +64,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={toggle}
-              className="hidden md:flex flex-shrink-0 items-center justify-center rounded-xl p-2 bg-theme-track border border-theme hover:bg-theme hover:text-green-500 transition-all"
+              className="flex flex-shrink-0 items-center justify-center rounded-xl p-2 bg-theme-track border border-theme hover:bg-theme hover:text-green-500 transition-all shadow-sm"
               style={{ color: "var(--foreground)" }}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

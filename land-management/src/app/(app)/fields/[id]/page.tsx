@@ -155,64 +155,78 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
         <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">{error}</div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-theme mb-2">{field.name}</h1>
-          <p className="text-theme-muted">
-            {field.area?.toFixed(1) ?? "—"} {t("acres")} • {t((field.status as keyof typeof t) || field.status) || field.status}
-            {field.address && ` • ${field.address}`}
-          </p>
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 shrink-0">
+            <Map className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-4xl font-black text-theme tracking-tight mb-2">{field.name}</h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm font-bold">
+              <span className="text-theme bg-theme-track px-2 py-1 rounded-lg">
+                {field.area?.toFixed(1) ?? "—"} {t("acres")}
+              </span>
+              <span className={`px-2 py-1 rounded-lg ${field.status === 'cultivated' ? 'bg-green-500/10 text-green-500' :
+                  field.status === 'available' ? 'bg-amber-500/10 text-amber-500' :
+                    'bg-theme-track text-theme-muted'
+                }`}>
+                {t((field.status as keyof typeof t) || field.status) || field.status}
+              </span>
+              {field.address && <span className="text-theme-muted">{field.address}</span>}
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3">
           <Link
             href="/map"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme font-bold text-xs hover:border-green-500/50 transition-all active:scale-95"
           >
-            <Map className="w-4 h-4" />
+            <Map className="w-4 h-4 text-green-500" />
             {t("viewOnMap")}
           </Link>
           <Link
             href="/predictions"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme font-bold text-xs hover:border-violet-500/50 transition-all active:scale-95"
           >
-            <TrendingUp className="w-4 h-4" />
-            {t("goToPredictions")}
+            <TrendingUp className="w-4 h-4 text-violet-500" />
+            Insights
           </Link>
           <Link
             href="/expenses"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme font-bold text-xs hover:border-amber-500/50 transition-all active:scale-95"
           >
-            <Plus className="w-4 h-4" />
-            {t("addExpenseForField")}
+            <Plus className="w-4 h-4 text-amber-500" />
+            Expense
           </Link>
           <Link
             href="/water"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme font-bold text-xs hover:border-blue-500/50 transition-all active:scale-95"
           >
-            <Droplets className="w-4 h-4" />
-            {t("addWaterForField")}
+            <Droplets className="w-4 h-4 text-blue-500" />
+            Water
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-sm">{t("totalInvestment")}</p>
-          <p className="text-2xl font-bold text-red-400">Rs {totalExp.toLocaleString()}</p>
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-theme-card border border-theme rounded-2xl p-6 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("totalInvestment")}</p>
+          <p className="text-2xl font-black text-rose-500">Rs {totalExp.toLocaleString()}</p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-sm">{t("totalIncome")}</p>
-          <p className="text-2xl font-bold text-green-400">Rs {totalInc.toLocaleString()}</p>
+        <div className="bg-theme-card border border-theme rounded-2xl p-6 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("totalIncome")}</p>
+          <p className="text-2xl font-black text-emerald-500">Rs {totalInc.toLocaleString()}</p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-sm">{t("netProfit")}</p>
-          <p className={`text-2xl font-bold ${profit >= 0 ? "text-green-400" : "text-red-400"}`}>
+        <div className="bg-theme-card border border-theme rounded-2xl p-6 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("netProfit")}</p>
+          <p className={`text-2xl font-black ${profit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
             Rs {profit.toLocaleString()}
           </p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-sm">{t("records")}</p>
-          <p className="text-2xl font-bold text-theme">
+        <div className="bg-theme-card border border-theme rounded-2xl p-6 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("records")}</p>
+          <p className="text-2xl font-black text-theme">
             {fieldExpenses.length + fieldIncomes.length + fieldWater.length + fieldTemp.length}
           </p>
         </div>
@@ -237,41 +251,44 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
             ))}
           </div>
         </div>
-      )}
+      )
+      }
 
-      {(fieldWater.length > 0 || totalWaterMins > 0) && (
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-theme mb-4 flex items-center gap-2">
-            <Droplets className="w-5 h-5 text-blue-400" />
-            {t("waterUsage")}
-          </h3>
-          <div className="flex flex-wrap gap-6 mb-4">
-            <div>
-              <p className="text-theme-muted text-sm">{t("totalIrrigation")}</p>
-              <p className="text-xl font-bold text-blue-400">{totalWaterMins} {t("minutes")}</p>
-            </div>
-            {lastWater && (
+      {
+        (fieldWater.length > 0 || totalWaterMins > 0) && (
+          <div className="bg-theme-card border border-theme rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-theme mb-4 flex items-center gap-2">
+              <Droplets className="w-5 h-5 text-blue-400" />
+              {t("waterUsage")}
+            </h3>
+            <div className="flex flex-wrap gap-6 mb-4">
               <div>
-                <p className="text-theme-muted text-sm">{t("lastIrrigation")}</p>
-                <p className="text-xl font-bold text-theme">{lastWater.date}</p>
+                <p className="text-theme-muted text-sm">{t("totalIrrigation")}</p>
+                <p className="text-xl font-bold text-blue-400">{totalWaterMins} {t("minutes")}</p>
+              </div>
+              {lastWater && (
+                <div>
+                  <p className="text-theme-muted text-sm">{t("lastIrrigation")}</p>
+                  <p className="text-xl font-bold text-theme">{lastWater.date}</p>
+                </div>
+              )}
+            </div>
+            {waterChartData.length > 0 && (
+              <div className="w-full h-full min-w-0 overflow-hidden">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={waterChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="date" stroke="#8b949e" />
+                    <YAxis stroke="#8b949e" />
+                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} />
+                    <Bar dataKey="minutes" name={t("minutes")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </div>
-          {waterChartData.length > 0 && (
-            <div className="w-full h-full min-w-0 overflow-hidden">
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={waterChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="date" stroke="#8b949e" />
-                  <YAxis stroke="#8b949e" />
-                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} />
-                  <Bar dataKey="minutes" name={t("minutes")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      )}
+        )
+      }
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-theme-card border border-theme rounded-2xl p-6">
@@ -314,50 +331,56 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      {Object.keys(incomeByType).length > 0 && (
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-theme mb-4">{t("incomeByType")}</h3>
-          <div className="space-y-2">
-            {Object.entries(incomeByType).map(([type, amt]) => (
-              <div key={type} className="flex justify-between items-center">
-                <span className="text-theme-muted capitalize">{type}</span>
-                <span className="text-green-400 font-medium">Rs {amt.toLocaleString()}</span>
-              </div>
-            ))}
+      {
+        Object.keys(incomeByType).length > 0 && (
+          <div className="bg-theme-card border border-theme rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-theme mb-4">{t("incomeByType")}</h3>
+            <div className="space-y-2">
+              {Object.entries(incomeByType).map(([type, amt]) => (
+                <div key={type} className="flex justify-between items-center">
+                  <span className="text-theme-muted capitalize">{type}</span>
+                  <span className="text-green-400 font-medium">Rs {amt.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {tempData.length > 0 && (
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-theme mb-4">{t("temperatureTrend")}</h3>
-          <div className="w-full h-full min-w-0 overflow-hidden">
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={tempData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="date" stroke="#8b949e" />
-                <YAxis stroke="#8b949e" />
-                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
-                <Line type="monotone" dataKey="temp" name="°C" stroke="#f97316" strokeWidth={2} dot={{ fill: "#f97316" }} />
-              </LineChart>
-            </ResponsiveContainer>
+      {
+        tempData.length > 0 && (
+          <div className="bg-theme-card border border-theme rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-theme mb-4">{t("temperatureTrend")}</h3>
+            <div className="w-full h-full min-w-0 overflow-hidden">
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={tempData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="date" stroke="#8b949e" />
+                  <YAxis stroke="#8b949e" />
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
+                  <Line type="monotone" dataKey="temp" name="°C" stroke="#f97316" strokeWidth={2} dot={{ fill: "#f97316" }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {recentDaily.length > 0 && (
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-theme mb-4">{t("recentActivity")}</h3>
-          <div className="space-y-2">
-            {recentDaily.map((entry) => (
-              <div key={entry.id} className="flex justify-between items-center py-2 border-b border-theme last:border-0">
-                <span className="text-theme">{entry.activity || "—"}</span>
-                <span className="text-theme-muted text-sm">{entry.date}</span>
-              </div>
-            ))}
+      {
+        recentDaily.length > 0 && (
+          <div className="bg-theme-card border border-theme rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-theme mb-4">{t("recentActivity")}</h3>
+            <div className="space-y-2">
+              {recentDaily.map((entry) => (
+                <div key={entry.id} className="flex justify-between items-center py-2 border-b border-theme last:border-0">
+                  <span className="text-theme">{entry.activity || "—"}</span>
+                  <span className="text-theme-muted text-sm">{entry.date}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

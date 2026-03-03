@@ -140,13 +140,29 @@ export default function MaterialsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
-          <Package className="w-6 h-6 text-blue-400" />
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-theme">{t("materials")}</h1>
-          <p className="text-theme-muted">{t("materialsSubtitle")}</p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <Package className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("materialsTitle")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">Inventory tracking & stock management</p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => { setShowAddMaterial(true); setShowPurchase(false); setSubmitError(null); setEditingMaterialId(null); setName(""); setStock(""); setPricePerUnit(""); }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2.5 rounded-xl font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all active:scale-95 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" /> {t("materialsAddMaterial")}
+          </button>
+          <button
+            onClick={() => { setShowPurchase(true); setShowAddMaterial(false); setSubmitError(null); }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold shadow-lg shadow-green-500/20 hover:shadow-green-500/40 transition-all active:scale-95 whitespace-nowrap"
+          >
+            <ArrowDownCircle className="w-4 h-4" /> {t("materialsRecordPurchase")}
+          </button>
         </div>
       </div>
 
@@ -157,119 +173,140 @@ export default function MaterialsPage() {
         <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-4 text-green-200">{success}</div>
       )}
 
-      <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 scrollbar-none snap-x">
-        <div className="flex-shrink-0 w-[220px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6 snap-start">
-          <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("materialsTotalItems")}</p>
-          <p className="text-2xl font-bold text-theme">{materials.length}</p>
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+          <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("materialsTotalItems")}</p>
+          <p className="text-2xl sm:text-3xl font-black text-theme">{materials.length}</p>
         </div>
-        <div className="flex-shrink-0 w-[220px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("materialsTotalTransactions")}</p>
-          <p className="text-2xl font-bold text-blue-400">{materialTransactions.length}</p>
+        <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+          <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("materialsTotalTransactions")}</p>
+          <p className="text-2xl sm:text-3xl font-black text-indigo-400">{materialTransactions.length}</p>
         </div>
-        <div className="flex-shrink-0 w-[220px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
-          <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("materialsLowStock")}</p>
-          <div className="flex items-center gap-2">
-            <p className={`text-2xl font-bold ${lowStockCount > 0 ? "text-amber-400" : "text-theme"}`}>
+        <div className="xs:col-span-2 lg:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+          <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("materialsLowStock")}</p>
+          <div className="flex items-center gap-3">
+            <p className={`text-2xl sm:text-3xl font-black ${lowStockCount > 0 ? "text-amber-400" : "text-theme"}`}>
               {lowStockCount}
             </p>
-            {lowStockCount > 0 && <AlertTriangle className="w-5 h-5 text-amber-400" />}
+            {lowStockCount > 0 && (
+              <div className="animate-pulse px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500 uppercase">Attention</div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          onClick={() => { setShowAddMaterial(true); setShowPurchase(false); setSubmitError(null); setEditingMaterialId(null); setName(""); setStock(""); setPricePerUnit(""); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30"
-        >
-          <Plus className="w-4 h-4" /> {t("materialsAddMaterial")}
-        </button>
-        <button
-          onClick={() => { setShowPurchase(true); setShowAddMaterial(false); setSubmitError(null); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/40 hover:bg-blue-500/30"
-        >
-          <ArrowDownCircle className="w-4 h-4" /> {t("materialsRecordPurchase")}
-        </button>
-      </div>
+      {/* Removed old buttons as they are now in header */}
 
       {showAddMaterial && (
-        <div className="bg-theme-card border border-theme rounded-2xl p-6 max-w-md">
-          <h3 className="text-lg font-semibold text-theme mb-4">{editingMaterialId ? t("edit") : t("materialsNewMaterial")}</h3>
-          <form onSubmit={handleAddMaterial} className="space-y-4">
-            {submitError && <p className="text-red-400 text-sm">{submitError}</p>}
-            <div>
-              <label className="block text-sm text-theme-muted mb-1">{t("materialsName")}</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" placeholder={t("materialsNamePlaceholder")} />
+        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowAddMaterial(false); setEditingMaterialId(null); }} />
+          <div className="relative z-10 w-full sm:max-w-md bg-theme-card rounded-t-3xl sm:rounded-2xl shadow-2xl border border-theme flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme shrink-0">
+              <h3 className="text-lg font-black text-theme tracking-tight uppercase">{editingMaterialId ? t("edit") : t("materialsNewMaterial")}</h3>
+              <button onClick={() => { setShowAddMaterial(false); setEditingMaterialId(null); }} className="p-2 rounded-xl hover:bg-theme-track text-theme-muted transition-colors">
+                <Plus className="w-5 h-5 rotate-45" />
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <form onSubmit={handleAddMaterial} className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+              {submitError && <p className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">{submitError}</p>}
               <div>
-                <label className="block text-sm text-theme-muted mb-1">{t("category")}</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value as MaterialCategory)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme">
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{t(`matCat${c.charAt(0).toUpperCase() + c.slice(1)}` as keyof typeof t) || c}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("materialsName")}</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder={t("materialsNamePlaceholder")} />
               </div>
-              <div>
-                <label className="block text-sm text-theme-muted mb-1">{t("materialsUnit")}</label>
-                <select value={unit} onChange={(e) => setUnit(e.target.value as MaterialUnit)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme">
-                  {UNITS.map((u) => (
-                    <option key={u} value={u}>{u}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("category")}</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value as MaterialCategory)} className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{t(`matCat${c.charAt(0).toUpperCase() + c.slice(1)}` as keyof typeof t) || c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("materialsUnit")}</label>
+                  <select value={unit} onChange={(e) => setUnit(e.target.value as MaterialUnit)} className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                    {UNITS.map((u) => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-theme-muted mb-1">{t("materialsInitialStock")}</label>
-                <input type="number" min={0} step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("materialsInitialStock")}</label>
+                  <input type="number" min={0} step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">Price / Unit (Rs)</label>
+                  <input type="number" min={0} step="0.01" value={pricePerUnit} onChange={(e) => setPricePerUnit(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="0.00" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-theme-muted mb-1">Price / Unit (Rs) <span className="text-blue-400">(for auto-calc)</span></label>
-                <input type="number" min={0} step="0.01" value={pricePerUnit} onChange={(e) => setPricePerUnit(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" placeholder="0.00" />
+              <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
+                <div className="p-1.5 rounded-lg bg-blue-500/10">
+                  <Package className="w-4 h-4 text-blue-400" />
+                </div>
+                <p className="text-[11px] text-theme-muted leading-relaxed">Defining a price per unit allows the system to auto-calculate costs for farm activities using this material.</p>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving} className="px-4 py-2.5 rounded-xl bg-green-600 text-theme font-medium disabled:opacity-50">{saving ? t("materialsSaving") : editingMaterialId ? t("update") : t("save")}</button>
-              <button type="button" onClick={() => { setShowAddMaterial(false); setEditingMaterialId(null); }} className="px-4 py-2.5 rounded-xl bg-theme-track text-theme-muted">{t("cancel")}</button>
-            </div>
-          </form>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" disabled={saving} className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50">
+                  {saving ? t("materialsSaving") : editingMaterialId ? t("update") : t("save")}
+                </button>
+                <button type="button" onClick={() => { setShowAddMaterial(false); setEditingMaterialId(null); }} className="px-6 py-3.5 rounded-xl bg-theme-track border border-theme text-theme-muted font-bold text-sm">
+                  {t("cancel")}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
       {showPurchase && (
-        <div className="bg-theme-card border border-theme rounded-2xl p-6 max-w-md">
-          <h3 className="text-lg font-semibold text-theme mb-4">{t("materialsRecordPurchaseTitle")}</h3>
-          <form onSubmit={handlePurchase} className="space-y-4">
-            {submitError && <p className="text-red-400 text-sm">{submitError}</p>}
-            <div>
-              <label className="block text-sm text-theme-muted mb-1">{t("materialsMaterial")}</label>
-              <select value={purchaseMaterialId} onChange={(e) => setPurchaseMaterialId(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme">
-                <option value="">{t("materialsSelectMaterial")}</option>
-                {materials.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name} ({t("materialsCurrent")}: {(m.stock_quantity || m.currentStock || 0)} {m.unit})</option>
-                ))}
-              </select>
+        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPurchase(false)} />
+          <div className="relative z-10 w-full sm:max-w-md bg-theme-card rounded-t-3xl sm:rounded-2xl shadow-2xl border border-theme flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme shrink-0">
+              <h3 className="text-lg font-black text-theme tracking-tight uppercase">{t("materialsRecordPurchaseTitle")}</h3>
+              <button onClick={() => setShowPurchase(false)} className="p-2 rounded-xl hover:bg-theme-track text-theme-muted transition-colors">
+                <Plus className="w-5 h-5 rotate-45" />
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <form onSubmit={handlePurchase} className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+              {submitError && <p className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">{submitError}</p>}
               <div>
-                <label className="block text-sm text-theme-muted mb-1">{t("materialsQuantity")}</label>
-                <input type="number" min="0.01" step="0.01" value={purchaseQty} onChange={(e) => setPurchaseQty(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" />
+                <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("materialsMaterial")}</label>
+                <select value={purchaseMaterialId} onChange={(e) => setPurchaseMaterialId(e.target.value)} required className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 outline-none appearance-none transition-all">
+                  <option value="">{t("materialsSelectMaterial")}</option>
+                  {materials.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name} ({t("materialsCurrent")}: {(m.stock_quantity || m.currentStock || 0)} {m.unit})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("materialsQty")}</label>
+                  <input type="number" min={0} step="0.01" value={purchaseQty} onChange={(e) => setPurchaseQty(e.target.value)} required className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 outline-none transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("materialsTotalCost")}</label>
+                  <input type="number" min={0} step="0.01" value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} required className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 outline-none transition-all" />
+                </div>
               </div>
               <div>
-                <label className="block text-sm text-theme-muted mb-1">{t("materialsCost")}</label>
-                <input type="number" min={0} value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" />
+                <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">{t("date")}</label>
+                <input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} required className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 outline-none transition-all" />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm text-theme-muted mb-1">{t("date")}</label>
-              <input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme" />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving} className="px-4 py-2.5 rounded-xl bg-blue-600 text-theme font-medium disabled:opacity-50">{saving ? t("materialsSaving") : t("materialsRecordPurchase")}</button>
-              <button type="button" onClick={() => setShowPurchase(false)} className="px-4 py-2.5 rounded-xl bg-theme-track text-theme-muted">{t("cancel")}</button>
-            </div>
-          </form>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" disabled={saving} className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold text-sm shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all disabled:opacity-50">
+                  {saving ? t("materialsSaving") : t("materialsRecord")}
+                </button>
+                <button type="button" onClick={() => setShowPurchase(false)} className="px-6 py-3.5 rounded-xl bg-theme-track border border-theme text-theme-muted font-bold text-sm">
+                  {t("cancel")}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -316,29 +353,39 @@ export default function MaterialsPage() {
               </table>
             </div>
 
-            <div className="md:hidden p-4 space-y-3 bg-theme-track/30 max-h-[400px] overflow-y-auto">
+            <div className="md:hidden divide-y divide-theme">
               {materials.length === 0 ? (
-                <div className="text-center py-6 text-sm text-theme-muted bg-theme-card rounded-xl border border-theme">
-                  {t("materialsNoMaterialsYet")}
+                <div className="text-center py-10 px-4">
+                  <Package className="w-12 h-12 text-theme-track mx-auto mb-3" />
+                  <p className="text-sm text-theme-muted">{t("materialsNoMaterialsYet")}</p>
                 </div>
               ) : (
-                materials.map((m) => (
-                  <div key={m.id} className={`bg-theme-card border rounded-xl p-4 shadow-sm flex items-center justify-between gap-2 ${(m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD ? "border-amber-500/30 bg-amber-500/5" : "border-theme"}`}>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-theme truncate">{m.name}</p>
-                      <p className="text-sm text-theme-muted capitalize mt-0.5">{m.category}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className={`text-sm font-bold ${(m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD ? "text-amber-400" : "text-theme"}`}>
-                        {(m.stock_quantity || m.currentStock || 0)} {m.unit}
-                      </span>
-                      <div className="flex gap-1">
-                        <button type="button" onClick={() => { setName(m.name); setCategory(m.category as MaterialCategory); setUnit(m.unit as MaterialUnit); setStock(String((m.stock_quantity || m.currentStock || 0) ?? 0)); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="p-1.5 text-theme-muted bg-theme-track hover:text-theme border border-theme rounded-lg" title={t("edit")}><Pencil className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="p-1.5 text-red-500 hover:text-white bg-red-500/10 border border-red-500/20 rounded-lg" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                materials.map((m) => {
+                  const isLow = (m.stock_quantity || m.currentStock || 0) < LOW_STOCK_THRESHOLD;
+                  return (
+                    <div key={m.id} className="p-4 space-y-3 active:bg-theme-track/50 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-theme tracking-tight">{m.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] uppercase font-bold text-theme-muted px-1.5 py-0.5 rounded bg-theme-track border border-theme capitalize">{m.category}</span>
+                            {m.price_per_unit && <span className="text-[10px] text-blue-400 font-medium">Rs {m.price_per_unit}/{m.unit}</span>}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className={`text-sm font-black ${isLow ? "text-amber-500" : "text-theme"}`}>
+                            {(m.stock_quantity || m.currentStock || 0)} {m.unit}
+                          </div>
+                          {isLow && <p className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter mt-1">Low Stock</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button type="button" onClick={() => { setName(m.name); setCategory(m.category as MaterialCategory); setUnit(m.unit as MaterialUnit); setStock(String((m.stock_quantity || m.currentStock || 0) ?? 0)); setPricePerUnit(String(m.price_per_unit || "")); setEditingMaterialId(m.id); setShowAddMaterial(true); setSubmitError(null); }} className="px-3.5 py-1.5 rounded-xl bg-theme-track border border-theme text-theme-muted text-xs font-bold hover:text-theme transition-colors shadow-sm">{t("edit")}</button>
+                        <button type="button" onClick={() => setDeleteConfirmMaterialId(m.id)} className="px-3.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold hover:bg-red-500 hover:text-white transition-all shadow-sm">{t("delete")}</button>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -395,40 +442,41 @@ export default function MaterialsPage() {
               </table>
             </div>
 
-            <div className="md:hidden p-4 space-y-3 bg-theme-track/30 max-h-[400px] overflow-y-auto">
+            <div className="md:hidden divide-y divide-theme">
               {recentTx.length === 0 ? (
-                <div className="text-center py-6 text-sm text-theme-muted bg-theme-card rounded-xl border border-theme">
-                  {t("materialsNoTransactionsYet")}
+                <div className="text-center py-10 px-4">
+                  <ArrowDownCircle className="w-12 h-12 text-theme-track mx-auto mb-3" />
+                  <p className="text-sm text-theme-muted">{t("materialsNoTransactionsYet")}</p>
                 </div>
               ) : (
                 recentTx.map((tx) => {
                   const mat = materials.find((x) => x.id === tx.materialId);
+                  const isPurchase = tx.type === "in";
                   return (
-                    <div key={tx.id} className="bg-theme-card border border-theme rounded-xl p-4 shadow-sm relative">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold text-theme text-base truncate">{mat?.name ?? tx.materialId}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {tx.type === "in" ? (
-                              <span className="text-green-400 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10"><ArrowDownCircle className="w-3 h-3" /> IN</span>
-                            ) : (
-                              <span className="text-amber-400 flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10"><ArrowUpCircle className="w-3 h-3" /> OUT</span>
-                            )}
-                            <span className="text-xs text-theme-muted">{tx.date}</span>
+                    <div key={tx.id} className="p-4 space-y-3 active:bg-theme-track/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl ${isPurchase ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-amber-500/10 text-amber-500 border border-amber-500/20"}`}>
+                            {isPurchase ? <ArrowDownCircle className="w-4 h-4" /> : <ArrowUpCircle className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-theme leading-tight">{mat?.name ?? t("materialsUnknown")}</p>
+                            <p className="text-[10px] text-theme-muted mt-0.5">{tx.date}</p>
                           </div>
                         </div>
-                        <button type="button" onClick={() => setDeleteConfirmTxId(tx.id)} className="absolute top-4 right-4 p-1.5 text-red-500 hover:text-white bg-red-500/10 border border-red-500/20 rounded-lg" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                        <div className="text-right">
+                          <p className={`text-sm font-black ${isPurchase ? "text-green-500" : "text-amber-500"}`}>
+                            {isPurchase ? "+" : "-"}{tx.quantity} {mat?.unit ?? ""}
+                          </p>
+                          {isPurchase && tx.cost && <p className="text-[10px] text-theme-muted font-bold">Rs {tx.cost.toLocaleString()}</p>}
+                          {!isPurchase && tx.fieldId && <p className="text-[10px] text-theme-muted font-bold">{fields.find(f => f.id === tx.fieldId)?.name ?? "Field"}</p>}
+                        </div>
                       </div>
-
-                      <div className="grid grid-cols-2 gap-y-2 mt-4 text-sm mt-3 border-t border-theme pt-3">
-                        <div>
-                          <span className="text-theme-muted block text-xs mb-0.5">{t("materialsQty")}</span>
-                          <span className="text-theme font-medium">{tx.quantity} {mat?.unit ?? ""}</span>
-                        </div>
-                        <div>
-                          <span className="text-theme-muted block text-xs mb-0.5">{t("materialsFieldOrCost")}</span>
-                          <span className="text-theme text-sm">{tx.type === "in" && tx.cost != null ? `Rs ${tx.cost.toLocaleString()}` : tx.fieldId ? (fields.find((f) => f.id === tx.fieldId)?.name ?? tx.fieldId) : "—"}</span>
-                        </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <p className="text-[11px] text-theme-muted italic line-clamp-1 flex-1 pr-4">{tx.notes || "No notes provided"}</p>
+                        <button type="button" onClick={() => setDeleteConfirmTxId(tx.id)} className="p-2.5 rounded-xl text-theme-muted hover:text-red-500 hover:bg-red-500/10 active:bg-theme-track transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   );
@@ -437,33 +485,44 @@ export default function MaterialsPage() {
             </div>
           </div>
         </div>
-      </div>
 
-      {(deleteConfirmMaterialId || deleteConfirmTxId) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => { setDeleteConfirmMaterialId(null); setDeleteConfirmTxId(null); }}>
-          <div className="bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <p className="text-theme mb-4">{t("confirmDelete")}</p>
-            <div className="flex gap-3 justify-end">
-              <button type="button" onClick={() => { setDeleteConfirmMaterialId(null); setDeleteConfirmTxId(null); }} className="px-4 py-2 rounded-xl border border-theme text-theme-muted hover:text-theme">{t("cancel")}</button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (deleteConfirmMaterialId) {
-                    await deleteMaterial(deleteConfirmMaterialId);
-                    setDeleteConfirmMaterialId(null);
-                  } else if (deleteConfirmTxId) {
-                    await deleteMaterialTransaction(deleteConfirmTxId);
-                    setDeleteConfirmTxId(null);
-                  }
-                }}
-                className="px-4 py-2 rounded-xl bg-red-600 text-theme hover:bg-red-500"
-              >
-                {t("delete")}
-              </button>
+        {/* Delete Confirmation Modals */}
+        {(deleteConfirmMaterialId || deleteConfirmTxId) && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setDeleteConfirmMaterialId(null); setDeleteConfirmTxId(null); }} />
+            <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
+              <p className="text-theme-muted text-sm mb-8 leading-relaxed">
+                {deleteConfirmMaterialId ? t("materialsDeleteWarning") : "Deleting this transaction will revert the associated stock changes. This cannot be undone."}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    if (deleteConfirmMaterialId) {
+                      await deleteMaterial(deleteConfirmMaterialId);
+                      setDeleteConfirmMaterialId(null);
+                    } else if (deleteConfirmTxId) {
+                      await deleteMaterialTransaction(deleteConfirmTxId);
+                      setDeleteConfirmTxId(null);
+                    }
+                  }}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
+                >
+                  Yes, Delete
+                </button>
+                <button onClick={() => { setDeleteConfirmMaterialId(null); setDeleteConfirmTxId(null); }} className="flex-1 bg-theme-track border border-theme text-theme-muted py-3.5 rounded-xl font-bold">
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        <div className="h-20 md:hidden" />
+      </div>
     </div>
   );
 }

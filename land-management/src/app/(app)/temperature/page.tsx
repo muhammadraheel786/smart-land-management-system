@@ -120,20 +120,31 @@ export default function TemperaturePage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="mb-2 text-3xl font-bold text-theme">{t("temperatureManagement")}</h1>
-        <p className="text-[#8b949e]">
-          Live temperature by field location (exact coordinates) and manual records for crop management.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
+              <Thermometer className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("temperatureManagement")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">
+            Live temperature by field location and manual crop records.
+          </p>
+        </div>
       </div>
 
       {/* Live temperature by location */}
-      <div className="rounded-2xl border border-theme bg-theme-card p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-theme">
-            <Cloud className="h-5 w-5 text-sky-400" />
-            Live temperature by location
-          </h2>
+      <div className="rounded-2xl border border-theme bg-theme-card p-5 sm:p-6 shadow-xl">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center">
+              <Cloud className="h-5 w-5 text-sky-500" />
+            </div>
+            <h2 className="text-lg font-black text-theme tracking-tight">
+              Live location weather
+            </h2>
+          </div>
           {fieldsWithCoords.length > 0 && (
             <button
               type="button"
@@ -214,32 +225,32 @@ export default function TemperaturePage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="flex items-center gap-4 rounded-2xl border border-theme bg-theme-card p-6">
-          <div className="rounded-xl bg-orange-500/20 p-3">
-            <Thermometer className="h-8 w-8 text-orange-400" />
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex items-center gap-4 rounded-2xl border border-theme bg-theme-card p-5 shadow-sm">
+          <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+            <Thermometer className="h-6 w-6 text-orange-500" />
           </div>
           <div>
-            <p className="text-sm text-[#8b949e]">Saved records</p>
-            <p className="text-2xl font-bold text-theme">{temperatureRecords.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#8b949e] mb-0.5">Records</p>
+            <p className="text-xl font-black text-theme">{temperatureRecords.length}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-2xl border border-theme bg-theme-card p-6">
-          <div className="rounded-xl bg-orange-500/20 p-3">
-            <Thermometer className="h-8 w-8 text-orange-400" />
+        <div className="flex items-center gap-4 rounded-2xl border border-theme bg-theme-card p-5 shadow-sm">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+            <Thermometer className="h-6 w-6 text-amber-500" />
           </div>
           <div>
-            <p className="text-sm text-[#8b949e]">Avg (saved)</p>
-            <p className="text-2xl font-bold text-theme">{avgTemp.toFixed(1)} °C</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#8b949e] mb-0.5">Avg Temp</p>
+            <p className="text-xl font-black text-theme">{avgTemp.toFixed(1)} <span className="text-xs font-normal text-theme-muted">°C</span></p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-2xl border border-theme bg-theme-card p-6">
-          <div className="rounded-xl bg-sky-500/20 p-3">
-            <MapPin className="h-8 w-8 text-sky-400" />
+        <div className="flex items-center gap-4 rounded-2xl border border-theme bg-theme-card p-5 shadow-sm">
+          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+            <MapPin className="h-6 w-6 text-indigo-500" />
           </div>
           <div>
-            <p className="text-sm text-[#8b949e]">Fields with location</p>
-            <p className="text-2xl font-bold text-theme">{fieldsWithCoords.length}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#8b949e] mb-0.5">Field Geo</p>
+            <p className="text-xl font-black text-theme">{fieldsWithCoords.length} <span className="text-xs font-normal text-theme-muted">active</span></p>
           </div>
         </div>
       </div>

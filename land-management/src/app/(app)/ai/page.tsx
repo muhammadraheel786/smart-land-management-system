@@ -71,27 +71,31 @@ export default function AIPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="mb-2 flex items-center gap-2 text-3xl font-bold text-theme">
-          <Brain className="h-8 w-8 text-green-400" />
-          AI Insights
-        </h1>
-        <p className="text-theme-muted">
-          Smart analysis and strategic recommendations derived from your farm's performance data.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+              <Brain className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">AI Insights</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">
+            Smart analysis and strategic recommendations from your farm's performance data.
+          </p>
+        </div>
       </div>
 
       {/* Generate AI insights — production CTA */}
-      <div className="rounded-2xl border border-theme bg-theme-card p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-green-500/20 p-3">
-              <Sparkles className="h-6 w-6 text-green-400" />
+      <div className="rounded-2xl border border-theme bg-theme-card p-5 sm:p-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-600/10 border border-green-500/20 flex items-center justify-center shadow-inner">
+              <Sparkles className="h-7 w-7 text-green-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-theme">AI-powered analysis</h3>
-              <p className="text-sm text-theme-muted">
-                Analyze your crops, expenses, and soil metrics for optimal yields.
+              <h3 className="text-lg font-black text-theme tracking-tight">Analyze farm data</h3>
+              <p className="text-sm text-theme-muted font-medium">
+                Optimize yields using AI analysis.
               </p>
             </div>
           </div>
@@ -99,14 +103,14 @@ export default function AIPage() {
             type="button"
             onClick={handleGenerateInsights}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 font-medium text-theme hover:bg-green-500 disabled:opacity-50"
+            className="w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-3.5 font-black text-white hover:shadow-lg hover:shadow-green-500/30 transition-all active:scale-95 disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <RefreshCw className="h-5 w-5" />
             )}
-            {loading ? "Generating…" : "Generate AI insights"}
+            {loading ? "Analyzing..." : "Run Analysis"}
           </button>
         </div>
         {error && (
@@ -136,25 +140,25 @@ export default function AIPage() {
       )}
 
       {/* Quick stats (always) */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-theme bg-theme-card p-4">
-          <p className="text-xs text-theme-muted">Net profit</p>
-          <p className={`text-xl font-bold ${netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-2xl border border-theme bg-theme-card p-5 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">Net profit</p>
+          <p className={`text-2xl font-black ${netProfit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
             Rs {netProfit.toLocaleString()}
           </p>
         </div>
-        <div className="rounded-xl border border-theme bg-theme-card p-4">
-          <p className="text-xs text-theme-muted">Cultivated</p>
-          <p className="text-xl font-bold text-theme">{cultivatedCount} fields</p>
+        <div className="rounded-2xl border border-theme bg-theme-card p-5 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">Cultivated</p>
+          <p className="text-2xl font-black text-theme">{cultivatedCount} <span className="text-xs font-normal text-theme-muted">fields</span></p>
         </div>
-        <div className="rounded-xl border border-theme bg-theme-card p-4">
-          <p className="text-xs text-theme-muted">Unused / available</p>
-          <p className="text-xl font-bold text-yellow-400">{unusedCount} fields</p>
+        <div className="rounded-2xl border border-theme bg-theme-card p-5 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">Unused</p>
+          <p className="text-2xl font-black text-amber-500">{unusedCount} <span className="text-xs font-normal text-theme-muted">available</span></p>
         </div>
-        <div className="rounded-xl border border-theme bg-theme-card p-4">
-          <p className="text-xs text-theme-muted">Thaka</p>
-          <p className="text-xl font-bold text-theme">
-            {thakaRecords.filter((t) => t.status === "active").length} active
+        <div className="rounded-2xl border border-theme bg-theme-card p-5 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">Thaka</p>
+          <p className="text-2xl font-black text-blue-500">
+            {thakaRecords.filter((t) => t.status === "active").length} <span className="text-xs font-normal text-theme-muted">active</span>
           </p>
         </div>
       </div>

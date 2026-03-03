@@ -139,17 +139,19 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-theme mb-2 flex items-center gap-2">
-            <BarChart3 className="w-8 h-8 text-green-400" />
-            {t("statisticsReports")}
-          </h1>
-          <p className="text-theme-muted">{t("statisticsSubtitle")}</p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("statisticsReports")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("statisticsSubtitle")}</p>
         </div>
         <Link
           href="/export"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-theme-track border border-theme text-theme-muted hover:text-theme hover:border-green-500/50 transition"
+          className="flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl bg-theme-track border border-theme text-theme-muted hover:text-theme hover:border-blue-500/50 transition-all font-bold text-sm shadow-sm active:scale-95"
         >
           <Download className="w-4 h-4" />
           {t("exportData")}
@@ -160,39 +162,44 @@ export default function StatisticsPage() {
         <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">{error}</div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-theme-card border border-theme rounded-2xl p-4">
-          <p className="text-theme-muted text-xs sm:text-sm truncate">{t("fieldsCount")}</p>
-          <p className="text-xl font-bold text-theme">{fields.length}</p>
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("fieldsCount")}</p>
+          <p className="text-2xl font-black text-theme">{fields.length}</p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-4">
-          <p className="text-theme-muted text-xs sm:text-sm truncate">{t("totalLandArea")}</p>
-          <p className="text-xl font-bold text-theme">{totals.totalArea.toFixed(1)} {t("acres")}</p>
+        <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalLandArea")}</p>
+          <p className="text-2xl font-black text-blue-400">{totals.totalArea.toFixed(1)} <span className="text-xs font-normal text-theme-muted">{t("acres")}</span></p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-4">
-          <p className="text-theme-muted text-xs sm:text-sm truncate">{t("totalInvestment")}</p>
-          <p className="text-xl font-bold text-red-400">Rs {(totals.totalExp / 1000).toFixed(0)}k</p>
+        <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalInvestment")}</p>
+          <p className="text-2xl font-black text-rose-500">Rs {(totals.totalExp / 1000).toFixed(0)}k</p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-4">
-          <p className="text-theme-muted text-xs sm:text-sm truncate">{t("totalIncome")}</p>
-          <p className="text-xl font-bold text-green-400">Rs {(totals.totalInc / 1000).toFixed(0)}k</p>
+        <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalIncome")}</p>
+          <p className="text-2xl font-black text-emerald-500">Rs {(totals.totalInc / 1000).toFixed(0)}k</p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-4">
-          <p className="text-theme-muted text-xs sm:text-sm truncate">{t("netProfit")}</p>
-          <p className={`text-xl font-bold ${totals.netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
+        <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("netProfit")}</p>
+          <p className={`text-2xl font-black ${totals.netProfit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
             Rs {(totals.netProfit / 1000).toFixed(0)}k
           </p>
         </div>
-        <div className="bg-theme-card border border-theme rounded-2xl p-4">
-          <p className="text-theme-muted text-xs sm:text-sm truncate">{t("totalIrrigation")}</p>
-          <p className="text-xl font-bold text-blue-400">{totals.totalWaterMins} {t("minutes")}</p>
+        <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalIrrigation")}</p>
+          <p className="text-2xl font-black text-cyan-500">{totals.totalWaterMins} <span className="text-xs font-normal text-theme-muted">min</span></p>
         </div>
       </div>
 
       {totals.activeThaka > 0 && (
-        <div className="rounded-2xl border border-theme bg-theme-card p-4 flex items-center gap-4">
-          <p className="text-theme-muted">{t("statisticsActiveThaka")}</p>
-          <p className="text-theme font-semibold">{totals.activeThaka} {t("thaka")}</p>
+        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-blue-500" />
+            </div>
+            <p className="text-sm font-bold text-theme">{t("statisticsActiveThaka")}</p>
+          </div>
+          <p className="text-lg font-black text-blue-500">{totals.activeThaka} {t("thaka")}</p>
         </div>
       )}
 

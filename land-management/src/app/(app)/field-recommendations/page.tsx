@@ -54,21 +54,21 @@ export default function FieldRecommendationsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
-            <Lightbulb className="w-6 h-6 text-amber-400" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+              <Lightbulb className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("fieldRecommendations")}</h1>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-theme">{t("fieldRecommendations")}</h1>
-            <p className="text-theme-muted">{t("frSubtitle")}</p>
-          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("frSubtitle")}</p>
         </div>
         <button
           type="button"
           onClick={loadRecommendations}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme-muted hover:text-theme hover:border-amber-500/40 disabled:opacity-50 transition"
+          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/20 text-amber-500 font-black text-xs hover:bg-amber-500/20 transition-all active:scale-95 disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           {loading ? t("frLoading") : t("frRefresh")}
@@ -89,17 +89,17 @@ export default function FieldRecommendationsPage() {
         <>
           {fieldRecommendations.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-theme-card border border-theme rounded-2xl p-4">
-                <p className="text-theme-muted text-sm">{t("frHighPriority")}</p>
-                <p className="text-xl font-bold text-red-500 dark:text-red-400">{summary.high}</p>
+              <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">{t("frHighPriority")}</p>
+                <p className="text-2xl font-black text-rose-500">{summary.high}</p>
               </div>
-              <div className="bg-theme-card border border-theme rounded-2xl p-4">
-                <p className="text-theme-muted text-sm">{t("frMediumPriority")}</p>
-                <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{summary.medium}</p>
+              <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">{t("frMediumPriority")}</p>
+                <p className="text-2xl font-black text-amber-500">{summary.medium}</p>
               </div>
-              <div className="bg-theme-card border border-theme rounded-2xl p-4">
-                <p className="text-theme-muted text-sm">{t("frTotal")}</p>
-                <p className="text-xl font-bold text-theme">{summary.total}</p>
+              <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">{t("frTotal")}</p>
+                <p className="text-2xl font-black text-theme">{summary.total}</p>
               </div>
             </div>
           )}
@@ -139,9 +139,8 @@ export default function FieldRecommendationsPage() {
               {filtered.map((rec: FieldRecommendation, i: number) => (
                 <div
                   key={`${rec.fieldId}-${rec.reason}-${i}`}
-                  className={`rounded-2xl border p-5 flex flex-wrap items-start gap-4 ${
-                    rec.priority === "high" ? "bg-red-500/10 border-red-500/40" : "bg-theme-card border-theme"
-                  }`}
+                  className={`rounded-2xl border p-5 flex flex-wrap items-start gap-4 ${rec.priority === "high" ? "bg-red-500/10 border-red-500/40" : "bg-theme-card border-theme"
+                    }`}
                 >
                   <div className="flex items-center gap-3 flex-shrink-0">
                     {rec.reason === "irrigation" ? (

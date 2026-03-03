@@ -195,8 +195,8 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-theme mb-2">{t("dashboard")}</h1>
-          <p className="text-theme-muted">{t("dashboardSubtitle")}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-theme mb-1">{t("dashboard")}</h1>
+          <p className="text-sm text-theme-muted">{t("dashboardSubtitle")}</p>
           {lastUpdated && (
             <p className="text-xs text-theme-muted mt-1">
               {t("lastUpdated")}: {format(lastUpdated, "dd MMM yyyy, HH:mm")}
@@ -232,7 +232,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5 [&>*]:min-w-0">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 [&>*]:min-w-0">
         <StatsCard
           href="/fields"
           title={t("totalLandArea")}
@@ -318,9 +318,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
+        <div className="bg-theme-card border border-theme rounded-2xl p-4 sm:p-6">
           <h3 className="text-lg font-semibold text-theme mb-4">{t("quickActions")}</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 gap-3">
             <Link
               href="/map"
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"

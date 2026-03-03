@@ -54,28 +54,67 @@ export default function ExportPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-theme mb-2">{t("exportData")}</h1>
-        <p className="text-theme-muted">Download your land management data</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+              <Download className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("exportData")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">Download your land management records for external use.</p>
+        </div>
       </div>
 
-      <div className="bg-theme-card border border-theme rounded-2xl p-8 max-w-lg">
-        <div className="space-y-4">
+      <div className="bg-theme-card border border-theme rounded-3xl p-6 sm:p-10 max-w-xl shadow-xl">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm text-theme-muted mb-2">Format</label>
-            <select value={formatType} onChange={(e) => setFormatType(e.target.value as "json" | "csv")} className="w-full px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme">
-              <option value="csv">CSV (Excel-friendly)</option>
-              <option value="json">JSON (Full data)</option>
-            </select>
+            <label className="block text-xs font-black uppercase tracking-widest text-theme-muted mb-3 italic">Export Format</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setFormatType('csv')}
+                className={`py-4 rounded-2xl border font-bold text-sm transition-all ${formatType === 'csv'
+                    ? 'bg-green-500/10 border-green-500 text-green-500 shadow-lg shadow-green-500/10'
+                    : 'bg-theme-track border-theme text-theme-muted hover:border-theme-muted'
+                  }`}
+              >
+                CSV (Excel)
+              </button>
+              <button
+                onClick={() => setFormatType('json')}
+                className={`py-4 rounded-2xl border font-bold text-sm transition-all ${formatType === 'json'
+                    ? 'bg-green-500/10 border-green-500 text-green-500 shadow-lg shadow-green-500/10'
+                    : 'bg-theme-track border-theme text-theme-muted hover:border-theme-muted'
+                  }`}
+              >
+                JSON (Full)
+              </button>
+            </div>
           </div>
-          <button onClick={exportData} className="w-full py-3 rounded-xl bg-green-500 text-theme font-semibold hover:bg-green-600 flex items-center justify-center gap-2">
-            <Download className="w-5 h-5" />
-            Download Export
+
+          <button
+            onClick={exportData}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-lg shadow-xl shadow-green-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+          >
+            <Download className="w-6 h-6" />
+            Download Data
           </button>
         </div>
-        <p className="text-sm text-theme-muted mt-4">
-          {fields.length} fields, {expenses.length} expenses, {incomes.length} incomes, {waterRecords.length} water, {temperatureRecords.length} temp
-        </p>
+
+        <div className="mt-8 pt-8 border-t border-theme grid grid-cols-2 sm:grid-cols-5 gap-4">
+          {[
+            { label: 'Fields', count: fields.length },
+            { label: 'Exp', count: expenses.length },
+            { label: 'Inc', count: incomes.length },
+            { label: 'Water', count: waterRecords.length },
+            { label: 'Temp', count: temperatureRecords.length }
+          ].map((item) => (
+            <div key={item.label} className="text-center">
+              <p className="text-xl font-black text-theme">{item.count}</p>
+              <p className="text-[10px] font-bold text-theme-muted uppercase">{item.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

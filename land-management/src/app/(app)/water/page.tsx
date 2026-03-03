@@ -98,9 +98,16 @@ export default function WaterPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-theme mb-2">{t("waterManagement")}</h1>
-        <p className="text-theme-muted">{t("waterManagementSubtitle")}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <Droplets className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("waterManagement")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("waterManagementSubtitle")}</p>
+        </div>
       </div>
 
       {error && (
@@ -115,32 +122,32 @@ export default function WaterPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-theme-card border border-theme rounded-2xl p-6 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-blue-500/20">
-                <Droplets className="w-8 h-8 text-blue-400" />
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                <RefreshCw className="w-6 h-6 text-blue-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-sm">{t("waterTotalSessions")}</p>
-                <p className="text-2xl font-bold text-theme">{waterRecords.length}</p>
+                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("waterTotalSessions")}</p>
+                <p className="text-xl font-black text-theme">{waterRecords.length}</p>
               </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-6 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-blue-500/20">
-                <Droplets className="w-8 h-8 text-blue-400" />
+            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0">
+                <Droplets className="w-6 h-6 text-cyan-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-sm">{t("waterTotalDuration")}</p>
-                <p className="text-2xl font-bold text-theme">{totalMinutes} {t("minutes")}</p>
+                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("waterTotalDuration")}</p>
+                <p className="text-xl font-black text-theme">{totalMinutes} <span className="text-xs font-normal text-theme-muted">min</span></p>
               </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-6 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-blue-500/20">
-                <Droplets className="w-8 h-8 text-blue-400" />
+            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-6 h-6 text-indigo-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-sm">{t("waterHours")}</p>
-                <p className="text-2xl font-bold text-theme">{(totalMinutes / 60).toFixed(1)}</p>
+                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("waterHours")}</p>
+                <p className="text-xl font-black text-theme">{(totalMinutes / 60).toFixed(1)} <span className="text-xs font-normal text-theme-muted">hrs</span></p>
               </div>
             </div>
           </div>
@@ -191,11 +198,10 @@ export default function WaterPage() {
                       {analysis.warnings.map((w, i) => (
                         <li
                           key={`${w.fieldId}-${w.type}-${i}`}
-                          className={`rounded-xl border p-3 text-sm ${
-                            w.priority === "high"
-                              ? "border-red-500/40 bg-red-500/10 text-red-200"
-                              : "border-amber-500/30 bg-amber-500/10 text-amber-200"
-                          }`}
+                          className={`rounded-xl border p-3 text-sm ${w.priority === "high"
+                            ? "border-red-500/40 bg-red-500/10 text-red-200"
+                            : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                            }`}
                         >
                           <span className="font-medium">{w.fieldName}:</span> {w.message}
                         </li>
@@ -214,9 +220,8 @@ export default function WaterPage() {
                   {analysis.perField.map((p, idx) => (
                     <div
                       key={`${p.fieldId}-${idx}`}
-                      className={`rounded-xl border p-4 ${
-                        p.warning ? "border-amber-500/30 bg-amber-500/5" : "border-theme bg-theme-track/50"
-                      }`}
+                      className={`rounded-xl border p-4 ${p.warning ? "border-amber-500/30 bg-amber-500/5" : "border-theme bg-theme-track/50"
+                        }`}
                     >
                       <p className="font-medium text-theme mb-2">{p.fieldName}</p>
                       {p.lastWaterDate ? (
@@ -316,19 +321,36 @@ export default function WaterPage() {
               )}
             </div>
           </div>
+
           {deleteConfirmId && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDeleteConfirmId(null)}>
-              <div className="bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-                <p className="text-theme mb-4">{t("confirmDelete")}</p>
-                <div className="flex gap-3 justify-end">
-                  <button type="button" onClick={() => setDeleteConfirmId(null)} className="px-4 py-2 rounded-xl border border-theme text-theme-muted hover:text-theme">{t("cancel")}</button>
-                  <button type="button" onClick={async () => { await deleteWaterRecord(deleteConfirmId); setDeleteConfirmId(null); }} className="px-4 py-2 rounded-xl bg-red-600 text-theme hover:bg-red-500">{t("delete")}</button>
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" onClick={() => setDeleteConfirmId(null)}>
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+              <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Trash className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
+                <p className="text-theme-muted text-sm mb-8 leading-relaxed">This record will be permanently removed. This cannot be undone.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={async () => {
+                      await deleteWaterRecord(deleteConfirmId);
+                      setDeleteConfirmId(null);
+                    }}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
+                  >
+                    Yes, Delete
+                  </button>
+                  <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-theme-track border border-theme text-theme-muted py-3.5 rounded-xl font-bold">
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
           )}
         </>
       )}
+      <div className="h-20 md:hidden" />
     </div>
   );
 }

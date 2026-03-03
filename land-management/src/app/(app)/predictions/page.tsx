@@ -155,9 +155,16 @@ export default function PredictionsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-theme mb-2">{t("predictions")}</h1>
-        <p className="text-theme-muted">{t("predictionsSubtitle")}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("predictions")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("predictionsSubtitle")}</p>
+        </div>
       </div>
 
       {fields.length === 0 && (
@@ -175,30 +182,38 @@ export default function PredictionsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Crop Health */}
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-theme mb-4 flex items-center gap-2">
-            <Leaf className="w-5 h-5 text-emerald-400" />
+        <div className="bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+          <h3 className="text-lg font-black text-theme mb-5 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <Leaf className="w-5 h-5 text-emerald-500" />
+            </div>
             {t("cropHealth")}
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {fieldSelect}
             <button
               onClick={runCropHealth}
               disabled={anyLoading || !fieldId}
-              className="w-full py-3 rounded-xl bg-emerald-600 text-theme font-semibold hover:bg-emerald-500 disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 text-white font-black text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all active:scale-95 disabled:opacity-50"
             >
-              {loading === "crop_health" ? t("predicting") : t("predictCropHealth")}
+              {loading === "crop_health" ? "Analyzing..." : "Check Health"}
             </button>
             {cropHealth && (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
-                <p className="text-emerald-400 font-bold">{cropHealth.healthScore}% {t("healthScore")}</p>
-                <p className="text-sm text-theme-muted">NDVI: {cropHealth.ndvi}</p>
-                <p className="text-sm text-theme">{cropHealth.recommendation}</p>
-                {cropHealth.factorsUsed?.length ? (
-                  <p className="text-xs text-theme-muted">{t("factorsUsed")}: {cropHealth.factorsUsed.join(", ")}</p>
-                ) : null}
+              <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 -mr-12 -mt-12 rounded-full blur-2xl" />
+                <div className="flex items-center justify-between">
+                  <p className="text-emerald-500 font-black text-sm uppercase tracking-widest">{t("healthScore")}</p>
+                  <p className="text-2xl font-black text-emerald-400">{cropHealth.healthScore}%</p>
+                </div>
+                <p className="text-xs text-theme-muted font-bold">NDVI INDEX: {cropHealth.ndvi}</p>
+                <div className="p-3 rounded-lg bg-white/5 border border-white/5 text-sm text-theme italic">
+                  "{cropHealth.recommendation}"
+                </div>
                 {cropHealth.aiSummary && (
-                  <p className="text-xs text-emerald-300/90 border-t border-emerald-500/20 pt-2 mt-2">{cropHealth.aiSummary}</p>
+                  <div className="mt-3 pt-3 border-t border-emerald-500/10 flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-emerald-300/80 leading-relaxed">{cropHealth.aiSummary}</p>
+                  </div>
                 )}
               </div>
             )}

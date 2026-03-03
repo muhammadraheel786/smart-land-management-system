@@ -5,9 +5,16 @@ import { MessageCircle } from "lucide-react";
 export default function ChatbotPage() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-theme mb-2">AI Chatbot</h1>
-        <p className="text-theme-muted">Ask questions about your land and get answers from your data</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+              <MessageCircle className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">AI Assistant</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">Ask questions about your land and get answers from your data.</p>
+        </div>
       </div>
 
       <div className="bg-theme-card border border-theme rounded-2xl p-12 text-center">

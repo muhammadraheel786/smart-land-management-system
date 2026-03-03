@@ -87,7 +87,7 @@ export default function ThakaPage() {
     if (ok) {
       try {
         await updateField(fieldId, { status: "thaka" });
-      } catch (_) {}
+      } catch (_) { }
       setTenantName("");
       setTenantContact("");
       setFieldId("");
@@ -106,12 +106,16 @@ export default function ThakaPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-theme mb-2 flex items-center gap-2">
-          <FileText className="w-8 h-8 text-violet-400" />
-          {t("thakaManagement")}
-        </h1>
-        <p className="text-theme-muted">{t("thakaManagementSubtitle")}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("thakaManagement")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("thakaManagementSubtitle")}</p>
+        </div>
       </div>
 
       {error && (
@@ -126,18 +130,33 @@ export default function ThakaPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-theme-card border border-theme rounded-2xl p-6">
-              <p className="text-theme-muted text-sm">{t("thakaActiveLeases")}</p>
-              <p className="text-2xl font-bold text-green-400">{activeRecords.length}</p>
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <FileText className="w-6 h-6 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("thakaActiveLeases")}</p>
+                <p className="text-xl font-black text-theme">{activeRecords.length}</p>
+              </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-6">
-              <p className="text-theme-muted text-sm">{t("thakaExpired")}</p>
-              <p className="text-2xl font-bold text-theme">{expiredRecords.length}</p>
+            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                <FileText className="w-6 h-6 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("thakaExpired")}</p>
+                <p className="text-xl font-black text-theme">{expiredRecords.length}</p>
+              </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-6">
-              <p className="text-theme-muted text-sm">{t("thakaTotalLeaseIncome")}</p>
-              <p className="text-2xl font-bold text-violet-400">Rs {totalActiveAmount.toLocaleString()}</p>
+            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                <FileText className="w-6 h-6 text-violet-500" />
+              </div>
+              <div>
+                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("thakaTotalLeaseIncome")}</p>
+                <p className="text-xl font-black text-violet-500">Rs {totalActiveAmount.toLocaleString()}</p>
+              </div>
             </div>
           </div>
 
@@ -240,18 +259,34 @@ export default function ThakaPage() {
             </div>
           </div>
           {deleteConfirmId && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDeleteConfirmId(null)}>
-              <div className="bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-                <p className="text-theme mb-4">{t("confirmDelete")}</p>
-                <div className="flex gap-3 justify-end">
-                  <button type="button" onClick={() => setDeleteConfirmId(null)} className="px-4 py-2 rounded-xl border border-theme text-theme-muted hover:text-theme">{t("cancel")}</button>
-                  <button type="button" onClick={async () => { await deleteThakaRecord(deleteConfirmId); setDeleteConfirmId(null); }} className="px-4 py-2 rounded-xl bg-red-600 text-theme hover:bg-red-500">{t("delete")}</button>
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
+              <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Trash className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
+                <p className="text-theme-muted text-sm mb-8 leading-relaxed">This record will be permanently removed. This cannot be undone.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={async () => {
+                      await deleteThakaRecord(deleteConfirmId);
+                      setDeleteConfirmId(null);
+                    }}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
+                  >
+                    Yes, Delete
+                  </button>
+                  <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-theme-track border border-theme text-theme-muted py-3.5 rounded-xl font-bold">
+                    Cancel
+                  </button>
                 </div>
               </div>
             </div>
           )}
         </>
       )}
+      <div className="h-20 md:hidden" />
     </div>
   );
 }

@@ -61,9 +61,16 @@ export default function FieldsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-theme mb-2">{t("fieldAnalytics")}</h1>
-        <p className="text-theme-muted">{t("fieldAnalyticsSubtitle")}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+              <BarChart2 className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("fieldAnalytics")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("fieldAnalyticsSubtitle")}</p>
+        </div>
       </div>
 
       {error && (
@@ -80,22 +87,22 @@ export default function FieldsPage() {
         </div>
       ) : fields.length > 0 ? (
         <>
-          <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 lg:grid-cols-4 scrollbar-none snap-x">
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
-              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("fieldsCount")}</p>
-              <p className="text-2xl font-bold text-theme">{fields.length}</p>
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+              <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("fieldsCount")}</p>
+              <p className="text-2xl sm:text-3xl font-black text-theme">{fields.length}</p>
             </div>
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
-              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("totalLandArea")}</p>
-              <p className="text-2xl font-bold text-theme">{totals.totalArea.toFixed(1)} <span className="text-sm font-normal text-theme-muted">{t("acres")}</span></p>
+            <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+              <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("totalLandArea")}</p>
+              <p className="text-2xl sm:text-3xl font-black text-blue-400">{totals.totalArea.toFixed(1)} <span className="text-sm font-normal text-theme-muted">{t("acres")}</span></p>
             </div>
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
-              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("totalInvestment")}</p>
-              <p className="text-2xl font-bold text-red-400">Rs {totals.totalExp.toLocaleString()}</p>
+            <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+              <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("totalInvestment")}</p>
+              <p className="text-2xl sm:text-3xl font-black text-rose-500">Rs {totals.totalExp.toLocaleString()}</p>
             </div>
-            <div className="flex-shrink-0 w-[200px] sm:w-full bg-theme-card border border-theme rounded-2xl p-5 snap-start">
-              <p className="text-theme-muted text-xs font-medium uppercase tracking-wider">{t("netProfit")}</p>
-              <p className={`text-2xl font-bold ${totals.netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
+            <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+              <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("netProfit")}</p>
+              <p className={`text-2xl sm:text-3xl font-black ${totals.netProfit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                 Rs {totals.netProfit.toLocaleString()}
               </p>
             </div>
@@ -130,51 +137,53 @@ export default function FieldsPage() {
       ) : null}
 
       {!loading && fields.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredAndSorted.map(({ field: f, exp, inc, profit, waterCount, tempCount }) => (
             <Link
               key={f.id}
               href={`/fields/${f.id}`}
-              className="bg-theme-card border border-theme rounded-2xl p-5 hover:border-green-500/50 transition-all group active:scale-[0.98]"
+              className="bg-theme-card border border-theme rounded-2xl p-5 hover:border-green-500/50 transition-all group active:scale-[0.98] shadow-sm hover:shadow-green-500/10"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20 group-hover:bg-green-500/20 transition-colors">
-                    <MapIcon className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 border border-green-500/30 flex items-center justify-center group-hover:from-green-500 group-hover:to-emerald-600 transition-all duration-300">
+                    <MapIcon className="w-5 h-5 text-green-500 group-hover:text-white transition-colors" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-theme leading-tight group-hover:text-green-400 transition-colors">{f.name}</h3>
-                    <p className="text-[11px] text-theme-muted font-medium uppercase tracking-wider">
-                      {f.area?.toFixed(1) ?? "—"} {t("acres")} • {t(f.status as keyof typeof t) || f.status}
-                    </p>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-theme leading-tight group-hover:text-green-400 transition-colors truncate">{f.name}</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[10px] text-theme-muted font-bold uppercase tracking-wider">{f.area?.toFixed(1) ?? "—"} {t("acres")}</span>
+                      <span className="w-0.5 h-0.5 rounded-full bg-theme-muted" />
+                      <span className="text-[10px] text-theme-muted font-bold uppercase tracking-wider truncate">{t(f.status as keyof typeof t) || f.status}</span>
+                    </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-theme-muted group-hover:text-green-400 transition-transform group-hover:translate-x-1" />
+                <ChevronRight className="w-5 h-5 text-theme-muted group-hover:text-green-400 transition-transform group-hover:translate-x-1 shrink-0" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-theme-track/40 p-3 rounded-xl border border-theme/30">
-                  <p className="text-[10px] text-theme-muted font-bold uppercase mb-1">{t("expShort")}</p>
-                  <p className="text-sm font-black text-red-400">Rs {exp.toLocaleString()}</p>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="bg-theme-track/40 p-3 rounded-xl border border-theme/30 group-hover:border-rose-500/20 transition-colors">
+                  <p className="text-[10px] text-theme-muted font-bold uppercase mb-1 tracking-tighter">{t("expShort")}</p>
+                  <p className="text-sm font-black text-rose-500">Rs {exp.toLocaleString()}</p>
                 </div>
-                <div className="bg-theme-track/40 p-3 rounded-xl border border-theme/30">
-                  <p className="text-[10px] text-theme-muted font-bold uppercase mb-1">{t("incShort")}</p>
-                  <p className="text-sm font-black text-green-400">Rs {inc.toLocaleString()}</p>
+                <div className="bg-theme-track/40 p-3 rounded-xl border border-theme/30 group-hover:border-emerald-500/20 transition-colors">
+                  <p className="text-[10px] text-theme-muted font-bold uppercase mb-1 tracking-tighter">{t("incShort")}</p>
+                  <p className="text-sm font-black text-emerald-500">Rs {inc.toLocaleString()}</p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-theme/30 pt-3">
+              <div className="flex items-center justify-between pt-3 border-t border-theme/30">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-xs text-theme-muted font-medium">
+                  <div className="flex items-center gap-1.5 text-xs text-theme-muted font-bold">
                     <Droplets className="w-3.5 h-3.5 text-blue-400" />
                     {waterCount}
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-theme-muted font-medium">
+                  <div className="flex items-center gap-1.5 text-xs text-theme-muted font-bold">
                     <Thermometer className="w-3.5 h-3.5 text-orange-400" />
                     {tempCount}
                   </div>
                 </div>
-                <div className={`text-xs font-black px-2 py-1 rounded-lg ${profit >= 0 ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
+                <div className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter ${profit >= 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"}`}>
                   Rs {profit.toLocaleString()} {t("netShort")}
                 </div>
               </div>

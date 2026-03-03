@@ -155,9 +155,16 @@ function ExpensesContent() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-theme mb-2">{t("expensesIncome")}</h1>
-        <p className="text-[#8b949e]">{t("expensesSubtitle")}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+              <TrendingDown className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("expensesIncome")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("expensesSubtitle")}</p>
+        </div>
       </div>
 
       {error && (
@@ -172,34 +179,34 @@ function ExpensesContent() {
         </div>
       ) : (
         <>
-          <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 scrollbar-none snap-x">
-            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6 snap-start">
-              <p className="text-[#8b949e] text-sm font-medium">{t("totalInvestment")}</p>
-              <p className="text-2xl font-bold text-red-400">Rs {totalExp.toLocaleString()}</p>
+          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+              <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("totalInvestment")}</p>
+              <p className="text-2xl sm:text-3xl font-black text-rose-500">Rs {totalExp.toLocaleString()}</p>
             </div>
-            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6 snap-start">
-              <p className="text-[#8b949e] text-sm font-medium">{t("totalIncome")}</p>
-              <p className="text-2xl font-bold text-green-400">Rs {totalInc.toLocaleString()}</p>
+            <div className="xs:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+              <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("totalIncome")}</p>
+              <p className="text-2xl sm:text-3xl font-black text-emerald-500">Rs {totalInc.toLocaleString()}</p>
             </div>
-            <div className="flex-shrink-0 w-[240px] sm:w-full bg-theme-card border border-theme rounded-2xl p-6">
-              <p className="text-[#8b949e] text-sm font-medium">{t("netProfit")}</p>
-              <p className={`text-2xl font-bold ${netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
+            <div className="xs:col-span-2 lg:col-span-1 bg-theme-card border border-theme rounded-2xl p-5 sm:p-6 shadow-sm">
+              <p className="text-theme-muted text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">{t("netProfit")}</p>
+              <p className={`text-2xl sm:text-3xl font-black ${netProfit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                 Rs {netProfit.toLocaleString()}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex p-1.5 rounded-2xl bg-theme-track border border-theme w-full sm:w-fit gap-1.5">
             <button
               onClick={() => { setTab("expense"); setSuccess(false); setSubmitError(null); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition ${tab === "expense" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-theme-track text-theme-muted border border-theme hover:border-red-500/30"}`}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${tab === "expense" ? "bg-rose-500 shadow-lg shadow-rose-500/25 text-white" : "text-theme-muted hover:text-theme hover:bg-theme-card"}`}
             >
               <TrendingDown className="w-4 h-4" />
               {t("addExpense")}
             </button>
             <button
               onClick={() => { setTab("income"); setSuccess(false); setSubmitError(null); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition ${tab === "income" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-theme-track text-theme-muted border border-theme hover:border-green-500/30"}`}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${tab === "income" ? "bg-emerald-500 shadow-lg shadow-emerald-500/25 text-white" : "text-theme-muted hover:text-theme hover:bg-theme-card"}`}
             >
               <TrendingUp className="w-4 h-4" />
               {t("addIncome")}
@@ -335,20 +342,23 @@ function ExpensesContent() {
             </div>
           </div>
           {deleteConfirmId && deleteConfirmType && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDeleteConfirmId(null)}>
-              <div className="bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-                <p className="text-theme mb-4">{t("confirmDelete")}</p>
-                <div className="flex gap-3 justify-end">
-                  <button type="button" onClick={() => setDeleteConfirmId(null)} className="px-4 py-2 rounded-xl border border-theme text-[#8b949e] hover:text-theme">
-                    {t("cancel")}
-                  </button>
-                  <button type="button" onClick={handleDeleteConfirm} className="px-4 py-2 rounded-xl bg-red-600 text-theme hover:bg-red-500">
-                    {t("delete")}
-                  </button>
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
+              <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Trash className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
+                <p className="text-theme-muted text-sm mb-8 leading-relaxed">This record will be permanently deleted and cannot be recovered.</p>
+                <div className="flex gap-3">
+                  <button onClick={handleDeleteConfirm} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]">Yes, Delete</button>
+                  <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-theme-track border border-theme text-theme-muted py-3.5 rounded-xl font-bold">Cancel</button>
                 </div>
               </div>
             </div>
           )}
+
+          <div className="h-20 md:hidden" />
         </>
       )}
     </div>

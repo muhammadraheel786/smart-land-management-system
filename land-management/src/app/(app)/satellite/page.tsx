@@ -145,14 +145,18 @@ export default function SatellitePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="mb-2 flex items-center gap-2 text-3xl font-bold text-theme">
-            <Satellite className="h-8 w-8 text-green-400" />
-            Satellite Monitoring
-          </h1>
-          <p className="text-theme-muted">
-            Real satellite imagery with your field boundaries. Live weather and activity from your data.
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-blue-600 flex items-center justify-center shadow-lg shadow-green-500/30">
+              <Satellite className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">
+              Satellite Monitoring
+            </h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">
+            Real satellite imagery with field boundaries & live data.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -169,7 +173,7 @@ export default function SatellitePage() {
             )}
             Refresh live weather
           </button>
-          <div className="flex rounded-xl border border-theme bg-theme-card p-1">
+          <div className="flex p-1 rounded-xl bg-theme-track border border-theme w-full sm:w-fit overflow-x-auto scrollbar-none">
             {(
               [
                 { id: "satellite" as const, icon: Satellite, label: "Satellite" },
@@ -181,13 +185,12 @@ export default function SatellitePage() {
                 key={id}
                 type="button"
                 onClick={() => setLayer(id)}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  layer === id
-                    ? "bg-green-500/20 text-green-400"
-                    : "text-theme-muted hover:text-theme"
-                }`}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-xs font-bold transition-all duration-300 ${layer === id
+                  ? "bg-green-500 shadow-md text-white"
+                  : "text-theme-muted hover:text-theme hover:bg-theme-card"
+                  }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 {label}
               </button>
             ))}
@@ -209,8 +212,8 @@ export default function SatellitePage() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl overflow-hidden border border-theme bg-theme-track">
-            <div className="h-[480px] w-full">
+          <div className="rounded-2xl overflow-hidden border border-theme bg-theme-track shadow-xl">
+            <div className="h-[300px] xs:h-[400px] sm:h-[480px] w-full">
               <MapComponent
                 layer={layer}
                 fields={fields}
@@ -232,33 +235,34 @@ export default function SatellitePage() {
             <p className="mb-4 text-sm text-theme-muted">
               Activity score from your records: water, expenses, temperature, and data bank. Live temperature from weather API where available.
             </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
               {activityStats.map((stat) => {
                 const liveTemp = fieldLiveTemp[stat.fieldId];
                 return (
                   <div
                     key={stat.fieldId}
-                    className="rounded-xl border border-theme bg-theme-track p-4"
+                    className="rounded-2xl border border-theme bg-theme-track/30 p-5 group hover:border-green-500/40 transition-all duration-300 shadow-sm"
                   >
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="font-medium text-theme">{stat.fieldName}</span>
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-bold text-theme block truncate group-hover:text-green-400 transition-colors">{stat.fieldName}</span>
+                        {stat.areaAcres != null && (
+                          <p className="text-[10px] text-theme-muted font-bold uppercase tracking-wider mt-0.5">
+                            {stat.areaAcres.toFixed(1)} acres • {stat.status}
+                          </p>
+                        )}
+                      </div>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                          stat.activityScore >= 70
-                            ? "bg-green-500/20 text-green-400"
-                            : stat.activityScore >= 40
-                              ? "bg-yellow-500/20 text-yellow-400"
-                              : "bg-red-500/20 text-red-400"
-                        }`}
+                        className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-tighter ${stat.activityScore >= 70
+                          ? "bg-green-500/10 text-green-500"
+                          : stat.activityScore >= 40
+                            ? "bg-yellow-500/10 text-yellow-500"
+                            : "bg-red-500/10 text-red-500"
+                          }`}
                       >
-                        {stat.activityScore}% activity
+                        {stat.activityScore}%
                       </span>
                     </div>
-                    {stat.areaAcres != null && (
-                      <p className="mb-2 text-xs text-theme-muted">
-                        {stat.areaAcres.toFixed(1)} acres · {stat.status}
-                      </p>
-                    )}
                     <div className="space-y-1.5 text-xs text-theme-muted">
                       {liveTemp != null && (
                         <p className="flex items-center gap-2 text-orange-300">

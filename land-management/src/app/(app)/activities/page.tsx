@@ -5,7 +5,7 @@ import {
     Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
     Droplet, DollarSign, Leaf, ShoppingCart, Users, Trash2, X,
     CheckCircle, AlertCircle, Filter, ChevronDown, Package, BarChart3,
-    Calendar, FileText, Zap, Map as MapIcon
+    Calendar, FileText, Zap, Map as MapIcon, Info
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Activity, GeoFence, Material } from "@/types";
@@ -259,9 +259,9 @@ export default function ActivitiesPage() {
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
                                 <BarChart3 className="w-5 h-5 text-white" />
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-theme tracking-tight">Farm Activities</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">Farm Activities</h1>
                         </div>
-                        <p className="text-theme-muted text-sm ml-[52px]">Unified ledger — income, expenses, operations & inventory</p>
+                        <p className="text-xs sm:text-sm text-theme-muted ml-[52px]">Unified ledger — income, expenses & stock</p>
                     </div>
                     <button
                         onClick={() => { resetForm(); setOpen(true); }}
@@ -272,8 +272,8 @@ export default function ActivitiesPage() {
                 </div>
 
                 {/* ── Stats ── */}
-                <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 scrollbar-none snap-x">
-                    <div className="flex-shrink-0 w-[240px] sm:w-full snap-start">
+                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="xs:col-span-1">
                         <StatCard
                             label="Total Income"
                             value={`Rs ${totalIncome.toLocaleString()}`}
@@ -282,7 +282,7 @@ export default function ActivitiesPage() {
                             textColor="text-white"
                         />
                     </div>
-                    <div className="flex-shrink-0 w-[240px] sm:w-full snap-start">
+                    <div className="xs:col-span-1">
                         <StatCard
                             label="Total Expenses"
                             value={`Rs ${totalExpense.toLocaleString()}`}
@@ -411,52 +411,54 @@ export default function ActivitiesPage() {
                                     const mat = materials.find(m => m.id === act.material_id);
                                     const meta = ACTIVITY_META[act.activity_type];
                                     return (
-                                        <div key={act.id} className="p-4 space-y-2.5 active:bg-theme-track/50 transition-colors">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`p-1.5 rounded-lg ${meta?.bg || "bg-theme-track"} border ${meta?.border || "border-theme"}`}>
+                                        <div key={act.id} className="p-4 space-y-3 active:bg-theme-track/50 transition-colors">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-xl ${meta?.bg || "bg-theme-track"} border ${meta?.border || "border-theme"}`}>
                                                         {meta?.icon || <FileText className="w-4 h-4 text-theme-muted" />}
                                                     </div>
                                                     <div>
                                                         <h4 className="text-sm font-bold text-theme leading-tight">{meta?.label || act.activity_type}</h4>
-                                                        <p className="text-[10px] text-theme-muted">{act.date?.split("T")[0]}</p>
+                                                        <p className="text-[10px] text-theme-muted mt-0.5">{act.date?.split("T")[0]}</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="text-right mr-1">
-                                                        {(act.income ?? 0) > 0 && <p className="text-[13px] font-bold text-green-400">+Rs {(act.income ?? 0).toLocaleString()}</p>}
-                                                        {(act.cost ?? 0) > 0 && <p className="text-[13px] font-bold text-red-400">-Rs {(act.cost ?? 0).toLocaleString()}</p>}
-                                                    </div>
-                                                    <button onClick={() => setDeleteId(act.id)} className="p-2 rounded-xl text-theme-muted hover:text-red-500 hover:bg-red-500/10 transition-colors">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                                    {(act.income ?? 0) > 0 && <p className="text-sm font-bold text-green-400">+Rs {(act.income ?? 0).toLocaleString()}</p>}
+                                                    {(act.cost ?? 0) > 0 && <p className="text-sm font-bold text-red-400">-Rs {(act.cost ?? 0).toLocaleString()}</p>}
                                                 </div>
                                             </div>
-                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                                 {field && (
-                                                    <div className="flex items-center gap-1 text-[11px] text-theme-muted">
-                                                        <MapIcon className="w-3 h-3" />
-                                                        <span className="font-medium text-theme">{field.name}</span>
+                                                    <div className="flex items-center gap-1.5 text-xs text-theme-muted">
+                                                        <MapIcon className="w-3.5 h-3.5 text-green-500/70" />
+                                                        <span className="font-semibold text-theme">{field.name}</span>
                                                     </div>
                                                 )}
                                                 {mat && (
-                                                    <div className="flex items-center gap-1 text-[11px] text-theme-muted">
-                                                        <Package className="w-3 h-3" />
-                                                        <span className="text-theme">{mat.name} {act.quantity_used ? `× ${act.quantity_used}` : ""}</span>
+                                                    <div className="flex items-center gap-1.5 text-xs text-theme-muted">
+                                                        <Package className="w-3.5 h-3.5 text-blue-500/70" />
+                                                        <span className="text-theme font-medium">{mat.name} {act.quantity_used ? `× ${act.quantity_used}` : ""}</span>
                                                     </div>
                                                 )}
-                                                {act.quantity_used && !mat && (
-                                                    <div className="flex items-center gap-1 text-[11px] text-theme-muted">
-                                                        <BarChart3 className="w-3 h-3" />
-                                                        <span className="text-theme">{act.quantity_used} units</span>
+                                                {!mat && act.quantity_used && (
+                                                    <div className="flex items-center gap-1.5 text-xs text-theme-muted">
+                                                        <BarChart3 className="w-3.5 h-3.5 text-theme-muted" />
+                                                        <span className="text-theme font-medium">{act.quantity_used} units</span>
                                                     </div>
                                                 )}
                                             </div>
-                                            {act.notes && (
-                                                <p className="text-[11px] text-theme-muted bg-theme-track/40 p-2 rounded-lg border border-theme/30 italic">
-                                                    "{act.notes}"
-                                                </p>
-                                            )}
+                                            <div className="flex items-center justify-between pt-1">
+                                                <div className="flex-1">
+                                                    {act.notes && (
+                                                        <p className="text-[11px] text-theme-muted italic line-clamp-2">
+                                                            "{act.notes}"
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <button onClick={() => setDeleteId(act.id)} className="ml-3 p-2.5 rounded-xl text-theme-muted hover:text-red-500 hover:bg-red-500/10 active:bg-theme-track transition-colors">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -464,192 +466,203 @@ export default function ActivitiesPage() {
                         </>
                     )}
                 </div>
-            </div>
 
-            {/* ══════════════ NEW ACTIVITY MODAL ══════════════ */}
-            {open && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
-                    <div className="relative z-10 w-full sm:max-w-lg bg-theme-card rounded-t-3xl sm:rounded-2xl shadow-2xl border border-theme flex flex-col max-h-[92vh]">
+                {/* ══════════════ NEW ACTIVITY MODAL ══════════════ */}
+                {open && (
+                    <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+                        <div className="relative z-10 w-full sm:max-w-lg bg-theme-card rounded-t-3xl sm:rounded-2xl shadow-2xl border border-theme flex flex-col max-h-[92vh]">
 
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-theme shrink-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                                    <Plus className="w-4 h-4 text-green-500" />
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-theme shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                                        <Plus className="w-4 h-4 text-green-500" />
+                                    </div>
+                                    <h2 className="text-lg font-bold text-theme">Record Activity</h2>
                                 </div>
-                                <h2 className="text-lg font-bold text-theme">Record Activity</h2>
+                                <button onClick={() => setOpen(false)} className="p-2 rounded-xl hover:bg-theme-track text-theme-muted transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <button onClick={() => setOpen(false)} className="p-2 rounded-xl hover:bg-theme-track text-theme-muted transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
 
-                        {/* Modal Body */}
-                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                            {/* Modal Body */}
+                            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
-                            {/* Activity Type */}
-                            <div>
-                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-2">Activity Type *</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {Object.entries(ACTIVITY_META).map(([k, v]) => (
-                                        <button
-                                            key={k} type="button"
-                                            onClick={() => { setActivityType(k as Activity["activity_type"]); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); }}
-                                            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-xs font-medium transition-all
+                                {/* Activity Type */}
+                                <div className="px-1">
+                                    <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-3">Activity Type *</label>
+                                    <div className="grid grid-cols-2 xs:grid-cols-3 gap-2.5">
+                                        {Object.entries(ACTIVITY_META).map(([k, v]) => (
+                                            <button
+                                                key={k} type="button"
+                                                onClick={() => { setActivityType(k as Activity["activity_type"]); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); }}
+                                                className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-xs font-medium transition-all
                         ${activityType === k
-                                                    ? `${v.bg} ${v.border} ${v.color} ring-2 ring-offset-1 ring-offset-theme-card ring-current`
-                                                    : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted"}`}
-                                        >
-                                            {v.icon} <span className="text-center leading-tight">{v.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Date */}
-                            <div>
-                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Date *</label>
-                                <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                                    className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                            </div>
-
-                            {/* Field */}
-                            {needsField && (
-                                <div>
-                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                        Field {activityType !== "expense" && "*"}
-                                    </label>
-                                    <select value={fieldId} onChange={e => setFieldId(e.target.value)}
-                                        required={activityType !== "expense" && activityType !== "income"}
-                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
-                                        <option value="">Select field...</option>
-                                        {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                    </select>
-                                </div>
-                            )}
-
-                            {/* Material */}
-                            {needsMaterial && (
-                                <div>
-                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Material *</label>
-                                    <select value={materialId} onChange={e => { setMaterialId(e.target.value); setQuantity(""); setCost(""); }}
-                                        required
-                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
-                                        <option value="">Select material...</option>
-                                        {materials.map(m => (
-                                            <option key={m.id} value={m.id}>
-                                                {m.name} — {m.stock_quantity ?? m.currentStock ?? 0} {m.unit} in stock
-                                                {m.price_per_unit ? ` @ Rs ${m.price_per_unit}/${m.unit}` : ""}
-                                            </option>
+                                                        ? `${v.bg} ${v.border} ${v.color} ring-2 ring-offset-1 ring-offset-theme-card ring-current`
+                                                        : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted"}`}
+                                            >
+                                                {v.icon} <span className="text-center leading-tight">{v.label}</span>
+                                            </button>
                                         ))}
-                                    </select>
-                                    {selectedMaterial?.price_per_unit && (
-                                        <p className="mt-1.5 text-xs text-blue-400 flex items-center gap-1">
-                                            <Zap className="w-3 h-3" /> Rs {selectedMaterial.price_per_unit} per {selectedMaterial.unit} — cost auto-calculated
-                                        </p>
-                                    )}
+                                    </div>
                                 </div>
-                            )}
 
-                            {/* Quantity */}
-                            {needsQuantity && (
+                                {/* Date */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                        {activityType === "irrigation" ? "Duration (minutes)" :
-                                            activityType === "harvest" ? "Yield Quantity (kg)" :
-                                                `Quantity ${selectedMaterial ? `(${selectedMaterial.unit})` : ""}`}
-                                        {activityType !== "irrigation" && " *"}
-                                    </label>
-                                    <input type="number" min="0" step="0.01" value={quantity}
-                                        onChange={e => setQuantity(e.target.value)}
-                                        required={activityType !== "irrigation"}
-                                        placeholder="0.00"
+                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Date *</label>
+                                    <input type="date" value={date} onChange={e => setDate(e.target.value)} required
                                         className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
                                 </div>
-                            )}
 
-                            {/* Cost */}
-                            {needsCost && (
-                                <div>
-                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                        Total Cost (Rs) *
-                                        {autoCalcCost && needsMaterial && <span className="ml-2 font-normal text-amber-400 normal-case">auto-calculated</span>}
-                                    </label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
-                                        <input type="number" min="0" step="0.01" value={cost}
-                                            onChange={e => setCost(e.target.value)}
+                                {/* Field */}
+                                {needsField && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                            Field {activityType !== "expense" && "*"}
+                                        </label>
+                                        <select value={fieldId} onChange={e => setFieldId(e.target.value)}
+                                            required={activityType !== "expense" && activityType !== "income"}
+                                            className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
+                                            <option value="">Select field...</option>
+                                            {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {/* Material */}
+                                {needsMaterial && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Material *</label>
+                                        <select value={materialId} onChange={e => { setMaterialId(e.target.value); setQuantity(""); setCost(""); }}
                                             required
+                                            className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
+                                            <option value="">Select material...</option>
+                                            {materials.map(m => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.name} — {m.stock_quantity ?? m.currentStock ?? 0} {m.unit} in stock
+                                                    {m.price_per_unit ? ` @ Rs ${m.price_per_unit}/${m.unit}` : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {selectedMaterial?.price_per_unit && (
+                                            <p className="text-xs text-theme-muted flex items-center gap-1 mt-1 font-medium bg-theme-track/50 p-2 rounded-lg border border-theme/50">
+                                                <Info className="w-3.5 h-3.5 text-blue-500" />
+                                                <span>Current Stock: <b className="text-theme">{selectedMaterial?.stock_quantity ?? 0} {selectedMaterial?.unit ?? ""}</b></span>
+                                            </p>
+                                        )}
+                                        {selectedMaterial?.price_per_unit && (
+                                            <p className="mt-1.5 text-xs text-blue-400 flex items-center gap-1">
+                                                <Zap className="w-3 h-3" /> Rs {selectedMaterial.price_per_unit} per {selectedMaterial.unit} — cost auto-calculated
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Quantity */}
+                                {needsQuantity && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                            {activityType === "irrigation" ? "Duration (minutes)" :
+                                                activityType === "harvest" ? "Yield Quantity (kg)" :
+                                                    `Quantity ${selectedMaterial ? `(${selectedMaterial.unit})` : ""}`}
+                                            {activityType !== "irrigation" && " *"}
+                                        </label>
+                                        <input type="number" min="0" step="0.01" value={quantity}
+                                            onChange={e => setQuantity(e.target.value)}
+                                            required={activityType !== "irrigation"}
                                             placeholder="0.00"
-                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
+                                            className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                                    </div>
+                                )}
+
+                                {/* Cost */}
+                                {needsCost && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                            Total Cost (Rs) *
+                                            {autoCalcCost && needsMaterial && <span className="ml-2 font-normal text-amber-400 normal-case">auto-calculated</span>}
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
+                                            <input type="number" min="0" step="0.01" value={cost}
+                                                onChange={e => setCost(e.target.value)}
+                                                required
+                                                placeholder="0.00"
+                                                className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
                         ${autoCalcCost && needsMaterial ? "border-amber-500/50 bg-amber-500/5" : "border-theme"}`} />
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Income */}
-                            {needsIncome && (
+                                {/* Income */}
+                                {needsIncome && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Income Generated (Rs) *</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
+                                            <input type="number" min="0" step="0.01" value={income}
+                                                onChange={e => setIncome(e.target.value)}
+                                                required
+                                                max={selectedMaterial?.stock_quantity ?? 999999}
+                                                placeholder="0.00"
+                                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Notes */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Income Generated (Rs) *</label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
-                                        <input type="number" min="0" step="0.01" value={income}
-                                            onChange={e => setIncome(e.target.value)}
-                                            required
-                                            placeholder="0.00"
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                                    </div>
+                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Notes</label>
+                                    <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                                        placeholder="Optional description..."
+                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm resize-none focus:ring-2 focus:ring-green-500 focus:outline-none" />
                                 </div>
-                            )}
 
-                            {/* Notes */}
-                            <div>
-                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Notes</label>
-                                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                                    placeholder="Optional description..."
-                                    className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm resize-none focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                            </div>
-
-                            {/* Submit */}
-                            <div className="flex gap-3 pt-2 pb-1">
-                                <button type="submit" disabled={saving}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/20">
-                                    {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><CheckCircle className="w-4 h-4" /> Save Activity</>}
-                                </button>
-                                <button type="button" onClick={() => setOpen(false)}
-                                    className="px-5 py-3 rounded-xl bg-theme-track border border-theme text-theme-muted hover:text-theme font-semibold transition-colors">
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* ══════════════ DELETE CONFIRM MODAL ══════════════ */}
-            {deleteId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
-                    <div className="relative z-10 bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
-                            <Trash2 className="w-6 h-6 text-red-500" />
-                        </div>
-                        <h3 className="text-lg font-bold text-theme text-center mb-2">Delete Activity?</h3>
-                        <p className="text-theme-muted text-sm text-center mb-6">This will also revert any stock quantity changes associated with this activity.</p>
-                        <div className="flex gap-3">
-                            <button onClick={() => handleDelete(deleteId)}
-                                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-semibold transition-colors">
-                                Yes, Delete
-                            </button>
-                            <button onClick={() => setDeleteId(null)}
-                                className="flex-1 bg-theme-track border border-theme text-theme-muted hover:text-theme py-2.5 rounded-xl font-semibold transition-colors">
-                                Cancel
-                            </button>
+                                {/* Submit */}
+                                <div className="flex gap-3 pt-2 pb-1">
+                                    <button type="submit" disabled={saving}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/20">
+                                        {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><CheckCircle className="w-4 h-4" /> Save Activity</>}
+                                    </button>
+                                    <button type="button" onClick={() => setOpen(false)}
+                                        className="px-5 py-3 rounded-xl bg-theme-track border border-theme text-theme-muted hover:text-theme font-semibold transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* ══════════════ DELETE CONFIRM MODAL ══════════════ */}
+                {
+                    deleteId && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
+                            <div className="relative z-10 bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                                <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                                    <Trash2 className="w-6 h-6 text-red-500" />
+                                </div>
+                                <h3 className="text-lg font-bold text-theme text-center mb-2">Delete Activity?</h3>
+                                <p className="text-theme-muted text-sm text-center mb-6">This will also revert any stock quantity changes associated with this activity.</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => deleteId && handleDelete(deleteId)}
+                                        className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-semibold transition-colors">
+                                        Yes, Delete
+                                    </button>
+                                    <button onClick={() => setDeleteId(null)}
+                                        className="flex-1 bg-theme-track border border-theme text-theme-muted hover:text-theme py-2.5 rounded-xl font-semibold transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+            </div>
+            {/* Padding for BottomNav on mobile */}
+            <div className="h-20 md:hidden" />
         </div>
     );
 }

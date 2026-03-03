@@ -120,18 +120,19 @@ export default function MapView() {
       {sidebarCollapsed && (
         <button
           onClick={handleSidebarToggle}
-          className="absolute top-4 left-4 z-[1001] p-3 rounded-xl bg-[var(--card)]/90 backdrop-blur-xl border border-[var(--border)] shadow-xl text-[var(--foreground)] hover:bg-[var(--card-hover)] transition-all animate-in fade-in zoom-in duration-200"
+          className="absolute top-4 left-4 z-[1001] p-3.5 rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-theme/30 text-theme hover:bg-theme-track transition-all active:scale-95 flex items-center gap-2 group"
           title="Open Add Field Menu"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-5 h-5" />
+          <span className="text-[10px] font-black uppercase tracking-widest hidden xs:block">Menu</span>
         </button>
       )}
 
       {/* Sidebar - Inside Map Container */}
       <div
-        className={`absolute top-0 bottom-0 left-0 z-[1000] flex-shrink-0 transition-all duration-300 ease-in-out shadow-2xl ${sidebarCollapsed
-          ? "-translate-x-full"
-          : "w-full sm:w-[360px] md:w-[400px] translate-x-0"
+        className={`fixed inset-0 sm:absolute sm:top-0 sm:bottom-0 sm:left-0 z-[1100] sm:z-[1000] flex-shrink-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${sidebarCollapsed
+          ? "-translate-x-full sm:-translate-x-full"
+          : "translate-x-0 w-full sm:w-[360px] md:w-[400px]"
           }`}
       >
         <Sidebar

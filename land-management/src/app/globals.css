@@ -61,6 +61,22 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+/* Fluid Typography for Mobile Labels */
+@layer utilities {
+  .text-fluid-xs {
+    font-size: clamp(0.7rem, 2vw, 0.75rem);
+  }
+
+  .text-fluid-sm {
+    font-size: clamp(0.8rem, 2.5vw, 0.875rem);
+  }
+
+  .text-fluid-base {
+    font-size: clamp(0.9rem, 3vw, 1rem);
+  }
 }
 
 
@@ -174,6 +190,26 @@ body {
 
 .placeholder-theme::placeholder {
   color: var(--muted);
+}
+
+/* Interactive elements scaling for touch */
+@media (max-width: 640px) {
+
+  button,
+  a {
+    min-height: 44px;
+    /* iOS Human Interface Guidelines */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+    /* Prevent iOS zoom on focus */
+  }
 }
 
 /* Custom Animations */

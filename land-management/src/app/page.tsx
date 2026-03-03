@@ -103,14 +103,14 @@ export default function HomePage() {
               <Map className="w-8 h-8 text-white" />
             </div>
             <div className="text-center">
-              <h1 className="font-black text-white text-3xl tracking-tight">Smart Land Management System</h1>
-              <p className="text-theme-muted mt-1 font-medium">Smart Land Management</p>
+              <h1 className="font-black text-white text-2xl xs:text-3xl tracking-tight leading-tight px-4">Smart Land Management System</h1>
+              <p className="text-sm text-theme-muted mt-2 font-medium">Unified Farm Management</p>
             </div>
           </div>
 
           <div className="bg-theme-card/80 backdrop-blur-xl border border-theme shadow-2xl rounded-3xl p-6 sm:p-8 w-full transform transition-all animate-slide-up-fade">
-            <h2 className="text-2xl sm:text-3xl font-bold text-theme mb-2">Welcome back</h2>
-            <p className="text-theme-muted mb-8 text-sm sm:text-base">Enter your credentials to access your dashboard</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-theme mb-2">Welcome back</h2>
+            <p className="text-theme-muted mb-6 text-xs sm:text-sm">Enter your credentials to access your dashboard</p>
 
             <form onSubmit={handleLogin} className="space-y-5" aria-label="Sign in to Smart Land Management System">
               <div className="space-y-1 block group">

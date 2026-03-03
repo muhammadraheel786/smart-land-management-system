@@ -157,13 +157,15 @@ function DataBankContent() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
-          <BookOpen className="w-6 h-6 text-amber-400" />
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-theme">{t("dataBank")}</h1>
-          <p className="text-theme-muted">{t("dataBankSubtitle")}</p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("dataBank")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("dataBankSubtitle")}</p>
         </div>
       </div>
 
@@ -175,20 +177,33 @@ function DataBankContent() {
       )}
 
       <div className="rounded-2xl border-2 border-theme bg-theme-card shadow-xl overflow-hidden">
-        <div className="bg-theme-track border-b border-theme px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-theme-track border-b border-theme px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <label className="text-theme font-medium">{t("date")}</label>
+            <label className="text-xs font-bold text-theme-muted uppercase tracking-wider">{t("date")}</label>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-theme-card border border-theme text-theme font-mono"
+              className="px-4 py-2.5 rounded-xl bg-theme-card border border-theme text-theme font-mono text-sm focus:ring-2 focus:ring-amber-500/50 outline-none"
             />
           </div>
-          <div className="flex items-center gap-4 text-theme-muted text-sm">
-            <span>{t("dbEntriesCount")}: <strong className="text-theme">{daySummary.count}</strong></span>
-            {daySummary.totalLabor > 0 && <span>{t("dbTotalLabor")}: <strong className="text-theme">Rs {daySummary.totalLabor.toLocaleString()}</strong></span>}
-            {daySummary.totalWater > 0 && <span>{t("dbTotalWater")}: <strong className="text-theme">{daySummary.totalWater} {t("minutes")}</strong></span>}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[10px] sm:text-xs">
+            <div className="flex flex-col">
+              <span className="text-theme-muted font-bold uppercase tracking-tighter">{t("dbEntriesCount")}</span>
+              <span className="text-sm font-black text-theme">{daySummary.count}</span>
+            </div>
+            {daySummary.totalLabor > 0 && (
+              <div className="flex flex-col">
+                <span className="text-theme-muted font-bold uppercase tracking-tighter">{t("dbTotalLabor")}</span>
+                <span className="text-sm font-black text-rose-500">Rs {daySummary.totalLabor.toLocaleString()}</span>
+              </div>
+            )}
+            {daySummary.totalWater > 0 && (
+              <div className="flex flex-col">
+                <span className="text-theme-muted font-bold uppercase tracking-tighter">{t("dbTotalWater")}</span>
+                <span className="text-sm font-black text-blue-500">{daySummary.totalWater} {t("minutes")}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -416,28 +431,34 @@ function DataBankContent() {
       </div>
 
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDeleteConfirmId(null)}>
-          <div className="bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <p className="text-theme mb-4">{t("confirmDelete")}</p>
-            <div className="flex gap-3 justify-end">
-              <button type="button" onClick={() => setDeleteConfirmId(null)} className="px-4 py-2 rounded-xl border border-theme text-theme-muted hover:text-theme">
-                {t("cancel")}
-              </button>
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
+          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
+            <p className="text-theme-muted text-sm mb-8 leading-relaxed">This entry will be permanently removed. This cannot be undone.</p>
+            <div className="flex gap-3">
               <button
-                type="button"
                 onClick={async () => {
                   await deleteDailyRegisterEntry(deleteConfirmId);
                   setDeleteConfirmId(null);
                   fetchDailyRegister({ date: selectedDate });
                 }}
-                className="px-4 py-2 rounded-xl bg-red-600 text-theme hover:bg-red-500"
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
               >
-                {t("delete")}
+                Yes, Delete
+              </button>
+              <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-theme-track border border-theme text-theme-muted py-3.5 rounded-xl font-bold">
+                Cancel
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <div className="h-20 md:hidden" />
     </div>
   );
 }
