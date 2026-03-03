@@ -117,6 +117,7 @@ export default function ActivitiesPage() {
     const [quantity, setQuantity] = useState("");
     const [cost, setCost] = useState("");
     const [income, setIncome] = useState("");
+    const [harvestUnitPrice, setHarvestUnitPrice] = useState("");
     const [notes, setNotes] = useState("");
 
     // Auto-calculate cost from material price × quantity
@@ -133,6 +134,28 @@ export default function ActivitiesPage() {
             setCost(autoCalcCost);
         }
     }, [autoCalcCost, activityType]);
+
+    // Auto-calculate harvest income from yield quantity × unit price
+    const autoHarvestIncome = useMemo(() => {
+        if (activityType !== "harvest") return null;
+        if (!quantity || !harvestUnitPrice) return null;
+        const qty = Number(quantity);
+        const price = Number(harvestUnitPrice);
+        if (!isFinite(qty) || !isFinite(price)) return null;
+        if (qty <= 0 || price <= 0) return null;
+        return (qty * price).toFixed(2);
+    }, [activityType, quantity, harvestUnitPrice]);
+
+    useEffect(() => {
+        if (activityType !== "harvest") return;
+        if (!quantity || !harvestUnitPrice) {
+            setIncome("");
+            return;
+        }
+        if (autoHarvestIncome !== null) {
+            setIncome(autoHarvestIncome);
+        }
+    }, [activityType, quantity, harvestUnitPrice, autoHarvestIncome]);
 
     // ── Fetch ──
     const fetchData = async () => {
@@ -175,7 +198,7 @@ export default function ActivitiesPage() {
     // ── Reset form ──
     const resetForm = () => {
         setActivityType("expense"); setDate(new Date().toISOString().split("T")[0]);
-        setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setNotes("");
+        setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice(""); setNotes("");
     };
 
     // ── Submit ──
@@ -495,7 +518,14 @@ export default function ActivitiesPage() {
                                         {Object.entries(ACTIVITY_META).map(([k, v]) => (
                                             <button
                                                 key={k} type="button"
-                                                onClick={() => { setActivityType(k as Activity["activity_type"]); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); }}
+                                                onClick={() => {
+                                                    setActivityType(k as Activity["activity_type"]);
+                                                    setMaterialId("");
+                                                    setQuantity("");
+                                                    setCost("");
+                                                    setIncome("");
+                                                    setHarvestUnitPrice("");
+                                                }}
                                                 className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-xs font-medium transition-all
                         ${activityType === k
                                                         ? `${v.bg} ${v.border} ${v.color} ring-2 ring-offset-1 ring-offset-theme-card ring-current`
@@ -594,18 +624,57 @@ export default function ActivitiesPage() {
                                     </div>
                                 )}
 
-                                {/* Income */}
+                                {/* Income / Harvest earnings */}
                                 {needsIncome && (
-                                    <div>
-                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Income Generated (Rs) *</label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
-                                            <input type="number" min="0" step="0.01" value={income}
-                                                onChange={e => setIncome(e.target.value)}
-                                                required
-                                                max={selectedMaterial?.stock_quantity ?? 999999}
-                                                placeholder="0.00"
-                                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                                    <div className="space-y-2">
+                                        {activityType === "harvest" && (
+                                            <div>
+                                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                                    Unit Price (Rs per unit) *
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={harvestUnitPrice}
+                                                        onChange={e => setHarvestUnitPrice(e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
+                                                Income Generated (Rs) *
+                                                {activityType === "harvest" && autoHarvestIncome !== null && (
+                                                    <span className="ml-2 font-normal text-amber-400 normal-case">
+                                                        auto-calculated
+                                                    </span>
+                                                )}
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={income}
+                                                    onChange={e => setIncome(e.target.value)}
+                                                    required
+                                                    placeholder="0.00"
+                                                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
+                            ${activityType === "harvest" && autoHarvestIncome !== null ? "border-amber-500/50 bg-amber-500/5" : "border-theme"}`}
+                                                />
+                                            </div>
+                                            {activityType === "harvest" && autoHarvestIncome !== null && (
+                                                <p className="mt-1 text-xs text-theme-muted">
+                                                    {quantity || "0"} × {harvestUnitPrice || "0"} ={" "}
+                                                    <span className="font-semibold text-green-400">Rs {autoHarvestIncome}</span>
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
