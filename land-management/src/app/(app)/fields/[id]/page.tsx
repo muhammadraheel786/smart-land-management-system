@@ -47,7 +47,9 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
   const fieldDaily = useMemo(() => dailyRegister.filter((d) => d.fieldId === id), [dailyRegister, id]);
 
   const totalExp = fieldExpenses.reduce((a, e) => a + e.amount, 0);
-  const totalInc = fieldIncomes.reduce((a, i) => a + i.amount, 0);
+  const activityInc = fieldIncomes.reduce((a, i) => a + i.amount, 0);
+  const thakaInc = fieldThaka.filter(t => t.status === 'active').reduce((a, t) => a + (t.amount || 0), 0);
+  const totalInc = activityInc + thakaInc;
   const profit = totalInc - totalExp;
   const totalWaterMins = fieldWater.reduce((a, w) => a + (w.durationMinutes || 0), 0);
   const lastWater = fieldWater.length > 0
@@ -79,7 +81,11 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
       const m = subMonths(new Date(), n - 1 - i);
       const mStr = format(m, "yyyy-MM");
       const exp = fieldExpenses.filter((e) => (e.date || "").slice(0, 7) === mStr).reduce((a, e) => a + e.amount, 0);
-      const inc = fieldIncomes.filter((i) => (i.date || "").slice(0, 7) === mStr).reduce((a, i) => a + i.amount, 0);
+      const activityIncome = fieldIncomes.filter((i) => (i.date || "").slice(0, 7) === mStr).reduce((a, i) => a + i.amount, 0);
+      // For thaka, we might want to distribute it or just count it in the start/end month.
+      // Usually users want to see it when it was paid.
+      const thakaIncome = fieldThaka.filter((t) => (t.startDate || "").slice(0, 7) === mStr).reduce((a, t) => a + t.amount, 0);
+      const inc = activityIncome + thakaIncome;
       return { month: format(m, "MMM yy"), expense: exp, income: inc };
     });
   }, [fieldExpenses, fieldIncomes, monthRange]);

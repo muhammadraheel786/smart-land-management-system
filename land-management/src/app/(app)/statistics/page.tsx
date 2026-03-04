@@ -32,10 +32,12 @@ export default function StatisticsPage() {
   const totals = useMemo(() => {
     const totalArea = fields.reduce((a, f) => a + (f.area || 0), 0);
     const totalExp = expenses.reduce((a, e) => a + e.amount, 0);
-    const totalInc = incomes.reduce((a, i) => a + i.amount, 0);
+    const activityInc = incomes.reduce((a, i) => a + i.amount, 0);
+    const thakaIncAmount = thakaRecords.filter((tr) => tr.status === "active").reduce((a, tr) => a + (tr.amount || 0), 0);
+    const totalInc = activityInc + thakaIncAmount;
     const totalWaterMins = waterRecords.reduce((a, w) => a + (w.durationMinutes || 0), 0);
-    const activeThaka = thakaRecords.filter((tr) => tr.status === "active").length;
-    return { totalArea, totalExp, totalInc, netProfit: totalInc - totalExp, totalWaterMins, activeThaka };
+    const activeThakaCount = thakaRecords.filter((tr) => tr.status === "active").length;
+    return { totalArea, totalExp, totalInc, netProfit: totalInc - totalExp, totalWaterMins, activeThaka: activeThakaCount };
   }, [fields, expenses, incomes, waterRecords, thakaRecords]);
 
   const landPieData = useMemo(() => {
@@ -68,7 +70,9 @@ export default function StatisticsPage() {
       const m = subMonths(new Date(), n - 1 - i);
       const mStr = format(m, "yyyy-MM");
       const exp = expenses.filter((e) => (e.date || "").slice(0, 7) === mStr).reduce((a, e) => a + e.amount, 0);
-      const inc = incomes.filter((i) => (i.date || "").slice(0, 7) === mStr).reduce((a, i) => a + i.amount, 0);
+      const activityIncome = incomes.filter((i) => (i.date || "").slice(0, 7) === mStr).reduce((a, i) => a + i.amount, 0);
+      const thakaIncome = thakaRecords.filter((tr) => (tr.startDate || "").slice(0, 7) === mStr).reduce((a, t) => a + t.amount, 0);
+      const inc = activityIncome + thakaIncome;
       return { month: format(m, "MMM yy"), expense: exp, income: inc, profit: inc - exp };
     });
   }, [expenses, incomes, monthRange]);
@@ -112,11 +116,13 @@ export default function StatisticsPage() {
     return fields
       .map((f) => {
         const exp = expenses.filter((e) => e.fieldId === f.id).reduce((a, e) => a + e.amount, 0);
-        const inc = incomes.filter((i) => i.fieldId === f.id).reduce((a, i) => a + i.amount, 0);
+        const activityIncome = incomes.filter((i) => i.fieldId === f.id).reduce((a, i) => a + i.amount, 0);
+        const thakaIncAmount = thakaRecords.filter((t) => t.fieldId === f.id && t.status === "active").reduce((a, t) => a + (t.amount || 0), 0);
+        const inc = activityIncome + thakaIncAmount;
         return { name: f.name, profit: inc - exp, expense: exp, income: inc };
       })
       .sort((a, b) => b.profit - a.profit);
-  }, [fields, expenses, incomes]);
+  }, [fields, expenses, incomes, thakaRecords]);
 
   const tooltipStyle = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" };
 

@@ -10,7 +10,7 @@ type SortKey = "name" | "area" | "profit" | "status";
 
 export default function FieldsPage() {
   const { t } = useLocale();
-  const { fields, expenses, incomes, waterRecords, temperatureRecords, fetchAll, loading, error } = useLandStore();
+  const { fields, expenses, incomes, thakaRecords, waterRecords, temperatureRecords, fetchAll, loading, error } = useLandStore();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
 
@@ -21,13 +21,15 @@ export default function FieldsPage() {
   const fieldStats = useMemo(() => {
     return fields.map((f) => {
       const exp = expenses.filter((e) => e.fieldId === f.id).reduce((a, e) => a + e.amount, 0);
-      const inc = incomes.filter((i) => i.fieldId === f.id).reduce((a, i) => a + i.amount, 0);
+      const activityInc = incomes.filter((i) => i.fieldId === f.id).reduce((a, i) => a + i.amount, 0);
+      const thakaInc = thakaRecords.filter((t) => t.fieldId === f.id && t.status === 'active').reduce((a, t) => a + t.amount, 0);
+      const inc = activityInc + thakaInc;
       const profit = inc - exp;
       const waterCount = waterRecords.filter((w) => w.fieldId === f.id).length;
       const tempCount = temperatureRecords.filter((t) => t.fieldId === f.id).length;
       return { field: f, exp, inc, profit, waterCount, tempCount };
     });
-  }, [fields, expenses, incomes, waterRecords, temperatureRecords]);
+  }, [fields, expenses, incomes, thakaRecords, waterRecords, temperatureRecords]);
 
   const filteredAndSorted = useMemo(() => {
     let list = fieldStats;
@@ -55,9 +57,11 @@ export default function FieldsPage() {
   const totals = useMemo(() => {
     const totalArea = fields.reduce((a, f) => a + (f.area ?? 0), 0);
     const totalExp = expenses.reduce((a, e) => a + e.amount, 0);
-    const totalInc = incomes.reduce((a, i) => a + i.amount, 0);
+    const activityInc = incomes.reduce((a, i) => a + i.amount, 0);
+    const thakaInc = thakaRecords.filter((t) => t.status === 'active').reduce((a, t) => a + (t.amount || 0), 0);
+    const totalInc = activityInc + thakaInc;
     return { totalArea, totalExp, totalInc, netProfit: totalInc - totalExp };
-  }, [fields, expenses, incomes]);
+  }, [fields, expenses, incomes, thakaRecords]);
 
   return (
     <div className="space-y-8">

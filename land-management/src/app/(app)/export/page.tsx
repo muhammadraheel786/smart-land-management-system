@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { useLandStore } from "@/lib/store";
 import { format } from "date-fns";
@@ -8,8 +8,12 @@ import { useLocale } from "@/contexts/LocaleContext";
 
 export default function ExportPage() {
   const { t } = useLocale();
-  const { fields, expenses, incomes, thakaRecords, waterRecords, temperatureRecords } = useLandStore();
+  const { fields, expenses, incomes, thakaRecords, waterRecords, temperatureRecords, fetchAll, loading } = useLandStore();
   const [formatType, setFormatType] = useState<"json" | "csv">("csv");
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const exportData = () => {
     const data = {
@@ -32,17 +36,35 @@ export default function ExportPage() {
       URL.revokeObjectURL(url);
     } else {
       const rows: string[][] = [];
-      rows.push(["Type", "Field", "Date", "Amount", "Category/Details"]);
+      rows.push(["Type", "Field", "Date", "Amount/Value", "Category/Details", "Notes"]);
+
       expenses.forEach((e) => {
         const f = fields.find((x) => x.id === e.fieldId);
-        rows.push(["Expense", f?.name ?? "", e.date, String(e.amount), e.category]);
+        rows.push(["Expense", f?.name ?? "", e.date || "", String(e.amount), e.category, e.description || ""]);
       });
+
       incomes.forEach((i) => {
         const f = fields.find((x) => x.id === i.fieldId);
-        rows.push(["Income", f?.name ?? "", i.date, String(i.amount), i.type]);
+        rows.push(["Income", f?.name ?? "", i.date || "", String(i.amount), i.type, i.description || ""]);
       });
-      const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
+
+      thakaRecords.forEach((tr) => {
+        const f = fields.find((x) => x.id === tr.fieldId);
+        rows.push(["Thaka", f?.name ?? "", tr.startDate || "", String(tr.amount), tr.tenantName, tr.status]);
+      });
+
+      waterRecords.forEach((wr) => {
+        const f = fields.find((x) => x.id === wr.fieldId);
+        rows.push(["Water", f?.name ?? "", wr.date || "", `${wr.durationMinutes} min`, "Irrigation", wr.notes || ""]);
+      });
+
+      temperatureRecords.forEach((tr) => {
+        const f = fields.find((x) => x.id === tr.fieldId);
+        rows.push(["Temperature", f?.name ?? "", tr.date || "", `${tr.temperatureC}°C`, "Climate", tr.notes || ""]);
+      });
+
+      const csvContent = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -74,8 +96,8 @@ export default function ExportPage() {
               <button
                 onClick={() => setFormatType('csv')}
                 className={`py-4 rounded-2xl border font-bold text-sm transition-all ${formatType === 'csv'
-                    ? 'bg-green-500/10 border-green-500 text-green-500 shadow-lg shadow-green-500/10'
-                    : 'bg-theme-track border-theme text-theme-muted hover:border-theme-muted'
+                  ? 'bg-green-500/10 border-green-500 text-green-500 shadow-lg shadow-green-500/10'
+                  : 'bg-theme-track border-theme text-theme-muted hover:border-theme-muted'
                   }`}
               >
                 CSV (Excel)
@@ -83,8 +105,8 @@ export default function ExportPage() {
               <button
                 onClick={() => setFormatType('json')}
                 className={`py-4 rounded-2xl border font-bold text-sm transition-all ${formatType === 'json'
-                    ? 'bg-green-500/10 border-green-500 text-green-500 shadow-lg shadow-green-500/10'
-                    : 'bg-theme-track border-theme text-theme-muted hover:border-theme-muted'
+                  ? 'bg-green-500/10 border-green-500 text-green-500 shadow-lg shadow-green-500/10'
+                  : 'bg-theme-track border-theme text-theme-muted hover:border-theme-muted'
                   }`}
               >
                 JSON (Full)
