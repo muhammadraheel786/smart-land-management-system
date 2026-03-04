@@ -251,14 +251,14 @@ export default function DashboardPage() {
         />
         <StatsCard
           href="/activities"
-          title={t("totalPurchases")}
+          title={t("totalInvestment")}
           value={`Rs ${totals.totalExp.toLocaleString()}`}
           icon={Wallet}
           color="blue"
         />
         <StatsCard
           href="/activities?type=income"
-          title={t("totalSales")}
+          title={t("totalIncome")}
           value={`Rs ${totals.totalInc.toLocaleString()}`}
           icon={TrendingUp}
           color="yellow"

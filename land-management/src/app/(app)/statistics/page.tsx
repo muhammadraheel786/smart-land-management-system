@@ -172,11 +172,11 @@ export default function StatisticsPage() {
           <p className="text-2xl font-black text-blue-400">{totals.totalArea.toFixed(1)} <span className="text-xs font-normal text-theme-muted">{t("acres")}</span></p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
-          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalPurchases")}</p>
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalInvestment")}</p>
           <p className="text-2xl font-black text-rose-500">Rs {(totals.totalExp / 1000).toFixed(0)}k</p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
-          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalSales")}</p>
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalIncome")}</p>
           <p className="text-2xl font-black text-emerald-500">Rs {(totals.totalInc / 1000).toFixed(0)}k</p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
