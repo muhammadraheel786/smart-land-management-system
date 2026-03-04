@@ -614,10 +614,10 @@ function ActivitiesContent() {
                                                     `Quantity ${selectedMaterial ? `(${selectedMaterial.unit})` : ""}`}
                                             {activityType !== "irrigation" && " *"}
                                         </label>
-                                        <input type="number" min="0" step="0.01" value={quantity}
+                                        <input type="number" min="0" step="any" value={quantity}
                                             onChange={e => setQuantity(e.target.value)}
                                             required={activityType !== "irrigation"}
-                                            placeholder="0.00"
+                                            placeholder="0"
                                             className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
                                     </div>
                                 )}
@@ -631,10 +631,10 @@ function ActivitiesContent() {
                                         </label>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
-                                            <input type="number" min="0" step="0.01" value={cost}
+                                            <input type="number" min="0" step="any" value={cost}
                                                 onChange={e => setCost(e.target.value)}
                                                 required
-                                                placeholder="0.00"
+                                                placeholder="0"
                                                 className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
                         ${autoCalcCost && needsMaterial ? "border-amber-500/50 bg-amber-500/5" : "border-theme"}`} />
                                         </div>
@@ -654,10 +654,10 @@ function ActivitiesContent() {
                                                     <input
                                                         type="number"
                                                         min="0"
-                                                        step="0.01"
+                                                        step="any"
                                                         value={harvestUnitPrice}
                                                         onChange={e => setHarvestUnitPrice(e.target.value)}
-                                                        placeholder="0.00"
+                                                        placeholder="0"
                                                         className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
                                                     />
                                                 </div>
@@ -677,11 +677,11 @@ function ActivitiesContent() {
                                                 <input
                                                     type="number"
                                                     min="0"
-                                                    step="0.01"
+                                                    step="any"
                                                     value={income}
                                                     onChange={e => setIncome(e.target.value)}
                                                     required
-                                                    placeholder="0.00"
+                                                    placeholder="0"
                                                     className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
                             ${activityType === "harvest" && autoHarvestIncome !== null ? "border-amber-500/50 bg-amber-500/5" : "border-theme"}`}
                                                 />

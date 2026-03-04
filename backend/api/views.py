@@ -18,6 +18,14 @@ logger = logging.getLogger("api.views")
 def _json_response(data, status=200):
     return JsonResponse(data, status=status, safe=False)
 
+def _to_num(val):
+    try:
+        if val is None or val == "": return 0
+        f = float(val)
+        return int(f) if f == int(f) else f
+    except (TypeError, ValueError):
+        return 0
+
 
 def _api_error(message, status=500, detail=None):
     """Return JSON error response and log. Use for production-safe error handling."""
@@ -321,9 +329,8 @@ def water_analysis(request):
         last_date_s = last_water.get('date', '')[:10] if last_water else ''
         # Supported both legacy durationMinutes and unified quantity_used
         last_mins = last_water.get('quantity_used') or last_water.get('durationMinutes') or 30
-        if last_water and not isinstance(last_mins, (int, float)):
-             try: last_mins = float(last_mins)
-             except: last_mins = 30
+        if last_water:
+             last_mins = _to_num(last_mins) if last_mins else 30
 
         # Rule-based warning
         warning = None
@@ -1027,7 +1034,7 @@ def predict(request):
         field, water, temp, expenses, incomes = _get_field_context(field_id)
         field_name = (field.get('name') or 'Field') if field else 'Field'
         status = (field.get('status') or data.get('status') or 'available') if field else data.get('status') or 'available'
-        area = float(field.get('area') or data.get('area') or 1) if field else float(data.get('area') or 1)
+        area = _to_num(field.get('area') or data.get('area') or 1) if field else _to_num(data.get('area') or 1)
 
         # --- crop_health: use water + temp + status for score ---
         if pred_type == 'crop_health':
@@ -1081,7 +1088,7 @@ def predict(request):
 
         # --- yield_prediction: area × historical yield with data-driven adjustment ---
         if pred_type == 'yield_prediction':
-            hist_yield = float(data.get('historicalYield') or 500)
+            hist_yield = _to_num(data.get('historicalYield') or 500)
             # If we have income for this field, rough inverse: income/price ≈ yield (kg) for planning
             if incomes and field_id:
                 total_income = sum(i.get('amount', 0) for i in incomes)
@@ -1224,8 +1231,8 @@ def materials_list(request):
         'name': body.get('name', ''),
         'category': body.get('category', 'other'),
         'unit': body.get('unit', 'kg'),
-        'stock_quantity': float(stock or 0),
-        'price_per_unit': float(body.get('price_per_unit') or 0),
+        'stock_quantity': _to_num(stock or 0),
+        'price_per_unit': _to_num(body.get('price_per_unit') or 0),
         'created_at': body.get('created_at', ''),
     }
     from datetime import datetime
@@ -1250,11 +1257,11 @@ def materials_detail(request, pk):
         body = _parse_body(request)
         # Normalize stock field — accept both old and new names
         if 'stock_quantity' in body:
-            body['stock_quantity'] = float(body['stock_quantity'] or 0)
+            body['stock_quantity'] = _to_num(body['stock_quantity'] or 0)
         elif 'currentStock' in body:
-            body['stock_quantity'] = float(body.pop('currentStock') or 0)
+            body['stock_quantity'] = _to_num(body.pop('currentStock') or 0)
         if 'price_per_unit' in body:
-            body['price_per_unit'] = float(body['price_per_unit'] or 0)
+            body['price_per_unit'] = _to_num(body['price_per_unit'] or 0)
         result = col.find_one_and_update(
             {'id': pk},
             {'$set': body},
@@ -1363,7 +1370,7 @@ def material_transactions_detail(request, pk):
         qty = doc.get('quantity', 0)
         t = doc.get('type', 'in')
         if mid:
-            add_back = float(qty) if t == 'in' else -float(qty)
+            add_back = qty if t == 'in' else -qty
             mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': -add_back, 'currentStock': -add_back}})
         col.delete_one({'id': pk})
         return _json_response({}, 204)
@@ -1419,7 +1426,7 @@ def daily_register_list(request):
             'notes': f"Daily register: {doc.get('activity', '')}",
         }
         trans_col.insert_one(tdoc)
-        mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': -float(qty), 'currentStock': -float(qty)}})
+        mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': -_to_num(qty), 'currentStock': -_to_num(qty)}})
     del doc['_id']
     return _json_response(doc, 201)
 
@@ -1465,7 +1472,7 @@ def daily_register_detail(request, pk):
                 qty = mu.get('quantity', 0)
                 if mid and qty > 0:
                     # Revert stock (was 'out', so add back)
-                    mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': float(qty), 'currentStock': float(qty)}})
+                    mat_col.update_one({'id': mid}, {'$inc': {'stock_quantity': _to_num(qty), 'currentStock': _to_num(qty)}})
                     # Delete the 'out' transaction created by this register entry
                     trans_col.delete_many({
                         'materialId': mid,
