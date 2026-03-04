@@ -172,11 +172,11 @@ export default function StatisticsPage() {
           <p className="text-2xl font-black text-blue-400">{totals.totalArea.toFixed(1)} <span className="text-xs font-normal text-theme-muted">{t("acres")}</span></p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
-          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalInvestment")}</p>
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalPurchases")}</p>
           <p className="text-2xl font-black text-rose-500">Rs {(totals.totalExp / 1000).toFixed(0)}k</p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
-          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalIncome")}</p>
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1 truncate">{t("totalSales")}</p>
           <p className="text-2xl font-black text-emerald-500">Rs {(totals.totalInc / 1000).toFixed(0)}k</p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm">
@@ -299,16 +299,33 @@ export default function StatisticsPage() {
             <p>{t("statisticsAddFieldsForProfit")}</p>
           </div>
         ) : (
-          <div className="w-full h-full min-w-0 overflow-hidden">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={fieldProfitData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" stroke="#8b949e" />
-                <YAxis stroke="#8b949e" />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
-                <Bar dataKey="profit" name={t("netProfit")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="w-full h-full min-w-0 overflow-hidden">
+              <p className="text-xs text-theme-muted mb-2 uppercase font-bold tracking-wider">Net Profit by Field</p>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={fieldProfitData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="#8b949e" />
+                  <YAxis stroke="#8b949e" />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+                  <Bar dataKey="profit" name={t("netProfit")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="w-full h-full min-w-0 overflow-hidden">
+              <p className="text-xs text-theme-muted mb-2 uppercase font-bold tracking-wider">Sales vs Purchases by Field</p>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={fieldProfitData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="#8b949e" />
+                  <YAxis stroke="#8b949e" />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`} />
+                  <Legend />
+                  <Bar dataKey="income" name={t("totalSales")} fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name={t("totalPurchases")} fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

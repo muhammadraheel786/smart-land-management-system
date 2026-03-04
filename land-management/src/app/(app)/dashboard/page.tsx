@@ -251,20 +251,20 @@ export default function DashboardPage() {
         />
         <StatsCard
           href="/activities"
-          title={t("totalInvestment")}
+          title={t("totalPurchases")}
           value={`Rs ${totals.totalExp.toLocaleString()}`}
           icon={Wallet}
           color="blue"
         />
         <StatsCard
           href="/activities?type=income"
-          title={t("totalIncome")}
+          title={t("totalSales")}
           value={`Rs ${totals.totalInc.toLocaleString()}`}
           icon={TrendingUp}
           color="yellow"
         />
         <StatsCard
-          href="/activities"
+          href="/statistics"
           title={t("netProfit")}
           value={`Rs ${totals.netProfit.toLocaleString()}`}
           trend={totals.netProfit >= 0 ? "up" : "down"}
@@ -348,7 +348,7 @@ export default function DashboardPage() {
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
             >
               <TrendingUp className="w-5 h-5 text-green-500" />
-              <span className="text-sm">{t("addIncome")}</span>
+              <span className="text-sm">{t("addSale")}</span>
             </Link>
             <Link
               href="/water"

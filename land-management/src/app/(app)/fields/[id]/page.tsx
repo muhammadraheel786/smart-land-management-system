@@ -211,15 +211,15 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
 
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <div className="bg-theme-card border border-theme rounded-2xl p-6 shadow-sm">
-          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("totalInvestment")}</p>
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("totalPurchases")}</p>
           <p className="text-2xl font-black text-rose-500">Rs {totalExp.toLocaleString()}</p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-6 shadow-sm">
-          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("totalIncome")}</p>
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("totalSales")}</p>
           <p className="text-2xl font-black text-emerald-500">Rs {totalInc.toLocaleString()}</p>
         </div>
         <div className="bg-theme-card border border-theme rounded-2xl p-6 shadow-sm">
-          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("netProfit")}</p>
+          <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-1">{t("netBalance")}</p>
           <p className={`text-2xl font-black ${profit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
             Rs {profit.toLocaleString()}
           </p>

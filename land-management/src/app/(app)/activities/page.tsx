@@ -9,6 +9,7 @@ import {
     Calendar, FileText, Zap, Map as MapIcon, Info
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocale } from "@/contexts/LocaleContext";
 import type { Activity, GeoFence, Material } from "@/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -38,27 +39,16 @@ async function apiFetch(path: string, opts?: RequestInit) {
     return res.json();
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-const ACTIVITY_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string }> = {
-    irrigation: { label: "Irrigation", icon: <Droplet className="w-4 h-4" />, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
-    fertilizer_application: { label: "Fertilizer", icon: <Leaf className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-    pesticide_spray: { label: "Pesticide Spray", icon: <Zap className="w-4 h-4" />, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
-    seed_sowing: { label: "Seed Sowing", icon: <Sprout className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
-    harvest: { label: "Harvest", icon: <TrendingUp className="w-4 h-4" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
-    material_purchase: { label: "Material Purchase", icon: <ShoppingCart className="w-4 h-4" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
-    labor: { label: "Labor", icon: <Users className="w-4 h-4" />, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
-    expense: { label: "Other Expense", icon: <ArrowDownRight className="w-4 h-4" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
-    income: { label: "Other Income", icon: <ArrowUpRight className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
-};
+// ─── Activity Badge ──────────────────────────────────────────────────────────
 
 // ─── Activity Badge ──────────────────────────────────────────────────────────
 
-function ActivityBadge({ type }: { type: string }) {
-    const meta = ACTIVITY_META[type] ?? { label: type, icon: <FileText className="w-4 h-4" />, color: "text-theme-muted", bg: "bg-theme-track", border: "border-theme" };
+function ActivityBadge({ type, meta }: { type: string; meta?: any }) {
+    const defaultMeta = { label: type, icon: <FileText className="w-4 h-4" />, color: "text-theme-muted", bg: "bg-theme-track", border: "border-theme" };
+    const m = meta ?? defaultMeta;
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${meta.color} ${meta.bg} ${meta.border}`}>
-            {meta.icon} {meta.label}
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${m.color} ${m.bg} ${m.border}`}>
+            {m.icon} {m.label}
         </span>
     );
 }
@@ -104,8 +94,21 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 function ActivitiesContent() {
     useAuth();
+    const { t } = useLocale();
     const searchParams = useSearchParams();
     const typeFromUrl = searchParams.get("type") || "all";
+
+    const ACTIVITY_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string }> = useMemo(() => ({
+        irrigation: { label: t("dbIrrigation"), icon: <Droplet className="w-4 h-4" />, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
+        fertilizer_application: { label: t("dbFertilizing"), icon: <Leaf className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+        pesticide_spray: { label: t("dbSpraying"), icon: <Zap className="w-4 h-4" />, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+        seed_sowing: { label: t("dbSowing"), icon: <Sprout className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+        harvest: { label: t("dbHarvesting"), icon: <TrendingUp className="w-4 h-4" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
+        material_purchase: { label: t("materialsRecordPurchase"), icon: <ShoppingCart className="w-4 h-4" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
+        labor: { label: t("dbLabor"), icon: <Users className="w-4 h-4" />, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+        expense: { label: t("expensesNewExpense"), icon: <ArrowDownRight className="w-4 h-4" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
+        income: { label: t("addSale"), icon: <ArrowUpRight className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+    }), [t]);
 
     // Data
     const [activities, setActivities] = useState<Activity[]>([]);
@@ -315,7 +318,7 @@ function ActivitiesContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                         <StatCard
-                            label="Total Income"
+                            label={t("totalSales")}
                             value={`Rs ${totalIncome.toLocaleString()}`}
                             icon={<ArrowUpRight className="w-5 h-5 text-white" />}
                             gradient="bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500/50"
@@ -324,7 +327,7 @@ function ActivitiesContent() {
                     </div>
                     <div>
                         <StatCard
-                            label="Total Expenses"
+                            label={t("totalPurchases")}
                             value={`Rs ${totalExpense.toLocaleString()}`}
                             icon={<ArrowDownRight className="w-5 h-5 text-white" />}
                             gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
@@ -333,7 +336,7 @@ function ActivitiesContent() {
                     </div>
                     <div className="sm:col-span-2 lg:col-span-1">
                         <StatCard
-                            label="Net Profit"
+                            label={t("netBalance")}
                             value={`Rs ${netProfit.toLocaleString()}`}
                             icon={<DollarSign className="w-5 h-5 text-white" />}
                             gradient={netProfit >= 0
@@ -377,13 +380,13 @@ function ActivitiesContent() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-theme bg-theme-track/40 text-xs text-theme-muted uppercase tracking-wider">
-                                            <th className="px-6 py-3 text-left font-semibold">Activity</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Date</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Field</th>
+                                            <th className="px-6 py-3 text-left font-semibold">{t("dbActivity")}</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{t("date")}</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{t("field")}</th>
                                             <th className="px-4 py-3 text-left font-semibold">Material / Qty</th>
-                                            <th className="px-4 py-3 text-right font-semibold">Cost</th>
-                                            <th className="px-4 py-3 text-right font-semibold">Income</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Notes</th>
+                                            <th className="px-4 py-3 text-right font-semibold">{t("purchaseShort")}</th>
+                                            <th className="px-4 py-3 text-right font-semibold">{t("saleShort")}</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{t("dbNotes")}</th>
                                             <th className="px-4 py-3"></th>
                                         </tr>
                                     </thead>
@@ -394,7 +397,7 @@ function ActivitiesContent() {
                                             return (
                                                 <tr key={act.id} className="hover:bg-theme-track/30 transition-colors group">
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <ActivityBadge type={act.activity_type} />
+                                                        <ActivityBadge type={act.activity_type} meta={ACTIVITY_META[act.activity_type]} />
                                                     </td>
                                                     <td className="px-4 py-4 whitespace-nowrap text-theme-muted text-xs">
                                                         <span className="flex items-center gap-1">
@@ -665,7 +668,7 @@ function ActivitiesContent() {
                                         )}
                                         <div>
                                             <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                                Income Generated (Rs) *
+                                                {t("saleAmount")} *
                                                 {activityType === "harvest" && autoHarvestIncome !== null && (
                                                     <span className="ml-2 font-normal text-amber-400 normal-case">
                                                         auto-calculated
