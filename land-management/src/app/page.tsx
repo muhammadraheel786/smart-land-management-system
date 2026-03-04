@@ -162,11 +162,12 @@ export default function HomePage() {
                 <div className="relative">
                   <input
                     id="login-email"
+                    name="user-email-field"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    autoComplete="email"
+                    autoComplete="off"
                     className="w-full pl-4 pr-10 py-3.5 min-h-[52px] rounded-xl bg-theme-track border border-theme text-theme placeholder-theme-muted focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-base shadow-sm"
                     required
                   />
@@ -177,11 +178,12 @@ export default function HomePage() {
                 <label htmlFor="login-password" className="block text-sm font-semibold text-theme-muted group-focus-within:text-green-500 transition-colors">Password</label>
                 <input
                   id="login-password"
+                  name="user-password-field"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   className="w-full px-4 py-3.5 min-h-[52px] rounded-xl bg-theme-track border border-theme text-theme placeholder-theme-muted focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-base shadow-sm"
                   required
                 />
