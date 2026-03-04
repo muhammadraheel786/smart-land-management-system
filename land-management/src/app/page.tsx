@@ -15,19 +15,15 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const loginWithCredentials = async (credsEmail: string, credsPassword: string) => {
     setError("");
-
-    // Basic front-end validation to avoid sending obviously invalid requests
-    if (!email.trim() || !password.trim()) {
+    if (!credsEmail.trim() || !credsPassword.trim()) {
       setError("Please enter both email and password.");
       return;
     }
-
     setLoading(true);
     try {
-      const { token, email: userEmail } = await api.login(email, password);
+      const { token, email: userEmail } = await api.login(credsEmail, credsPassword);
       login(token, userEmail);
       router.push("/dashboard");
     } catch (err) {
@@ -35,6 +31,11 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await loginWithCredentials(email, password);
   };
 
   return (
@@ -133,9 +134,12 @@ export default function HomePage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
+                  // Visually fill the form for clarity
                   setEmail("guestuser@user.com");
                   setPassword("guestuser");
+                  // And immediately log in with guest credentials
+                  await loginWithCredentials("guestuser@user.com", "guestuser");
                 }}
                 className="border border-green-500/40 rounded-xl px-3 py-2 text-left bg-green-500/10 text-green-400 font-semibold hover:bg-green-500/15 transition-colors"
               >
