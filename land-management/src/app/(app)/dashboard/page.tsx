@@ -100,18 +100,26 @@ export default function DashboardPage() {
     const totalArea = fields.reduce((a, f) => a + (f.area || 0), 0);
     const filteredExpenses = expenses.filter((e) => dateFilter(e.date || ""));
     const filteredIncomes = incomes.filter((i) => dateFilter(i.date || ""));
-    const filteredWater = waterRecords.filter((w) => dateFilter(w.date || ""));
+    const activeThakaRecords = thakaRecords.filter((tr) => tr.status === "active");
+
+    // Sum activities
     const totalExp = filteredExpenses.reduce((a, e) => a + e.amount, 0);
-    const totalInc = filteredIncomes.reduce((a, i) => a + i.amount, 0);
+    const activityInc = filteredIncomes.reduce((a, i) => a + i.amount, 0);
+
+    // Include Thaka amounts in Total Income
+    const thakaInc = activeThakaRecords.reduce((a, tr) => a + (tr.amount || 0), 0);
+    const totalInc = activityInc + thakaInc;
+
+    const filteredWater = waterRecords.filter((w) => dateFilter(w.date || ""));
     const totalWaterMins = filteredWater.reduce((a, w) => a + (w.durationMinutes || 0), 0);
-    const activeThaka = thakaRecords.filter((tr) => tr.status === "active").length;
+
     return {
       totalArea,
       totalExp,
       totalInc,
       netProfit: totalInc - totalExp,
       totalWaterMins,
-      activeThaka,
+      activeThaka: activeThakaRecords.length,
       waterSessionCount: filteredWater.length,
     };
   }, [fields, expenses, incomes, waterRecords, thakaRecords, dateFilter]);
@@ -242,14 +250,14 @@ export default function DashboardPage() {
           color="green"
         />
         <StatsCard
-          href="/expenses"
+          href="/activities"
           title={t("totalInvestment")}
           value={`Rs ${totals.totalExp.toLocaleString()}`}
           icon={Wallet}
           color="blue"
         />
         <StatsCard
-          href="/expenses?tab=income"
+          href="/activities?type=income"
           title={t("totalIncome")}
           value={`Rs ${totals.totalInc.toLocaleString()}`}
           icon={TrendingUp}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
     Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
     Droplet, DollarSign, Leaf, ShoppingCart, Users, Trash2, X,
@@ -101,8 +102,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-export default function ActivitiesPage() {
+function ActivitiesContent() {
     useAuth();
+    const searchParams = useSearchParams();
+    const typeFromUrl = searchParams.get("type") || "all";
 
     // Data
     const [activities, setActivities] = useState<Activity[]>([]);
@@ -112,7 +115,11 @@ export default function ActivitiesPage() {
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
     // Filter
-    const [filterType, setFilterType] = useState<string>("all");
+    const [filterType, setFilterType] = useState<string>(typeFromUrl);
+
+    useEffect(() => {
+        if (typeFromUrl) setFilterType(typeFromUrl);
+    }, [typeFromUrl]);
 
     // Modal
     const [open, setOpen] = useState(false);
@@ -742,5 +749,18 @@ export default function ActivitiesPage() {
             {/* Padding for BottomNav on mobile */}
             <div className="h-20 md:hidden" />
         </div>
+    );
+}
+
+export default function ActivitiesPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
+                <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
+                <p className="text-theme-muted">Loading activities...</p>
+            </div>
+        }>
+            <ActivitiesContent />
+        </Suspense>
     );
 }
