@@ -318,7 +318,7 @@ function ActivitiesContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                         <StatCard
-                            label={t("totalSales")}
+                            label={t("totalIncome")}
                             value={`Rs ${totalIncome.toLocaleString()}`}
                             icon={<ArrowUpRight className="w-5 h-5 text-white" />}
                             gradient="bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500/50"
@@ -327,7 +327,7 @@ function ActivitiesContent() {
                     </div>
                     <div>
                         <StatCard
-                            label={t("totalPurchases")}
+                            label={t("totalInvestment")}
                             value={`Rs ${totalExpense.toLocaleString()}`}
                             icon={<ArrowDownRight className="w-5 h-5 text-white" />}
                             gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
@@ -336,7 +336,7 @@ function ActivitiesContent() {
                     </div>
                     <div className="sm:col-span-2 lg:col-span-1">
                         <StatCard
-                            label={t("netBalance")}
+                            label={t("netProfit")}
                             value={`Rs ${netProfit.toLocaleString()}`}
                             icon={<DollarSign className="w-5 h-5 text-white" />}
                             gradient={netProfit >= 0
