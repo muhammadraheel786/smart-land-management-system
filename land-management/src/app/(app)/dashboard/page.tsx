@@ -264,7 +264,7 @@ export default function DashboardPage() {
           color="yellow"
         />
         <StatsCard
-          href="/expenses"
+          href="/activities"
           title={t("netProfit")}
           value={`Rs ${totals.netProfit.toLocaleString()}`}
           trend={totals.netProfit >= 0 ? "up" : "down"}
@@ -337,14 +337,14 @@ export default function DashboardPage() {
               <span className="text-sm">{t("viewMap")}</span>
             </Link>
             <Link
-              href="/expenses"
+              href="/activities"
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
             >
               <Wallet className="w-5 h-5 text-blue-500" />
               <span className="text-sm">{t("addExpense")}</span>
             </Link>
             <Link
-              href="/expenses?tab=income"
+              href="/activities?type=income"
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
             >
               <TrendingUp className="w-5 h-5 text-green-500" />
@@ -434,7 +434,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-theme">{t("recentExpensesIncome")}</h3>
             <Link
-              href="/expenses"
+              href="/activities"
               className="text-sm text-green-600 dark:text-green-400 hover:underline"
             >
               {t("expensesIncome")}

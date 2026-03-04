@@ -167,8 +167,8 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
                 {field.area?.toFixed(1) ?? "—"} {t("acres")}
               </span>
               <span className={`px-2 py-1 rounded-lg ${field.status === 'cultivated' ? 'bg-green-500/10 text-green-500' :
-                  field.status === 'available' ? 'bg-amber-500/10 text-amber-500' :
-                    'bg-theme-track text-theme-muted'
+                field.status === 'available' ? 'bg-amber-500/10 text-amber-500' :
+                  'bg-theme-track text-theme-muted'
                 }`}>
                 {t((field.status as keyof typeof t) || field.status) || field.status}
               </span>
@@ -193,11 +193,11 @@ export default function FieldDetailPage({ params }: { params: Promise<{ id: stri
             Insights
           </Link>
           <Link
-            href="/expenses"
+            href="/activities"
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-theme-track border border-theme text-theme font-bold text-xs hover:border-amber-500/50 transition-all active:scale-95"
           >
             <Plus className="w-4 h-4 text-amber-500" />
-            Expense
+            Activity
           </Link>
           <Link
             href="/water"
