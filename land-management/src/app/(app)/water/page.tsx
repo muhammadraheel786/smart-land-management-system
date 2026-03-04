@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { Suspense, useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Droplets, Pencil, Trash, AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import { useLandStore } from "@/lib/store";
 import { api } from "@/lib/api";
@@ -8,9 +9,12 @@ import type { WaterAnalysisResponse } from "@/types";
 import { format } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
 
-export default function WaterPage() {
+function WaterContent() {
   const { t } = useLocale();
   const { fields, waterRecords, addWaterRecord, updateWaterRecord, deleteWaterRecord, fetchAll, loading, error } = useLandStore();
+  const searchParams = useSearchParams();
+  const fieldFromUrl = searchParams.get("field") ?? "";
+
   const [fieldId, setFieldId] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [duration, setDuration] = useState("");
@@ -40,6 +44,14 @@ export default function WaterPage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  useEffect(() => {
+    if (fieldFromUrl && fields.length > 0) {
+      if (fields.some(f => f.id === fieldFromUrl)) {
+        setFieldId(fieldFromUrl);
+      }
+    }
+  }, [fieldFromUrl, fields]);
 
   useEffect(() => {
     if (editingId) {
@@ -352,5 +364,13 @@ export default function WaterPage() {
       )}
       <div className="h-20 md:hidden" />
     </div>
+  );
+}
+
+export default function WaterPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[400px] items-center justify-center text-theme-muted">Loading water management…</div>}>
+      <WaterContent />
+    </Suspense>
   );
 }

@@ -176,6 +176,15 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+  async updateActivity(id: string, payload: Partial<import('@/types').Activity>) {
+    return fetchJson<any>(`/activities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  async deleteActivity(id: string) {
+    return fetchJson<void>(`/activities/${id}`, { method: 'DELETE' });
+  },
 
   /** Water management: AI analysis, warnings, and next-water suggestions per field. */
   async getWaterAnalysis(): Promise<import('@/types').WaterAnalysisResponse> {

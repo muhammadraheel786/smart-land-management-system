@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GeoFence, Expense, Income, ThakaRecord, WaterRecord, TemperatureRecord, AIRecommendation, Material, MaterialTransaction, DailyRegisterEntry } from '@/types';
+import type { GeoFence, Expense, Income, ThakaRecord, WaterRecord, TemperatureRecord, AIRecommendation, Material, MaterialTransaction, DailyRegisterEntry, Activity } from '@/types';
 import { api } from './api';
 
 function dedupeFieldsById(items: GeoFence[]): GeoFence[] {
@@ -262,8 +262,18 @@ export const useLandStore = create<LandState>((set, get) => ({
   },
   updateWaterRecord: async (id, updates) => {
     try {
-      const updated = await api.updateWaterRecord(id, updates);
-      set((s) => ({ waterRecords: s.waterRecords.map((w) => (w.id === id ? updated : w)) }));
+      // Map WaterRecord shape back to Activity payload
+      const payload: Partial<Activity> = {};
+      if (updates.fieldId) payload.field_id = updates.fieldId;
+      if (updates.date) payload.date = updates.date;
+      if (updates.durationMinutes !== undefined) payload.quantity_used = updates.durationMinutes;
+      if (updates.notes !== undefined) payload.notes = updates.notes;
+
+      // Use unified API so it works for records stored in 'activities'
+      await api.updateActivity(id, payload);
+      set((s) => ({
+        waterRecords: s.waterRecords.map((w) => (w.id === id ? { ...w, ...updates } : w)),
+      }));
     } catch (e) {
       console.error('Update water record failed:', e);
     }
@@ -272,7 +282,8 @@ export const useLandStore = create<LandState>((set, get) => ({
     const prevWater = get().waterRecords;
     set((state) => ({ waterRecords: state.waterRecords.filter((r) => r.id !== id) }));
     try {
-      await api.deleteWaterRecord(id);
+      // Use unified detail endpoint for delete
+      await api.deleteActivity(id);
       await get().fetchAll();
     } catch (e) {
       console.error('Delete water record failed, reverting:', e);

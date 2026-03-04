@@ -26,9 +26,22 @@ def activities_list(request):
             return _api_error(str(e), 500)
 
 @csrf_exempt
-@require_http_methods(["DELETE"])
+@require_http_methods(["GET", "PUT", "DELETE"])
 def activities_detail(request, pk):
-    if request.method == "DELETE":
+    if request.method == "GET":
+        items = ActivityService.get_activities({"id": pk})
+        if items:
+            return _json_response(items[0])
+        return _json_response({"error": "Activity not found"}, 404)
+
+    elif request.method == "PUT":
+        body = _parse_body(request)
+        result = ActivityService.update_activity(pk, body)
+        if result:
+            return _json_response(result)
+        return _json_response({"error": "Activity not found"}, 404)
+
+    elif request.method == "DELETE":
         result = ActivityService.delete_activity(pk)
         if result:
             return _json_response({}, 204)

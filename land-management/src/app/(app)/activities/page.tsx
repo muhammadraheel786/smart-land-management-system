@@ -12,7 +12,8 @@ import type { Activity, GeoFence, Material } from "@/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
+const API_URL = rawApiUrl.replace(/\/+$/, "").replace(/\/api$/, "");
 
 function getAuthHeaders(): Record<string, string> {
     const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
@@ -22,7 +23,16 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 async function apiFetch(path: string, opts?: RequestInit) {
-    const res = await fetch(`${API_URL}${path}`, { ...opts, headers: { ...getAuthHeaders(), ...(opts?.headers ?? {}) } });
+    // Ensure path starts with /api if not present, to match api.ts behavior
+    const targetPath = path.startsWith("/api") ? path : `/api${path}`;
+    const res = await fetch(`${API_URL}${targetPath}`, {
+        ...opts,
+        headers: { ...getAuthHeaders(), ...(opts?.headers ?? {}) }
+    });
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || `API error ${res.status}`);
+    }
     if (res.status === 204) return null;
     return res.json();
 }

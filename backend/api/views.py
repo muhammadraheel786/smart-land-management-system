@@ -284,8 +284,9 @@ def water_analysis(request):
     from datetime import datetime, timedelta
 
     fields_col = get_collection('fields')
-    water_col = get_collection('water_records')
     temp_col = get_collection('temperature_records')
+    act_col = get_collection('activities')
+    
     fields = list(fields_col.find({}, {'_id': 0}))
     today_s = datetime.utcnow().strftime('%Y-%m-%d')
 
@@ -297,11 +298,32 @@ def water_analysis(request):
         fname = f.get('name', 'Field')
         if f.get('status') == 'not_usable':
             continue
-        field_water = list(water_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(10))
+            
+        # Unified: look at both activities (irrigation) and legacy water_records
+        field_water = list(act_col.find(
+            {'field_id': fid, 'activity_type': 'irrigation'}, 
+            {'_id': 0}
+        ).sort('date', -1).limit(10))
+        
+        # Fallback for legacy data
+        if not field_water:
+            water_col = get_collection('water_records')
+            legacy = list(water_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(10))
+            # Map legacy to activity shape for the logic below
+            field_water = [{
+                'id': l.get('id'),
+                'date': l.get('date'),
+                'quantity_used': l.get('durationMinutes', 0),
+                'notes': l.get('notes')
+            } for l in legacy]
         field_temp = list(temp_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(7))
         last_water = field_water[0] if field_water else None
         last_date_s = last_water.get('date', '')[:10] if last_water else ''
-        last_mins = last_water.get('durationMinutes', 30) if last_water else 30
+        # Supported both legacy durationMinutes and unified quantity_used
+        last_mins = last_water.get('quantity_used') or last_water.get('durationMinutes') or 30
+        if last_water and not isinstance(last_mins, (int, float)):
+             try: last_mins = float(last_mins)
+             except: last_mins = 30
 
         # Rule-based warning
         warning = None
@@ -926,7 +948,24 @@ def dashboard(request):
         # Shim for transition: map old structures to activities so things don't immediately crash if partially updated
         expenses_shim = [{"id": a.get("id"), "amount": a.get("cost", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("cost", 0) > 0]
         incomes_shim = [{"id": a.get("id"), "amount": a.get("income", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("income", 0) > 0]
-        water_shim = [{"id": a.get("id"), "durationMinutes": a.get("quantity_used", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("activity_type") == "irrigation"]
+        
+        # Unified water: irrigation activities
+        water_shim = [{"id": a.get("id"), "durationMinutes": a.get("quantity_used", 0), "fieldId": a.get("field_id"), "date": a.get("date"), "notes": a.get("notes")} for a in activities if a.get("activity_type") == "irrigation"]
+        
+        # Fallback: legacy water_records collection
+        try:
+            legacy_water = list(get_collection("water_records").find({}, {"_id": 0}))
+            for lw in legacy_water:
+                # Only add if not already in shim (avoid dups if partially migrated)
+                if not any(w["id"] == lw.get("id") for w in water_shim):
+                    water_shim.append({
+                        "id": lw.get("id"),
+                        "durationMinutes": lw.get("durationMinutes", 0),
+                        "fieldId": lw.get("fieldId"),
+                        "date": lw.get("date"),
+                        "notes": lw.get("notes")
+                    })
+        except: pass
 
         return _json_response({
             "fields": fields,
