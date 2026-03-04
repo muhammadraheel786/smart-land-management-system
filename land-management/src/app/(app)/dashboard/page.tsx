@@ -19,6 +19,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format, subMonths, startOfMonth, startOfYear } from "date-fns";
 import { useLandStore } from "@/lib/store";
 import { useLocale } from "@/contexts/LocaleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import StatsCard from "@/components/StatsCard";
 
 const MONTHS_6 = 6;
@@ -43,6 +44,7 @@ function getDateFilter(range: TimeRangeKey): (dateStr: string) => boolean {
 
 export default function DashboardPage() {
   const { t } = useLocale();
+  const { isDataEntry } = useAuth();
   const {
     fields,
     expenses,
@@ -203,8 +205,12 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-theme mb-1">{t("dashboard")}</h1>
-          <p className="text-sm text-theme-muted">{t("dashboardSubtitle")}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-theme mb-1">
+            {isDataEntry ? "Data Entry Portal" : t("dashboard")}
+          </h1>
+          <p className="text-sm text-theme-muted">
+            {isDataEntry ? "Farm Operations Logger" : t("dashboardSubtitle")}
+          </p>
           {lastUpdated && (
             <p className="text-xs text-theme-muted mt-1">
               {t("lastUpdated")}: {format(lastUpdated, "dd MMM yyyy, HH:mm")}
@@ -212,21 +218,23 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as TimeRangeKey)}
-            className="px-3 py-2 rounded-xl bg-theme-card border border-theme text-theme text-sm"
-          >
-            <option value="all">{t("timeRangeAll")}</option>
-            <option value="this_year">{t("timeRangeThisYear")}</option>
-            <option value="last_6_months">{t("timeRangeLast6Months")}</option>
-            <option value="this_month">{t("timeRangeThisMonth")}</option>
-          </select>
+          {!isDataEntry && (
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value as TimeRangeKey)}
+              className="px-3 py-2 rounded-xl bg-theme-card border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500/50 outline-none"
+            >
+              <option value="all">{t("timeRangeAll")}</option>
+              <option value="this_year">{t("timeRangeThisYear")}</option>
+              <option value="last_6_months">{t("timeRangeLast6Months")}</option>
+              <option value="this_month">{t("timeRangeThisMonth")}</option>
+            </select>
+          )}
           <button
             type="button"
             onClick={handleRefresh}
             disabled={refreshing || loading}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-theme-card border border-theme text-theme-muted hover:text-theme hover:border-green-500/50 transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-theme-card border border-theme text-theme-muted hover:text-theme hover:border-green-500/50 transition disabled:opacity-50 shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing || loading ? "animate-spin" : ""}`} />
             {t("dashboardRefresh")}
@@ -249,30 +257,34 @@ export default function DashboardPage() {
           icon={Map}
           color="green"
         />
-        <StatsCard
-          href="/activities"
-          title={t("totalInvestment")}
-          value={`Rs ${totals.totalExp.toLocaleString()}`}
-          icon={Wallet}
-          color="blue"
-        />
-        <StatsCard
-          href="/activities?type=income"
-          title={t("totalIncome")}
-          value={`Rs ${totals.totalInc.toLocaleString()}`}
-          icon={TrendingUp}
-          color="yellow"
-        />
-        <StatsCard
-          href="/statistics"
-          title={t("netProfit")}
-          value={`Rs ${totals.netProfit.toLocaleString()}`}
-          trend={totals.netProfit >= 0 ? "up" : "down"}
-          trendUpLabel={t("trendUp")}
-          trendDownLabel={t("trendDown")}
-          icon={TrendingUp}
-          color={totals.netProfit >= 0 ? "green" : "red"}
-        />
+        {!isDataEntry && (
+          <>
+            <StatsCard
+              href="/activities"
+              title={t("totalInvestment")}
+              value={`Rs ${totals.totalExp.toLocaleString()}`}
+              icon={Wallet}
+              color="blue"
+            />
+            <StatsCard
+              href="/activities?type=income"
+              title={t("totalIncome")}
+              value={`Rs ${totals.totalInc.toLocaleString()}`}
+              icon={TrendingUp}
+              color="yellow"
+            />
+            <StatsCard
+              href="/statistics"
+              title={t("netProfit")}
+              value={`Rs ${totals.netProfit.toLocaleString()}`}
+              trend={totals.netProfit >= 0 ? "up" : "down"}
+              trendUpLabel={t("trendUp")}
+              trendDownLabel={t("trendDown")}
+              icon={TrendingUp}
+              color={totals.netProfit >= 0 ? "green" : "red"}
+            />
+          </>
+        )}
         <StatsCard
           href="/water"
           title={t("totalIrrigation")}
@@ -329,13 +341,15 @@ export default function DashboardPage() {
         <div className="bg-theme-card border border-theme rounded-2xl p-4 sm:p-6">
           <h3 className="text-lg font-semibold text-theme mb-4">{t("quickActions")}</h3>
           <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 gap-3">
-            <Link
-              href="/map"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <Map className="w-5 h-5 text-green-500" />
-              <span className="text-sm">{t("viewMap")}</span>
-            </Link>
+            {!isDataEntry && (
+              <Link
+                href="/map"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
+              >
+                <Map className="w-5 h-5 text-green-500" />
+                <span className="text-sm">{t("viewMap")}</span>
+              </Link>
+            )}
             <Link
               href="/activities"
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
@@ -365,152 +379,160 @@ export default function DashboardPage() {
               <span className="text-sm">{t("thakaRecords")}</span>
             </Link>
             <Link
-              href="/data-bank"
+              href="/materials"
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
             >
               <Activity className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm">{t("dataBankShort")}</span>
+              <span className="text-sm">{t("materialsDashboard")}</span>
             </Link>
-            <Link
-              href="/field-recommendations"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <Target className="w-5 h-5 text-orange-500" />
-              <span className="text-sm">{t("fieldRecommendations")}</span>
-            </Link>
-            <Link
-              href="/predictions"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <BarChart3 className="w-5 h-5 text-violet-500" />
-              <span className="text-sm">{t("predictions")}</span>
-            </Link>
-            <Link
-              href="/chatbot"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
-            >
-              <MessageSquare className="w-5 h-5 text-green-500" />
-              <span className="text-sm">{t("askAI")}</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-theme">{t("recommendationsSummary")}</h3>
-            <Link
-              href="/field-recommendations"
-              className="text-sm text-green-600 dark:text-green-400 hover:underline"
-            >
-              {t("viewAllRecommendations")}
-            </Link>
-          </div>
-          {fieldRecommendations.length === 0 ? (
-            <p className="text-theme-muted text-sm">
-              {fields.length === 0 ? t("frNoFields") : t("frEmptyHint")}
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {recHigh > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-600 dark:text-red-300 text-sm">
-                  {recHigh} {t("frHighPriority")}
-                </span>
-              )}
-              {recMedium > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 text-sm">
-                  {recMedium} {t("frMediumPriority")}
-                </span>
-              )}
-              <span className="text-theme-muted text-sm">
-                {t("frTotal")}: {fieldRecommendations.length}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-theme-card border border-theme rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-theme">{t("recentExpensesIncome")}</h3>
-            <Link
-              href="/activities"
-              className="text-sm text-green-600 dark:text-green-400 hover:underline"
-            >
-              {t("expensesIncome")}
-            </Link>
-          </div>
-          {recentActivity.length === 0 ? (
-            <p className="text-theme-muted text-sm">{t("noRecentActivity")}</p>
-          ) : (
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
-              {recentActivity.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex justify-between items-center py-2 border-b border-theme last:border-0 text-sm"
+            {!isDataEntry && (
+              <>
+                <Link
+                  href="/field-recommendations"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
                 >
-                  <span className="text-theme-muted">
-                    {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM yyyy") : "—"}
-                  </span>
-                  <span className={item.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                    {item.type === "income" ? "+" : "−"} Rs {item.amount.toLocaleString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="bg-theme-card border border-theme rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-theme">{t("monthlyIncomeVsExpense")}</h3>
-          <Link
-            href="/statistics"
-            className="text-sm text-green-600 dark:text-green-400 hover:underline inline-flex items-center gap-1"
-          >
-            {t("viewAllStats")}
-          </Link>
-        </div>
-        <p className="text-theme-muted text-sm mb-4">{t("last6Months")}</p>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="month" stroke="var(--muted)" />
-            <YAxis stroke="var(--muted)" />
-            <Tooltip
-              contentStyle={tooltipStyle}
-              formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`}
-            />
-            <Legend />
-            <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expense" name={t("expenseShort")} fill="var(--not-usable)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="bg-theme-card border border-theme rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-theme mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-500" />
-          {t("aiRecommendations")}
-        </h3>
-        {aiRecommendations.length === 0 ? (
-          <p className="text-theme-muted">{t("aiRecommendationsEmpty")}</p>
-        ) : (
-          <div className="space-y-3">
-            {aiRecommendations.slice(0, 5).map((r) => (
-              <div
-                key={r.id}
-                className={`p-4 rounded-xl border-l-4 ${r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-yellow-500 bg-yellow-500/10"
-                  }`}
-              >
-                <p className="font-medium text-theme">{r.title}</p>
-                <p className="text-sm text-theme-muted">{r.message}</p>
-              </div>
-            ))}
+                  <Target className="w-5 h-5 text-orange-500" />
+                  <span className="text-sm">{t("fieldRecommendations")}</span>
+                </Link>
+                <Link
+                  href="/predictions"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
+                >
+                  <BarChart3 className="w-5 h-5 text-violet-500" />
+                  <span className="text-sm">{t("predictions")}</span>
+                </Link>
+                <Link
+                  href="/chatbot"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
+                >
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  <span className="text-sm">{t("askAI")}</span>
+                </Link>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
+
+      {!isDataEntry && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-theme-card border border-theme rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-theme">{t("recommendationsSummary")}</h3>
+                <Link
+                  href="/field-recommendations"
+                  className="text-sm text-green-600 dark:text-green-400 hover:underline"
+                >
+                  {t("viewAllRecommendations")}
+                </Link>
+              </div>
+              {fieldRecommendations.length === 0 ? (
+                <p className="text-theme-muted text-sm">
+                  {fields.length === 0 ? t("frNoFields") : t("frEmptyHint")}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {recHigh > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-600 dark:text-red-300 text-sm">
+                      {recHigh} {t("frHighPriority")}
+                    </span>
+                  )}
+                  {recMedium > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 text-sm">
+                      {recMedium} {t("frMediumPriority")}
+                    </span>
+                  )}
+                  <span className="text-theme-muted text-sm">
+                    {t("frTotal")}: {fieldRecommendations.length}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-theme-card border border-theme rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-theme">{t("recentExpensesIncome")}</h3>
+                <Link
+                  href="/activities"
+                  className="text-sm text-green-600 dark:text-green-400 hover:underline"
+                >
+                  {t("expensesIncome")}
+                </Link>
+              </div>
+              {recentActivity.length === 0 ? (
+                <p className="text-theme-muted text-sm">{t("noRecentActivity")}</p>
+              ) : (
+                <ul className="space-y-2 max-h-48 overflow-y-auto">
+                  {recentActivity.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex justify-between items-center py-2 border-b border-theme last:border-0 text-sm"
+                    >
+                      <span className="text-theme-muted">
+                        {item.date ? format(new Date(item.date + "T12:00:00"), "dd MMM yyyy") : "—"}
+                      </span>
+                      <span className={item.type === "income" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                        {item.type === "income" ? "+" : "−"} Rs {item.amount.toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-theme-card border border-theme rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-theme">{t("monthlyIncomeVsExpense")}</h3>
+              <Link
+                href="/statistics"
+                className="text-sm text-green-600 dark:text-green-400 hover:underline inline-flex items-center gap-1"
+              >
+                {t("viewAllStats")}
+              </Link>
+            </div>
+            <p className="text-theme-muted text-sm mb-4">{t("last6Months")}</p>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="month" stroke="var(--muted)" />
+                <YAxis stroke="var(--muted)" />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v: number | undefined) => `Rs ${Number(v ?? 0).toLocaleString()}`}
+                />
+                <Legend />
+                <Bar dataKey="income" name={t("incomeShort")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" name={t("expenseShort")} fill="var(--not-usable)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-theme-card border border-theme rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-theme mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              {t("aiRecommendations")}
+            </h3>
+            {aiRecommendations.length === 0 ? (
+              <p className="text-theme-muted">{t("aiRecommendationsEmpty")}</p>
+            ) : (
+              <div className="space-y-3">
+                {aiRecommendations.slice(0, 5).map((r) => (
+                  <div
+                    key={r.id}
+                    className={`p-4 rounded-xl border-l-4 ${r.type === "warning" ? "border-red-500 bg-red-500/10" : "border-yellow-500 bg-yellow-500/10"
+                      }`}
+                  >
+                    <p className="font-medium text-theme">{r.title}</p>
+                    <p className="text-sm text-theme-muted">{r.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

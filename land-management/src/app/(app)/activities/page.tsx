@@ -93,7 +93,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 function ActivitiesContent() {
-    useAuth();
+    const { isDataEntry } = useAuth();
     const { t } = useLocale();
     const searchParams = useSearchParams();
     const typeFromUrl = searchParams.get("type") || "all";
@@ -314,38 +314,40 @@ function ActivitiesContent() {
                     </button>
                 </div>
 
-                {/* ── Stats: same-width cards on all screens ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div>
-                        <StatCard
-                            label={t("totalIncome")}
-                            value={`Rs ${totalIncome.toLocaleString()}`}
-                            icon={<ArrowUpRight className="w-5 h-5 text-white" />}
-                            gradient="bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500/50"
-                            textColor="text-white"
-                        />
+                {/* Stats: hidden for Data Entry users */}
+                {!isDataEntry && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <StatCard
+                                label={t("totalIncome")}
+                                value={`Rs ${totalIncome.toLocaleString()}`}
+                                icon={<ArrowUpRight className="w-5 h-5 text-white" />}
+                                gradient="bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500/50"
+                                textColor="text-white"
+                            />
+                        </div>
+                        <div>
+                            <StatCard
+                                label={t("totalInvestment")}
+                                value={`Rs ${totalExpense.toLocaleString()}`}
+                                icon={<ArrowDownRight className="w-5 h-5 text-white" />}
+                                gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
+                                textColor="text-white"
+                            />
+                        </div>
+                        <div className="sm:col-span-2 lg:col-span-1">
+                            <StatCard
+                                label={t("netProfit")}
+                                value={`Rs ${netProfit.toLocaleString()}`}
+                                icon={<DollarSign className="w-5 h-5 text-white" />}
+                                gradient={netProfit >= 0
+                                    ? "bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500/50"
+                                    : "bg-gradient-to-br from-orange-600 to-red-700 border-orange-500/50"}
+                                textColor="text-white"
+                            />
+                        </div>
                     </div>
-                    <div>
-                        <StatCard
-                            label={t("totalInvestment")}
-                            value={`Rs ${totalExpense.toLocaleString()}`}
-                            icon={<ArrowDownRight className="w-5 h-5 text-white" />}
-                            gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
-                            textColor="text-white"
-                        />
-                    </div>
-                    <div className="sm:col-span-2 lg:col-span-1">
-                        <StatCard
-                            label={t("netProfit")}
-                            value={`Rs ${netProfit.toLocaleString()}`}
-                            icon={<DollarSign className="w-5 h-5 text-white" />}
-                            gradient={netProfit >= 0
-                                ? "bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500/50"
-                                : "bg-gradient-to-br from-orange-600 to-red-700 border-orange-500/50"}
-                            textColor="text-white"
-                        />
-                    </div>
-                </div>
+                )}
 
                 {/* ── Activity Log Table ── */}
                 <div className="rounded-2xl border border-theme bg-theme-card shadow-sm overflow-hidden">

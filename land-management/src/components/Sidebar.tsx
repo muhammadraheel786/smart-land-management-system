@@ -121,37 +121,37 @@ export default function Sidebar() {
               {navItems
                 .filter((item) => {
                   if (!isDataEntry) return true;
-                  // Data-entry users: focus on logging data, hide heavy analytics/AI pages
-                  const allowed = ["/dashboard", "/activities", "/materials", "/water", "/thaka", "/field-recommendations", "/map"];
+                  // Data-entry users: focus on login and operations per Faisal Bhai's request
+                  const allowed = ["/dashboard", "/activities", "/materials", "/water", "/thaka"];
                   return allowed.includes(item.href);
                 })
                 .map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href} className="group relative">
-                    <Link
-                      href={item.href}
-                      onClick={() => !collapsed && toggle()}
-                      className={`flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-sm transition-all duration-200 ${collapsed ? "md:justify-center md:px-0" : ""
-                        } ${active
-                          ? "bg-gradient-to-r from-green-500/15 to-emerald-500/5 border border-green-500/30 text-green-500 font-semibold shadow-sm"
-                          : "text-theme-muted hover:bg-theme-track hover:text-theme"
-                        }`}
-                    >
-                      <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110 group-hover:text-green-500"}`} />
-                      {!collapsed && <span className="truncate tracking-wide">{t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallbackLabel}</span>}
-                    </Link>
-                    {/* Tooltip for collapsed desktop view */}
-                    {collapsed && (
-                      <div className="absolute left-[85px] top-1/2 -translate-y-1/2 hidden md:group-hover:flex items-center pointer-events-none z-[100] animate-fade-in">
-                        <div className="bg-theme text-white border border-border px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
-                          {t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallbackLabel}
+                  const active = isActive(item.href);
+                  return (
+                    <li key={item.href} className="group relative">
+                      <Link
+                        href={item.href}
+                        onClick={() => !collapsed && toggle()}
+                        className={`flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-sm transition-all duration-200 ${collapsed ? "md:justify-center md:px-0" : ""
+                          } ${active
+                            ? "bg-gradient-to-r from-green-500/15 to-emerald-500/5 border border-green-500/30 text-green-500 font-semibold shadow-sm"
+                            : "text-theme-muted hover:bg-theme-track hover:text-theme"
+                          }`}
+                      >
+                        <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110 group-hover:text-green-500"}`} />
+                        {!collapsed && <span className="truncate tracking-wide">{t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallbackLabel}</span>}
+                      </Link>
+                      {/* Tooltip for collapsed desktop view */}
+                      {collapsed && (
+                        <div className="absolute left-[85px] top-1/2 -translate-y-1/2 hidden md:group-hover:flex items-center pointer-events-none z-[100] animate-fade-in">
+                          <div className="bg-theme text-white border border-border px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
+                            {t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallbackLabel}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
+                      )}
+                    </li>
+                  );
+                })}
             </ul>
           </nav>
 

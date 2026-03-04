@@ -14,6 +14,7 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [portal, setPortal] = useState<"admin" | "guest">("admin");
 
   const loginWithCredentials = async (credsEmail: string, credsPassword: string) => {
     setError("");
@@ -127,24 +128,35 @@ export default function HomePage() {
             <div className="grid grid-cols-2 gap-2 mb-4 text-xs sm:text-sm">
               <button
                 type="button"
-                className="border border-theme rounded-xl px-3 py-2 text-left bg-theme-track text-theme font-semibold"
+                id="admin-portal-btn"
+                onClick={() => {
+                  setPortal("admin");
+                  setEmail("");
+                  setPassword("");
+                }}
+                className={`rounded-xl px-3 py-2 text-left font-semibold transition-all duration-300 border ${portal === "admin"
+                    ? "bg-theme-track text-theme border-green-500 shadow-lg shadow-green-500/10"
+                    : "bg-transparent text-theme-muted border-theme/60 hover:border-theme hover:bg-theme-track/40"
+                  }`}
               >
                 Admin Portal
-                <span className="block text-[11px] text-theme-muted font-normal">Full access (owner)</span>
+                <span className="block text-[10px] text-theme-muted font-normal mt-0.5 opacity-80">Full administrative access</span>
               </button>
               <button
                 type="button"
-                onClick={async () => {
-                  // Visually fill the form for clarity
+                id="guest-portal-btn"
+                onClick={() => {
+                  setPortal("guest");
                   setEmail("guestuser@user.com");
                   setPassword("guestuser");
-                  // And immediately log in with guest credentials
-                  await loginWithCredentials("guestuser@user.com", "guestuser");
                 }}
-                className="border border-green-500/40 rounded-xl px-3 py-2 text-left bg-green-500/10 text-green-400 font-semibold hover:bg-green-500/15 transition-colors"
+                className={`rounded-xl px-3 py-2 text-left font-semibold transition-all duration-300 border ${portal === "guest"
+                    ? "border-green-500 bg-green-500/10 text-green-400 shadow-lg shadow-green-500/10"
+                    : "border-theme/60 bg-transparent text-theme-muted hover:border-theme hover:bg-theme-track/40"
+                  }`}
               >
                 Data Entry Portal
-                <span className="block text-[11px] text-green-200/80 font-normal">guestuser@user.com / guestuser</span>
+                <span className="block text-[10px] text-theme-muted font-normal mt-0.5 opacity-80">Quick data logging access</span>
               </button>
             </div>
 
