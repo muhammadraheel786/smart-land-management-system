@@ -2,25 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map as MapIcon, Menu, BarChart2 } from "lucide-react";
+import { LayoutDashboard, Map as MapIcon, Menu, BarChart2, ClipboardList } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function BottomNav() {
     const pathname = usePathname();
     const { t } = useLocale();
     const { toggle, collapsed } = useSidebar();
+    const { isDataEntry } = useAuth();
 
     // Hide bottom nav on specific pages, like login/landing page if pathname is "/"
     if (pathname === "/") return null;
 
     const navItems = [
         { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
-        { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics" },
-        { href: "/map", icon: MapIcon, labelKey: "landMap" },
-        // Mobile should use unified Activities page instead of the old Expenses/Income page
-        { href: "/activities", icon: BarChart2, labelKey: "activities" },
-    ];
+        { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics", adminOnly: true },
+        { href: "/map", icon: MapIcon, labelKey: "landMap", adminOnly: true },
+        { href: "/activities", icon: ClipboardList, labelKey: "activities" },
+    ].filter(item => !item.adminOnly || !isDataEntry);
 
     const isActive = (href: string) => {
         if (pathname === href) return true;

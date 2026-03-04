@@ -250,7 +250,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 [&>*]:min-w-0">
         <StatsCard
-          href="/fields"
+          href={isDataEntry ? undefined : "/fields"}
           title={t("totalLandArea")}
           value={`${totals.totalArea.toFixed(1)} ${t("acres")}`}
           subtitle={`${fields.length} ${t("fieldsCount").toLowerCase()}`}
@@ -294,7 +294,7 @@ export default function DashboardPage() {
           color="blue"
         />
         <StatsCard
-          href="/fields"
+          href={isDataEntry ? undefined : "/fields"}
           title={t("fieldsCount")}
           value={fields.length}
           subtitle={totals.activeThaka > 0 ? `${totals.activeThaka} ${t("thaka")}` : undefined}
