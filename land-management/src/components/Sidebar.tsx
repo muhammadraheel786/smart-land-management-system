@@ -54,7 +54,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { t } = useLocale();
   const { collapsed, toggle } = useSidebar();
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, isDataEntry, logout } = useAuth();
 
   const isActive = (href: string) => {
     if (pathname === href) return true;
@@ -118,7 +118,14 @@ export default function Sidebar() {
           {/* Scrollable nav list - smoother on mobile */}
           <nav className="sidebar-nav min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1 scrollbar-none">
             <ul className="space-y-1.5 pb-20 md:pb-4">
-              {navItems.map((item) => {
+              {navItems
+                .filter((item) => {
+                  if (!isDataEntry) return true;
+                  // Data-entry users: focus on logging data, hide heavy analytics/AI pages
+                  const allowed = ["/dashboard", "/activities", "/materials", "/water", "/thaka", "/field-recommendations", "/map"];
+                  return allowed.includes(item.href);
+                })
+                .map((item) => {
                 const active = isActive(item.href);
                 return (
                   <li key={item.href} className="group relative">

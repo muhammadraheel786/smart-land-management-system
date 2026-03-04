@@ -8,6 +8,8 @@ const EMAIL_KEY = "smartland_email";
 type AuthContextType = {
   isLoggedIn: boolean;
   userEmail: string | null;
+  role: "admin" | "dataEntry";
+  isDataEntry: boolean;
   login: (token: string, email: string) => void;
   logout: () => void;
 };
@@ -48,6 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     isLoggedIn: mounted && !!token,
     userEmail: email,
+    role: email === "guestuser@user.com" ? "dataEntry" : "admin",
+    isDataEntry: email === "guestuser@user.com",
     login,
     logout,
   };

@@ -32,8 +32,16 @@ def _rate_limit(ip: str) -> bool:
 def get_admin_credentials():
     """Admin email and password from env (defaults for initial setup)."""
     return (
-        (os.environ.get('ADMIN_EMAIL') or 'smartland0990@admin.login.com').strip(),
-        (os.environ.get('ADMIN_PASSWORD') or 'smartlandbyme@21').strip(),
+        (os.environ.get("ADMIN_EMAIL") or "smartland0990@admin.login.com").strip(),
+        (os.environ.get("ADMIN_PASSWORD") or "smartlandbyme@21").strip(),
+    )
+
+
+def get_guest_credentials():
+    """Data-entry guest user (read/write data entry only in UI)."""
+    return (
+        (os.environ.get("GUEST_EMAIL") or "guestuser@user.com").strip(),
+        (os.environ.get("GUEST_PASSWORD") or "guestuser").strip(),
     )
 
 
@@ -78,14 +86,23 @@ def login_view(request):
         body = json.loads(request.body) if request.body else {}
     except json.JSONDecodeError:
         return _error_json('Invalid JSON body', 400, 'Request body must be valid JSON')
-    email = (body.get('email') or '').strip()
-    password = body.get('password') or ''
+    email = (body.get("email") or "").strip()
+    password = body.get("password") or ""
     if not email or not password:
         return _error_json('Email and password required', 400)
     admin_email, admin_password = get_admin_credentials()
+    guest_email, guest_password = get_guest_credentials()
+
     if not admin_email or not admin_password:
-        return _error_json('Auth not configured', 503)
-    if email != admin_email or password != admin_password:
-        return _error_json('Invalid email or password', 401)
-    token = create_token(email)
-    return JsonResponse({'token': token, 'email': email})
+        return _error_json("Auth not configured", 503)
+
+    if email == admin_email and password == admin_password:
+        token = create_token(email)
+        return JsonResponse({"token": token, "email": email})
+
+    # Allow dedicated data-entry guest account
+    if guest_email and guest_password and email == guest_email and password == guest_password:
+        token = create_token(email)
+        return JsonResponse({"token": token, "email": email})
+
+    return _error_json("Invalid email or password", 401)

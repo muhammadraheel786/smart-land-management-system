@@ -117,8 +117,32 @@ export default function HomePage() {
           </div>
 
           <div className="bg-theme-card/80 backdrop-blur-xl border border-theme shadow-2xl rounded-3xl p-6 sm:p-8 w-full transform transition-all animate-slide-up-fade">
-            <h2 className="text-xl sm:text-2xl font-bold text-theme mb-2">Welcome back</h2>
-            <p className="text-theme-muted mb-6 text-xs sm:text-sm">Enter your credentials to access your dashboard</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-theme mb-2">Sign in</h2>
+            <p className="text-theme-muted mb-4 text-xs sm:text-sm">
+              Choose the portal and enter credentials. Admin manages everything; Data Entry records daily operations.
+            </p>
+
+            {/* Portals */}
+            <div className="grid grid-cols-2 gap-2 mb-4 text-xs sm:text-sm">
+              <button
+                type="button"
+                className="border border-theme rounded-xl px-3 py-2 text-left bg-theme-track text-theme font-semibold"
+              >
+                Admin Portal
+                <span className="block text-[11px] text-theme-muted font-normal">Full access (owner)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("guestuser@user.com");
+                  setPassword("guestuser");
+                }}
+                className="border border-green-500/40 rounded-xl px-3 py-2 text-left bg-green-500/10 text-green-400 font-semibold hover:bg-green-500/15 transition-colors"
+              >
+                Data Entry Portal
+                <span className="block text-[11px] text-green-200/80 font-normal">guestuser@user.com / guestuser</span>
+              </button>
+            </div>
 
             <form onSubmit={handleLogin} className="space-y-5" aria-label="Sign in to Smart Land Management System">
               <div className="space-y-1 block group">
