@@ -131,12 +131,10 @@ export default function HomePage() {
                 id="admin-portal-btn"
                 onClick={() => {
                   setPortal("admin");
-                  setEmail("");
-                  setPassword("");
                 }}
                 className={`rounded-xl px-3 py-2 text-left font-semibold transition-all duration-300 border ${portal === "admin"
-                    ? "bg-theme-track text-theme border-green-500 shadow-lg shadow-green-500/10"
-                    : "bg-transparent text-theme-muted border-theme/60 hover:border-theme hover:bg-theme-track/40"
+                  ? "bg-theme-track text-theme border-green-500 shadow-lg shadow-green-500/10"
+                  : "bg-transparent text-theme-muted border-theme/60 hover:border-theme hover:bg-theme-track/40"
                   }`}
               >
                 Admin Portal
@@ -147,12 +145,10 @@ export default function HomePage() {
                 id="guest-portal-btn"
                 onClick={() => {
                   setPortal("guest");
-                  setEmail("guestuser@user.com");
-                  setPassword("guestuser");
                 }}
                 className={`rounded-xl px-3 py-2 text-left font-semibold transition-all duration-300 border ${portal === "guest"
-                    ? "border-green-500 bg-green-500/10 text-green-400 shadow-lg shadow-green-500/10"
-                    : "border-theme/60 bg-transparent text-theme-muted hover:border-theme hover:bg-theme-track/40"
+                  ? "border-green-500 bg-green-500/10 text-green-400 shadow-lg shadow-green-500/10"
+                  : "border-theme/60 bg-transparent text-theme-muted hover:border-theme hover:bg-theme-track/40"
                   }`}
               >
                 Data Entry Portal
