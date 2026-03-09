@@ -953,8 +953,38 @@ def dashboard(request):
         temp = list(get_collection("temperature_records").find({}, {"_id": 0}))
         
         # Shim for transition: map old structures to activities so things don't immediately crash if partially updated
-        expenses_shim = [{"id": a.get("id"), "amount": a.get("cost", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("cost", 0) > 0]
-        incomes_shim = [{"id": a.get("id"), "amount": a.get("income", 0), "fieldId": a.get("field_id"), "date": a.get("date")} for a in activities if a.get("income", 0) > 0]
+        expenses_shim = [{
+            "id": a.get("id"), 
+            "amount": a.get("cost", 0), 
+            "fieldId": a.get("field_id"), 
+            "date": a.get("date"),
+            "category": a.get("activity_type", "other"),
+            "description": a.get("notes", "")
+        } for a in activities if a.get("cost", 0) > 0]
+        
+        incomes_shim = [{
+            "id": a.get("id"), 
+            "amount": a.get("income", 0), 
+            "fieldId": a.get("field_id"), 
+            "date": a.get("date"),
+            "type": a.get("activity_type", "crop"),
+            "description": a.get("notes", "")
+        } for a in activities if a.get("income", 0) > 0]
+
+        # Merge in legacy collections if they exist
+        try:
+            legacy_exp = list(get_collection("expenses").find({}, {"_id": 0}))
+            for le in legacy_exp:
+                if not any(e["id"] == le.get("id") for e in expenses_shim):
+                    expenses_shim.append(le)
+        except: pass
+
+        try:
+            legacy_inc = list(get_collection("incomes").find({}, {"_id": 0}))
+            for li in legacy_inc:
+                if not any(i["id"] == li.get("id") for i in incomes_shim):
+                    incomes_shim.append(li)
+        except: pass
         
         # Unified water: irrigation activities
         water_shim = [{"id": a.get("id"), "durationMinutes": a.get("quantity_used", 0), "fieldId": a.get("field_id"), "date": a.get("date"), "notes": a.get("notes")} for a in activities if a.get("activity_type") == "irrigation"]
@@ -963,7 +993,6 @@ def dashboard(request):
         try:
             legacy_water = list(get_collection("water_records").find({}, {"_id": 0}))
             for lw in legacy_water:
-                # Only add if not already in shim (avoid dups if partially migrated)
                 if not any(w["id"] == lw.get("id") for w in water_shim):
                     water_shim.append({
                         "id": lw.get("id"),

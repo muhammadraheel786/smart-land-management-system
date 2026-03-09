@@ -283,24 +283,24 @@ export default function DashboardPage() {
               icon={TrendingUp}
               color={totals.netProfit >= 0 ? "green" : "red"}
             />
+            <StatsCard
+              href="/water"
+              title={t("totalIrrigation")}
+              value={`${totals.totalWaterMins} ${t("minutes")}`}
+              subtitle={totals.waterSessionCount ? `${totals.waterSessionCount} ${t("sessions")}` : undefined}
+              icon={Droplets}
+              color="blue"
+            />
+            <StatsCard
+              href="/fields"
+              title={t("fieldsCount")}
+              value={fields.length}
+              subtitle={totals.activeThaka > 0 ? `${totals.activeThaka} ${t("thaka")}` : undefined}
+              icon={Activity}
+              color="green"
+            />
           </>
         )}
-        <StatsCard
-          href="/water"
-          title={t("totalIrrigation")}
-          value={`${totals.totalWaterMins} ${t("minutes")}`}
-          subtitle={totals.waterSessionCount ? `${totals.waterSessionCount} ${t("sessions")}` : undefined}
-          icon={Droplets}
-          color="blue"
-        />
-        <StatsCard
-          href={isDataEntry ? undefined : "/fields"}
-          title={t("fieldsCount")}
-          value={fields.length}
-          subtitle={totals.activeThaka > 0 ? `${totals.activeThaka} ${t("thaka")}` : undefined}
-          icon={Activity}
-          color="green"
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

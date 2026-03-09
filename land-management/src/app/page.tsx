@@ -131,6 +131,8 @@ export default function HomePage() {
                 id="admin-portal-btn"
                 onClick={() => {
                   setPortal("admin");
+                  setEmail("");
+                  setPassword("");
                   setError("");
                 }}
                 className={`flex-1 rounded-2xl px-4 py-3.5 text-left transition-all duration-300 border-2 ${portal === "admin"
@@ -146,6 +148,8 @@ export default function HomePage() {
                 id="guest-portal-btn"
                 onClick={() => {
                   setPortal("guest");
+                  setEmail("");
+                  setPassword("");
                   setError("");
                 }}
                 className={`flex-1 rounded-2xl px-4 py-3.5 text-left transition-all duration-300 border-2 ${portal === "guest"
