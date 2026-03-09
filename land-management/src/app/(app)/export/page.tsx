@@ -8,12 +8,30 @@ import { useLocale } from "@/contexts/LocaleContext";
 
 export default function ExportPage() {
   const { t } = useLocale();
-  const { fields, expenses, incomes, thakaRecords, waterRecords, temperatureRecords, fetchAll, loading } = useLandStore();
+  const {
+    fields,
+    expenses,
+    incomes,
+    thakaRecords,
+    waterRecords,
+    temperatureRecords,
+    materials,
+    materialTransactions,
+    dailyRegister,
+    fetchAll,
+    fetchMaterials,
+    fetchMaterialTransactions,
+    fetchDailyRegister,
+    loading
+  } = useLandStore();
   const [formatType, setFormatType] = useState<"json" | "csv">("csv");
 
   useEffect(() => {
     fetchAll();
-  }, [fetchAll]);
+    fetchMaterials();
+    fetchMaterialTransactions();
+    fetchDailyRegister();
+  }, [fetchAll, fetchMaterials, fetchMaterialTransactions, fetchDailyRegister]);
 
   const exportData = () => {
     const data = {
@@ -27,6 +45,18 @@ export default function ExportPage() {
     };
 
     if (formatType === "json") {
+      const data = {
+        exportedAt: new Date().toISOString(),
+        fields,
+        expenses,
+        incomes,
+        thakaRecords,
+        waterRecords,
+        temperatureRecords,
+        materials,
+        materialTransactions,
+        dailyRegister,
+      };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -36,32 +66,93 @@ export default function ExportPage() {
       URL.revokeObjectURL(url);
     } else {
       const rows: string[][] = [];
-      rows.push(["Type", "Field", "Date", "Amount/Value", "Category/Details", "Notes"]);
 
-      expenses.forEach((e) => {
-        const f = fields.find((x) => x.id === e.fieldId);
-        rows.push(["Expense", f?.name ?? "", e.date || "", String(e.amount), e.category, e.description || ""]);
-      });
+      // 1. GENERAL SUMMARY SECTION
+      rows.push(["LAND MANAGEMENT OVERALL SUMMARY"]);
+      rows.push(["Export Date", format(new Date(), "yyyy-MM-dd HH:mm:ss")]);
+      rows.push([]);
 
-      incomes.forEach((i) => {
-        const f = fields.find((x) => x.id === i.fieldId);
-        rows.push(["Income", f?.name ?? "", i.date || "", String(i.amount), i.type, i.description || ""]);
-      });
+      const totalExp = expenses.reduce((a, b) => a + (Number(b.amount) || 0), 0) + materialTransactions.filter(t => t.type === 'out').reduce((a, b) => a + (Number(b.cost) || 0), 0);
+      const totalInc = incomes.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+      const totalThaka = thakaRecords.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+      const totalWater = waterRecords.reduce((a, b) => a + (Number(b.durationMinutes) || 0), 0);
 
-      thakaRecords.forEach((tr) => {
-        const f = fields.find((x) => x.id === tr.fieldId);
-        rows.push(["Thaka", f?.name ?? "", tr.startDate || "", String(tr.amount), tr.tenantName, tr.status]);
-      });
+      rows.push(["Metric", "Total Value"]);
+      rows.push(["Total Expenses", String(totalExp)]);
+      rows.push(["Total Income", String(totalInc)]);
+      rows.push(["Net Profit", String(totalInc - totalExp)]);
+      rows.push(["Total Thaka Amount", String(totalThaka)]);
+      rows.push(["Total Water Minutes", String(totalWater)]);
+      rows.push([]);
 
-      waterRecords.forEach((wr) => {
-        const f = fields.find((x) => x.id === wr.fieldId);
-        rows.push(["Water", f?.name ?? "", wr.date || "", `${wr.durationMinutes} min`, "Irrigation", wr.notes || ""]);
-      });
+      // 2. EXPENSES SECTION
+      if (expenses.length > 0) {
+        rows.push(["EXPENSES DETAIL"]);
+        rows.push(["Field", "Date", "Amount", "Category", "Description"]);
+        expenses.forEach((e) => {
+          const f = fields.find((x) => x.id === e.fieldId);
+          rows.push([f?.name ?? "", e.date || "", String(e.amount), e.category, e.description || ""]);
+        });
+        rows.push(["TOTAL EXPENSES", "", String(expenses.reduce((a, b) => a + Number(b.amount), 0))]);
+        rows.push([]);
+      }
 
-      temperatureRecords.forEach((tr) => {
-        const f = fields.find((x) => x.id === tr.fieldId);
-        rows.push(["Temperature", f?.name ?? "", tr.date || "", `${tr.temperatureC}°C`, "Climate", tr.notes || ""]);
-      });
+      // 3. INCOMES SECTION
+      if (incomes.length > 0) {
+        rows.push(["INCOMES DETAIL"]);
+        rows.push(["Field", "Date", "Amount", "Type", "Description"]);
+        incomes.forEach((i) => {
+          const f = fields.find((x) => x.id === i.fieldId);
+          rows.push([f?.name ?? "", i.date || "", String(i.amount), i.type, i.description || ""]);
+        });
+        rows.push(["TOTAL INCOMES", "", String(incomes.reduce((a, b) => a + Number(b.amount), 0))]);
+        rows.push([]);
+      }
+
+      // 4. THAKA SECTION
+      if (thakaRecords.length > 0) {
+        rows.push(["THAKA (LEASE) RECORDS"]);
+        rows.push(["Field", "Start Date", "Amount", "Tenant Name", "Status"]);
+        thakaRecords.forEach((tr) => {
+          const f = fields.find((x) => x.id === tr.fieldId);
+          rows.push([f?.name ?? "", tr.startDate || "", String(tr.amount), tr.tenantName, tr.status]);
+        });
+        rows.push([]);
+      }
+
+      // 5. WATER SECTION
+      if (waterRecords.length > 0) {
+        rows.push(["WATER (IRRIGATION) LOGS"]);
+        rows.push(["Field", "Date", "Duration (Min)", "Notes"]);
+        waterRecords.forEach((wr) => {
+          const f = fields.find((x) => x.id === wr.fieldId);
+          rows.push([f?.name ?? "", wr.date || "", String(wr.durationMinutes), wr.notes || ""]);
+        });
+        rows.push(["TOTAL WATER TIME", "", String(totalWater)]);
+        rows.push([]);
+      }
+
+      // 6. MATERIAL TRANSACTIONS
+      if (materialTransactions.length > 0) {
+        rows.push(["MATERIAL TRANSACTIONS (STOCK)"]);
+        rows.push(["Material", "Type", "Quantity", "Date", "Cost", "Notes"]);
+        materialTransactions.forEach((t) => {
+          const m = materials.find(x => x.id === t.materialId);
+          rows.push([m?.name ?? "Unknown", t.type.toUpperCase(), String(t.quantity), t.date || "", String(t.cost || 0), t.notes || ""]);
+        });
+        rows.push([]);
+      }
+
+      // 7. DAILY REGISTER
+      if (dailyRegister.length > 0) {
+        rows.push(["DAILY FIELD REGISTER"]);
+        rows.push(["Field", "Date", "Activity", "Labor Cost", "Water (Min)", "Notes"]);
+        dailyRegister.forEach((d) => {
+          const f = fields.find(x => x.id === d.fieldId);
+          rows.push([f?.name ?? "", d.date || "", d.activity, String(d.laborCost || 0), String(d.waterMinutes || 0), d.notes || ""]);
+        });
+        rows.push([]);
+      }
 
       const csvContent = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
       const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
@@ -129,7 +220,8 @@ export default function ExportPage() {
             { label: 'Exp', count: expenses.length },
             { label: 'Inc', count: incomes.length },
             { label: 'Water', count: waterRecords.length },
-            { label: 'Temp', count: temperatureRecords.length }
+            { label: 'Stock', count: materialTransactions.length },
+            { label: 'Daily', count: dailyRegister.length }
           ].map((item) => (
             <div key={item.label} className="text-center">
               <p className="text-xl font-black text-theme">{item.count}</p>
