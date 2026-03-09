@@ -20,8 +20,8 @@ urlpatterns = [
 
     # Water records (logging irrigation) + analysis
     path("water", views.water_list),
-    path("water/<str:pk>", views.water_detail),
     path("water/analysis", views.water_analysis),
+    path("water/<str:pk>", views.water_detail),
 
     path("ai/recommendations", views.ai_recommendations),
     path("ai/insights", views.ai_insights),

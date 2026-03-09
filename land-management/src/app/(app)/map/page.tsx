@@ -2,6 +2,9 @@
 
 import dynamic from "next/dynamic";
 
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
   loading: () => (
@@ -17,5 +20,13 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 });
 
 export default function MapPage() {
+  const { isDataEntry } = useAuth();
+  const router = useRouter();
+
+  if (isDataEntry) {
+    router.replace("/dashboard");
+    return null;
+  }
+
   return <MapView />;
 }

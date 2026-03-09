@@ -2,21 +2,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLandStore } from "@/lib/store";
 import { Map as MapIcon, ChevronRight, Search, BarChart2, Droplets, Thermometer } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SortKey = "name" | "area" | "profit" | "status";
 
 export default function FieldsPage() {
   const { t } = useLocale();
+  const { isDataEntry } = useAuth();
+  const router = useRouter();
   const { fields, expenses, incomes, thakaRecords, waterRecords, temperatureRecords, fetchAll, loading, error } = useLandStore();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
 
   useEffect(() => {
+    if (isDataEntry) {
+      router.replace("/dashboard");
+      return;
+    }
     fetchAll();
-  }, [fetchAll]);
+  }, [fetchAll, isDataEntry, router]);
 
   const fieldStats = useMemo(() => {
     return fields.map((f) => {

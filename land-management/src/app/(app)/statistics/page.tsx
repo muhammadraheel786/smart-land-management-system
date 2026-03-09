@@ -8,6 +8,9 @@ import { format, subMonths } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
 import { BarChart3, Download } from "lucide-react";
 
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+
 const MONTHS_6 = 6;
 const MONTHS_12 = 12;
 
@@ -22,12 +25,18 @@ const LAND_COLORS: Record<string, string> = {
 
 export default function StatisticsPage() {
   const { t } = useLocale();
+  const { isDataEntry } = useAuth();
+  const router = useRouter();
   const { fields, expenses, incomes, temperatureRecords, waterRecords, thakaRecords, fetchAll, loading, error } = useLandStore();
   const [monthRange, setMonthRange] = useState<number>(MONTHS_6);
 
   useEffect(() => {
+    if (isDataEntry) {
+      router.replace("/dashboard");
+      return;
+    }
     fetchAll();
-  }, [fetchAll]);
+  }, [fetchAll, isDataEntry, router]);
 
   const totals = useMemo(() => {
     const totalArea = fields.reduce((a, f) => a + (f.area || 0), 0);

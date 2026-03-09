@@ -249,16 +249,16 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 [&>*]:min-w-0">
-        <StatsCard
-          href={isDataEntry ? undefined : "/fields"}
-          title={t("totalLandArea")}
-          value={`${totals.totalArea.toFixed(1)} ${t("acres")}`}
-          subtitle={`${fields.length} ${t("fieldsCount").toLowerCase()}`}
-          icon={Map}
-          color="green"
-        />
         {!isDataEntry && (
           <>
+            <StatsCard
+              href="/fields"
+              title={t("totalLandArea")}
+              value={`${totals.totalArea.toFixed(1)} ${t("acres")}`}
+              subtitle={`${fields.length} ${t("fieldsCount").toLowerCase()}`}
+              icon={Map}
+              color="green"
+            />
             <StatsCard
               href="/activities"
               title={t("totalInvestment")}

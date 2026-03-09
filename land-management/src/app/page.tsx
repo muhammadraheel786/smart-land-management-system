@@ -124,35 +124,37 @@ export default function HomePage() {
               Choose the portal and enter credentials. Admin manages everything; Data Entry records daily operations.
             </p>
 
-            {/* Portals */}
-            <div className="grid grid-cols-2 gap-2 mb-4 text-xs sm:text-sm">
+            {/* Portals - Enhanced for better clickability and clarity */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <button
                 type="button"
                 id="admin-portal-btn"
                 onClick={() => {
                   setPortal("admin");
+                  setError("");
                 }}
-                className={`rounded-xl px-3 py-2 text-left font-semibold transition-all duration-300 border ${portal === "admin"
+                className={`flex-1 rounded-2xl px-4 py-3.5 text-left transition-all duration-300 border-2 ${portal === "admin"
                   ? "bg-theme-track text-theme border-green-500 shadow-lg shadow-green-500/10"
-                  : "bg-transparent text-theme-muted border-theme/60 hover:border-theme hover:bg-theme-track/40"
+                  : "bg-transparent text-theme-muted border-theme/30 hover:border-theme/60 hover:bg-theme-track/20"
                   }`}
               >
-                Admin Portal
-                <span className="block text-[10px] text-theme-muted font-normal mt-0.5 opacity-80">Full administrative access</span>
+                <div className="font-bold text-sm sm:text-base">Admin Portal</div>
+                <div className="text-[10px] sm:text-xs text-theme-muted font-normal mt-0.5 opacity-80 leading-tight">Master control for farm owners</div>
               </button>
               <button
                 type="button"
                 id="guest-portal-btn"
                 onClick={() => {
                   setPortal("guest");
+                  setError("");
                 }}
-                className={`rounded-xl px-3 py-2 text-left font-semibold transition-all duration-300 border ${portal === "guest"
-                  ? "border-green-500 bg-green-500/10 text-green-400 shadow-lg shadow-green-500/10"
-                  : "border-theme/60 bg-transparent text-theme-muted hover:border-theme hover:bg-theme-track/40"
+                className={`flex-1 rounded-2xl px-4 py-3.5 text-left transition-all duration-300 border-2 ${portal === "guest"
+                  ? "bg-theme-track text-theme border-green-500 shadow-lg shadow-green-500/10"
+                  : "bg-transparent text-theme-muted border-theme/30 hover:border-theme/60 hover:bg-theme-track/20"
                   }`}
               >
-                Data Entry Portal
-                <span className="block text-[10px] text-theme-muted font-normal mt-0.5 opacity-80">Quick data logging access</span>
+                <div className="font-bold text-sm sm:text-base">Data Entry Portal</div>
+                <div className="text-[10px] sm:text-xs text-theme-muted font-normal mt-0.5 opacity-80 leading-tight">Fast logging for field staff</div>
               </button>
             </div>
 
