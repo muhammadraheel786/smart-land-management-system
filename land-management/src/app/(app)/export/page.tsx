@@ -65,9 +65,27 @@ export default function ExportPage() {
         return String(val);
       };
 
+      // Helper for readable categories/types
+      const readable = (str: string) => {
+        if (!str) return "";
+        return str.split(/[_-]/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+      };
+
+      // Helper for clean dates in CSV (shorter is better for Excel columns)
+      const fmtDate = (dateStr: string) => {
+        if (!dateStr) return "";
+        try {
+          // Add T12:00:00 to avoid timezone shifts on simple date strings
+          const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`);
+          return format(d, "yyyy-MM-dd");
+        } catch {
+          return dateStr;
+        }
+      };
+
       // 1. GENERAL SUMMARY SECTION
       rows.push(["LAND MANAGEMENT OVERALL SUMMARY"]);
-      rows.push(["Export Date", format(new Date(), "yyyy-MM-dd HH:mm:ss")]);
+      rows.push(["Export Date", format(new Date(), "yyyy-MM-dd HH:mm")]);
       rows.push([]);
 
       const totalExp = expenses.reduce((a, b) => a + (Number(b.amount) || 0), 0) +
@@ -92,7 +110,7 @@ export default function ExportPage() {
         rows.push(["Field", "Date", "Amount", "Category", "Description"]);
         expenses.forEach((e) => {
           const f = fields.find((x) => x.id === e.fieldId);
-          rows.push([f?.name ?? "Other", s(e.date), s(e.amount), s(e.category), s(e.description)]);
+          rows.push([f?.name ?? "Other", fmtDate(e.date), s(e.amount), readable(e.category), s(e.description)]);
         });
         rows.push(["Subtotal Expenses", "", s(expenses.reduce((a, b) => a + (Number(b.amount) || 0), 0))]);
         rows.push([]);
@@ -104,7 +122,7 @@ export default function ExportPage() {
         rows.push(["Field", "Date", "Amount", "Type", "Description"]);
         incomes.forEach((i) => {
           const f = fields.find((x) => x.id === i.fieldId);
-          rows.push([f?.name ?? "General", s(i.date), s(i.amount), s(i.type), s(i.description)]);
+          rows.push([f?.name ?? "General", fmtDate(i.date), s(i.amount), readable(i.type), s(i.description)]);
         });
         rows.push(["Subtotal Incomes", "", s(incomes.reduce((a, b) => a + (Number(b.amount) || 0), 0))]);
         rows.push([]);
@@ -116,7 +134,7 @@ export default function ExportPage() {
         rows.push(["Field", "Start Date", "End Date", "Amount", "Tenant Name", "Status"]);
         thakaRecords.forEach((tr) => {
           const f = fields.find((x) => x.id === tr.fieldId);
-          rows.push([f?.name ?? "General", s(tr.startDate), s(tr.endDate), s(tr.amount), s(tr.tenantName), s(tr.status)]);
+          rows.push([f?.name ?? "General", fmtDate(tr.startDate), fmtDate(tr.endDate), s(tr.amount), s(tr.tenantName), readable(tr.status)]);
         });
         rows.push(["Total Lease Value", "", "", s(totalThaka)]);
         rows.push([]);
@@ -128,7 +146,7 @@ export default function ExportPage() {
         rows.push(["Field", "Date", "Duration (Min)", "Notes"]);
         waterRecords.forEach((wr) => {
           const f = fields.find((x) => x.id === wr.fieldId);
-          rows.push([f?.name ?? "Other", s(wr.date), s(wr.durationMinutes), s(wr.notes)]);
+          rows.push([f?.name ?? "Other", fmtDate(wr.date), s(wr.durationMinutes), s(wr.notes)]);
         });
         rows.push(["Total Water Minutes", "", s(totalWater)]);
         rows.push([]);
@@ -140,7 +158,7 @@ export default function ExportPage() {
         rows.push(["Material", "Type", "Quantity", "Date", "Cost", "Notes"]);
         materialTransactions.forEach((t) => {
           const m = materials.find(x => x.id === t.materialId);
-          rows.push([m?.name ?? "Unknown", s(t.type).toUpperCase(), s(t.quantity), s(t.date), s(t.cost || 0), s(t.notes)]);
+          rows.push([m?.name ?? "Unknown", s(t.type).toUpperCase(), s(t.quantity), fmtDate(t.date), s(t.cost || 0), s(t.notes)]);
         });
         rows.push(["Total Material Cost", "", "", "", s(materialTransactions.reduce((a, b) => a + (Number(b.cost) || 0), 0))]);
         rows.push([]);
@@ -152,7 +170,7 @@ export default function ExportPage() {
         rows.push(["Field", "Date", "Activity", "Labor Cost", "Water (Min)", "Notes"]);
         dailyRegister.forEach((d) => {
           const f = fields.find(x => x.id === d.fieldId);
-          rows.push([f?.name ?? "General", s(d.date), s(d.activity), s(d.laborCost || 0), s(d.waterMinutes || 0), s(d.notes)]);
+          rows.push([f?.name ?? "General", fmtDate(d.date), readable(d.activity), s(d.laborCost || 0), s(d.waterMinutes || 0), s(d.notes)]);
         });
         rows.push(["Total Labor Cost", "", "", s(totalLabor)]);
         rows.push([]);
