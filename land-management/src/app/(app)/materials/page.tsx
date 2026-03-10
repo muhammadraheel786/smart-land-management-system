@@ -60,6 +60,9 @@ export default function MaterialsPage() {
     setSuccess(null);
 
     const amount = Number(qty);
+    const unitPrice = Number(cost) || 0;
+    const totalCost = amount * unitPrice;
+
     if (!amount || amount <= 0) {
       setSubmitError(t("materialsQuantityRequired"));
       return;
@@ -76,7 +79,7 @@ export default function MaterialsPage() {
           category: newCategory,
           unit: newUnit,
           stock_quantity: 0,
-          price_per_unit: cost ? Number(cost) / amount : 0
+          price_per_unit: unitPrice
         });
         if (newMat) {
           matId = (newMat as any).id;
@@ -96,7 +99,7 @@ export default function MaterialsPage() {
         type: "in",
         quantity: amount,
         date: date,
-        cost: cost ? Number(cost) : undefined,
+        cost: totalCost > 0 ? totalCost : undefined,
         notes: "Quick Entry",
       });
 
@@ -245,16 +248,23 @@ export default function MaterialsPage() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase font-black text-theme-muted tracking-widest ml-1">Total Price (Rs)</label>
+                  <label className="text-[10px] uppercase font-black text-theme-muted tracking-widest ml-1">Price / Unit (Rs)</label>
                   <input
                     type="number"
                     value={cost}
                     onChange={(e) => setCost(e.target.value)}
-                    placeholder="Optional"
+                    placeholder="Rate"
                     className="w-full bg-theme-track border border-theme rounded-2xl px-4 py-3.5 text-lg font-black text-theme focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-[10px] placeholder:font-bold"
                   />
                 </div>
               </div>
+
+              {qty && cost && Number(qty) > 0 && Number(cost) > 0 && (
+                <div className="px-4 py-2 rounded-xl bg-theme-track/50 border border-theme border-dashed flex justify-between items-center animate-in fade-in zoom-in duration-300">
+                  <span className="text-[10px] font-black text-theme-muted uppercase italic">Estimated Total</span>
+                  <span className="text-sm font-black text-green-500">Rs {(Number(qty) * Number(cost)).toLocaleString()}</span>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase font-black text-theme-muted tracking-widest ml-1">Purchase Date</label>
