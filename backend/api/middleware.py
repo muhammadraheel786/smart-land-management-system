@@ -7,7 +7,10 @@ def auth_required_middleware(get_response):
     def middleware(request):
         path = request.path
         # Public API paths (no auth); allow with or without trailing slash
-        if path.startswith('/api/auth/login') or path.startswith('/api/health') or path.startswith('/api/ready'):
+        if (path.startswith('/api/auth/login') or path.startswith('/api/health') or 
+            path.startswith('/api/ready') or path.startswith('/api/water/analysis') or
+            path.startswith('/api/ai/recommendations') or path.startswith('/api/ai/insights') or
+            path.startswith('/api/ai/chat') or path.startswith('/api/predict')):
             return get_response(request)
 
         if not path.startswith('/api/'):

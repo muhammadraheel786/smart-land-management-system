@@ -21,15 +21,26 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     cache: "no-store",
     headers: { "Content-Type": "application/json", ...getAuthHeaders(), ...options?.headers },
   });
+
   if (res.status === 401) {
-    // Do not hard-redirect; let callers decide how to handle 401.
     if (typeof window !== "undefined") {
       localStorage.removeItem("smartland_token");
       localStorage.removeItem("smartland_email");
     }
-    throw new Error("Unauthorized");
   }
-  if (!res.ok) throw new Error(`API error ${res.status}`);
+
+  if (!res.ok) {
+    let errorMsg = `API error ${res.status}`;
+    try {
+      const data = await res.json();
+      errorMsg = data?.error ?? data?.detail ?? errorMsg;
+      if (typeof errorMsg !== "string") errorMsg = JSON.stringify(errorMsg);
+    } catch {
+      // Ignored: fallback to status code
+    }
+    throw new Error(errorMsg);
+  }
+
   if (res.status === 204) return undefined as T;
   return res.json();
 }

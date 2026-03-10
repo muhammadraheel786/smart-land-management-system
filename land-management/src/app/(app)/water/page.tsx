@@ -193,7 +193,13 @@ function WaterContent() {
               </button>
             </div>
             {analysisError && (
-              <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-red-200 text-sm mb-4">{analysisError}</div>
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-200 text-sm mb-4">
+                <div className="flex items-center gap-2 font-bold mb-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  {t("error")}
+                </div>
+                {analysisError}
+              </div>
             )}
             {!analysis && !analysisLoading && (
               <p className="text-theme-muted text-sm py-2">{t("waterNoAnalysisYet")}</p>

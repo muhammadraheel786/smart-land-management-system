@@ -288,149 +288,154 @@ def thaka_detail(request, pk):
 @require_http_methods(["GET"])
 def water_analysis(request):
     """Return water warnings, AI analysis, and per-field next-water suggestions (date + duration)."""
-    import random
-    from datetime import datetime, timedelta
+    try:
+        import random
+        from datetime import datetime, timedelta
 
-    fields_col = get_collection('fields')
-    temp_col = get_collection('temperature_records')
-    act_col = get_collection('activities')
-    
-    fields = list(fields_col.find({}, {'_id': 0}))
-    today_s = datetime.utcnow().strftime('%Y-%m-%d')
-
-    warnings = []
-    per_field = []
-
-    for f in fields:
-        fid = f.get('id', '')
-        fname = f.get('name', 'Field')
-        if f.get('status') == 'not_usable':
-            continue
-            
-        # Unified: look at both activities (irrigation) and legacy water_records
-        field_water = list(act_col.find(
-            {'field_id': fid, 'activity_type': 'irrigation'}, 
-            {'_id': 0}
-        ).sort('date', -1).limit(10))
+        fields_col = get_collection('fields')
+        temp_col = get_collection('temperature_records')
+        act_col = get_collection('activities')
         
-        # Fallback for legacy data
-        if not field_water:
-            water_col = get_collection('water_records')
-            legacy = list(water_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(10))
-            # Map legacy to activity shape for the logic below
-            field_water = [{
-                'id': l.get('id'),
-                'date': l.get('date'),
-                'quantity_used': l.get('durationMinutes', 0),
-                'notes': l.get('notes')
-            } for l in legacy]
-        field_temp = list(temp_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(7))
-        last_water = field_water[0] if field_water else None
-        last_date_s = last_water.get('date', '')[:10] if last_water else ''
-        # Supported both legacy durationMinutes and unified quantity_used
-        last_mins = last_water.get('quantity_used') or last_water.get('durationMinutes') or 30
-        if last_water:
-             last_mins = _to_num(last_mins) if last_mins else 30
+        fields = list(fields_col.find({}, {'_id': 0}))
+        today_s = datetime.utcnow().strftime('%Y-%m-%d')
 
-        # Rule-based warning
-        warning = None
-        if not last_date_s:
-            warning = 'no_water_yet'
-            warnings.append({'fieldId': fid, 'fieldName': fname, 'type': 'no_water', 'message': 'No irrigation recorded yet. Consider logging water or schedule first irrigation.', 'priority': 'medium'})
-        else:
+        warnings = []
+        per_field = []
+
+        for f in fields:
+            fid = f.get('id', '')
+            fname = f.get('name', 'Field')
+            if f.get('status') == 'not_usable':
+                continue
+                
+            # Unified: look at both activities (irrigation) and legacy water_records
+            field_water = list(act_col.find(
+                {'field_id': fid, 'activity_type': 'irrigation'}, 
+                {'_id': 0}
+            ).sort('date', -1).limit(10))
+            
+            # Fallback for legacy data
+            if not field_water:
+                water_col = get_collection('water_records')
+                legacy = list(water_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(10))
+                # Map legacy to activity shape for the logic below
+                field_water = [{
+                    'id': l.get('id'),
+                    'date': l.get('date'),
+                    'quantity_used': l.get('durationMinutes', 0),
+                    'notes': l.get('notes')
+                } for l in legacy]
+            field_temp = list(temp_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(7))
+            last_water = field_water[0] if field_water else None
+            last_date_s = last_water.get('date', '')[:10] if last_water else ''
+            # Supported both legacy durationMinutes and unified quantity_used
+            last_mins = last_water.get('quantity_used') or last_water.get('durationMinutes') or 30
+            if last_water:
+                 last_mins = _to_num(last_mins) if last_mins else 30
+
+            # Rule-based warning
+            warning = None
+            if not last_date_s:
+                warning = 'no_water_yet'
+                warnings.append({'fieldId': fid, 'fieldName': fname, 'type': 'no_water', 'message': 'No irrigation recorded yet. Consider logging water or schedule first irrigation.', 'priority': 'medium'})
+            else:
+                try:
+                    last_d = datetime.strptime(last_date_s, '%Y-%m-%d')
+                    today_d = datetime.strptime(today_s, '%Y-%m-%d')
+                    days_since = (today_d - last_d).days
+                    if days_since >= 5:
+                        warning = 'overdue'
+                        warnings.append({'fieldId': fid, 'fieldName': fname, 'type': 'overdue', 'message': f'No irrigation since {last_date_s} ({days_since} days). Schedule watering soon.', 'priority': 'high'})
+                    elif days_since >= 3:
+                        warning = 'due_soon'
+                        warnings.append({'fieldId': fid, 'fieldName': fname, 'type': 'due_soon', 'message': f'Last watered {last_date_s}. Consider irrigation in the next 1–2 days.', 'priority': 'medium'})
+                except Exception:
+                    pass
+
+            # Suggested next date and minutes (same logic as water_forecast)
+            base_mins = max(25, min(90, last_mins + round(random.random() * 20 - 5)))
+            days_ahead = 7
+            if last_date_s:
+                try:
+                    last_d = datetime.strptime(last_date_s, '%Y-%m-%d')
+                    days_ahead = max(4, min(10, 5 + (35 - (datetime.utcnow() - last_d.replace(tzinfo=None)).days) // 5))
+                except Exception:
+                    pass
+            if field_temp:
+                avg_t = sum(t.get('temperatureC', 0) for t in field_temp[:7]) / min(7, len(field_temp))
+                if avg_t > 32:
+                    base_mins = min(90, base_mins + 10)
+                    days_ahead = max(4, days_ahead - 1)
+                elif avg_t < 20:
+                    days_ahead = min(10, days_ahead + 1)
+            next_d = (datetime.utcnow() + timedelta(days=days_ahead)).strftime('%Y-%m-%d')
+            suggested_mins = round(base_mins + random.random() * 10)
+
+            per_field.append({
+                'fieldId': fid,
+                'fieldName': fname,
+                'lastWaterDate': last_date_s or None,
+                'lastDurationMinutes': last_mins,
+                'suggestedNextDate': next_d,
+                'suggestedMinutes': suggested_mins,
+                'warning': warning,
+                'aiNote': None,
+            })
+
+        # AI analysis (overall paragraph + per-field note)
+        analysis_text = None
+        model_used = 'built-in'
+        context_parts = [f"Today: {today_s}. Fields: {len(per_field)}."]
+        for p in per_field:
+            ctx = f"{p['fieldName']}: last water {p['lastWaterDate'] or 'never'}"
+            if p['lastDurationMinutes']:
+                ctx += f" ({p['lastDurationMinutes']} min)"
+            ctx += f"; suggested next: {p['suggestedNextDate']}, {p['suggestedMinutes']} min. Warning: {p['warning'] or 'none'}."
+            context_parts.append(ctx)
+        water_context = "\n".join(context_parts)
+
+        system = """You are an irrigation advisor for Pakistan/South Asia. Respond with ONLY valid JSON, no markdown or extra text.
+    Use this exact structure: {"analysis": "2-4 sentence overall analysis of irrigation status and any risks (over/under watering). Mention which fields need attention and when to water next.", "notes": ["one sentence per field in the same order as given: when to water next and brief reason"]}
+    The "notes" array must have exactly one entry per field, in the same order as in the user message."""
+        user = f"Water data:\n{water_context}"
+
+        ai_content, model_used_raw, _ = _call_ai_chat(system, user)
+        model_used = model_used_raw
+        if ai_content:
             try:
-                last_d = datetime.strptime(last_date_s, '%Y-%m-%d')
-                today_d = datetime.strptime(today_s, '%Y-%m-%d')
-                days_since = (today_d - last_d).days
-                if days_since >= 5:
-                    warning = 'overdue'
-                    warnings.append({'fieldId': fid, 'fieldName': fname, 'type': 'overdue', 'message': f'No irrigation since {last_date_s} ({days_since} days). Schedule watering soon.', 'priority': 'high'})
-                elif days_since >= 3:
-                    warning = 'due_soon'
-                    warnings.append({'fieldId': fid, 'fieldName': fname, 'type': 'due_soon', 'message': f'Last watered {last_date_s}. Consider irrigation in the next 1–2 days.', 'priority': 'medium'})
-            except Exception:
-                pass
+                # Strip possible markdown code block
+                raw = ai_content.strip()
+                if raw.startswith("```"):
+                    raw = raw.split("\n", 1)[-1] if "\n" in raw else raw[3:]
+                if raw.endswith("```"):
+                    raw = raw.rsplit("```", 1)[0].strip()
+                data = json.loads(raw)
+                analysis_text = (data.get("analysis") or "").strip()
+                notes_list = data.get("notes") or []
+                for i, note in enumerate(notes_list):
+                    if i < len(per_field) and isinstance(note, str):
+                        per_field[i]["aiNote"] = note.strip()
+            except (json.JSONDecodeError, KeyError):
+                analysis_text = ai_content[:800] if ai_content else None
+        if not analysis_text:
+            analysis_text = (
+                f"Based on your water records: {len(warnings)} field(s) need attention. "
+                + ("Schedule irrigation for fields with no recent water. " if any(w.get('type') == 'overdue' or w.get('type') == 'no_water' for w in warnings) else "")
+                + "Use the suggested next dates and durations below as a guide; adjust for soil type and weather."
+            )
+        for i, p in enumerate(per_field):
+            if not p.get("aiNote"):
+                p["aiNote"] = f"Next irrigation suggested on {p['suggestedNextDate']} for about {p['suggestedMinutes']} minutes."
 
-        # Suggested next date and minutes (same logic as water_forecast)
-        base_mins = max(25, min(90, last_mins + round(random.random() * 20 - 5)))
-        days_ahead = 7
-        if last_date_s:
-            try:
-                last_d = datetime.strptime(last_date_s, '%Y-%m-%d')
-                days_ahead = max(4, min(10, 5 + (35 - (datetime.utcnow() - last_d.replace(tzinfo=None)).days) // 5))
-            except Exception:
-                pass
-        if field_temp:
-            avg_t = sum(t.get('temperatureC', 0) for t in field_temp[:7]) / min(7, len(field_temp))
-            if avg_t > 32:
-                base_mins = min(90, base_mins + 10)
-                days_ahead = max(4, days_ahead - 1)
-            elif avg_t < 20:
-                days_ahead = min(10, days_ahead + 1)
-        next_d = (datetime.utcnow() + timedelta(days=days_ahead)).strftime('%Y-%m-%d')
-        suggested_mins = round(base_mins + random.random() * 10)
-
-        per_field.append({
-            'fieldId': fid,
-            'fieldName': fname,
-            'lastWaterDate': last_date_s or None,
-            'lastDurationMinutes': last_mins,
-            'suggestedNextDate': next_d,
-            'suggestedMinutes': suggested_mins,
-            'warning': warning,
-            'aiNote': None,
+        return _json_response({
+            'warnings': warnings,
+            'analysis': analysis_text,
+            'perField': per_field,
+            'model': model_used,
         })
-
-    # AI analysis (overall paragraph + per-field note)
-    analysis_text = None
-    model_used = 'built-in'
-    context_parts = [f"Today: {today_s}. Fields: {len(per_field)}."]
-    for p in per_field:
-        ctx = f"{p['fieldName']}: last water {p['lastWaterDate'] or 'never'}"
-        if p['lastDurationMinutes']:
-            ctx += f" ({p['lastDurationMinutes']} min)"
-        ctx += f"; suggested next: {p['suggestedNextDate']}, {p['suggestedMinutes']} min. Warning: {p['warning'] or 'none'}."
-        context_parts.append(ctx)
-    water_context = "\n".join(context_parts)
-
-    system = """You are an irrigation advisor for Pakistan/South Asia. Respond with ONLY valid JSON, no markdown or extra text.
-Use this exact structure: {"analysis": "2-4 sentence overall analysis of irrigation status and any risks (over/under watering). Mention which fields need attention and when to water next.", "notes": ["one sentence per field in the same order as given: when to water next and brief reason"]}
-The "notes" array must have exactly one entry per field, in the same order as in the user message."""
-    user = f"Water data:\n{water_context}"
-
-    ai_content, model_used, _ = _call_ai_chat(system, user)
-    if ai_content:
-        try:
-            # Strip possible markdown code block
-            raw = ai_content.strip()
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[-1] if "\n" in raw else raw[3:]
-            if raw.endswith("```"):
-                raw = raw.rsplit("```", 1)[0].strip()
-            data = json.loads(raw)
-            analysis_text = (data.get("analysis") or "").strip()
-            notes_list = data.get("notes") or []
-            for i, note in enumerate(notes_list):
-                if i < len(per_field) and isinstance(note, str):
-                    per_field[i]["aiNote"] = note.strip()
-        except (json.JSONDecodeError, KeyError):
-            analysis_text = ai_content[:800] if ai_content else None
-    if not analysis_text:
-        analysis_text = (
-            f"Based on your water records: {len(warnings)} field(s) need attention. "
-            + ("Schedule irrigation for fields with no recent water. " if any(w.get('type') == 'overdue' or w.get('type') == 'no_water' for w in warnings) else "")
-            + "Use the suggested next dates and durations below as a guide; adjust for soil type and weather."
-        )
-    for i, p in enumerate(per_field):
-        if not p.get("aiNote"):
-            p["aiNote"] = f"Next irrigation suggested on {p['suggestedNextDate']} for about {p['suggestedMinutes']} minutes."
-
-    return _json_response({
-        'warnings': warnings,
-        'analysis': analysis_text,
-        'perField': per_field,
-        'model': model_used,
-    })
+    except Exception as e:
+        logger.exception("water_analysis: critical failure")
+        return _api_error("Failed to generate water analysis", detail=e)
 
 
 @csrf_exempt
