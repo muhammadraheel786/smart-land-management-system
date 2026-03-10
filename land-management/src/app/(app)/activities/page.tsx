@@ -204,7 +204,18 @@ function ActivitiesContent() {
         setTimeout(() => setToast(null), 3500);
     };
 
-    // ── Filtered list ──
+    // ── Filtered Materials based on Activity ──
+    const relevantMaterials = useMemo(() => {
+        if (activityType === "seed_sowing") return materials.filter(m => m.category === "seed");
+        if (activityType === "fertilizer_application") return materials.filter(m => m.category === "fertilizer");
+        if (activityType === "pesticide_spray") return materials.filter(m => m.category === "pesticide");
+        // For buying, show everything
+        if (activityType === "material_purchase") return materials;
+        // Default (other activities usually don't need materials in the same way)
+        return materials;
+    }, [materials, activityType]);
+
+    // Filtered list ──
     const filtered = useMemo(() =>
         filterType === "all" ? activities : activities.filter(a => a.activity_type === filterType),
         [activities, filterType]
@@ -604,28 +615,37 @@ function ActivitiesContent() {
                                     )}
                                 </div>
 
-                                {/* Material Entry */}
+                                {/* Material - SMART FILTERED */}
                                 {needsMaterial && (
                                     <div className="p-4 rounded-3xl bg-blue-500/5 border border-blue-500/10 space-y-4">
                                         <div>
                                             <label className="block text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2 px-1">
-                                                {locale === "ur" ? "کیا مواد استعمال کیا؟" : "Which Material?"}
+                                                {activityType === "seed_sowing" ? (locale === "ur" ? "کون سا بیج؟" : "Which Seed?") :
+                                                    activityType === "fertilizer_application" ? (locale === "ur" ? "کون سی کھاد؟" : "Which Fertilizer?") :
+                                                        activityType === "pesticide_spray" ? (locale === "ur" ? "کون سا اسپرے؟" : "Which Spray?") :
+                                                            (locale === "ur" ? "کیا مواد استعمال کیا؟" : "Which Material?")}
                                             </label>
-                                            <select value={materialId} onChange={e => { setMaterialId(e.target.value); setQuantity(""); setCost(""); }}
-                                                required
-                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-blue-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                                <option value="">{locale === "ur" ? "مواد چنیں" : "Select..."}</option>
-                                                {materials.map(m => (
-                                                    <option key={m.id} value={m.id}>
-                                                        {m.name} ({m.stock_quantity || 0} {m.unit})
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            {relevantMaterials.length === 0 ? (
+                                                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[10px] font-bold text-amber-600">
+                                                    {locale === "ur" ? "اس کام کے لیے اسٹاک میں کوئی چیز نہیں ہے۔" : "No items in stock for this activity."}
+                                                </div>
+                                            ) : (
+                                                <select value={materialId} onChange={e => { setMaterialId(e.target.value); setQuantity(""); setCost(""); }}
+                                                    required
+                                                    className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-blue-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                                    <option value="">{locale === "ur" ? "منتخب کریں..." : "Select..."}</option>
+                                                    {relevantMaterials.map(m => (
+                                                        <option key={m.id} value={m.id}>
+                                                            {m.name} ({m.stock_quantity || 0} {m.unit})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
                                         </div>
                                         {selectedMaterial && (
                                             <div className="flex items-center gap-2 text-[10px] font-black text-blue-500/70 bg-blue-500/10 p-2 rounded-xl border border-blue-500/20">
                                                 <Package className="w-3 h-3" />
-                                                STOCK: {selectedMaterial.stock_quantity ?? 0} {selectedMaterial.unit}
+                                                {locale === "ur" ? "اسٹاک میں موجود" : "CURRENT STOCK"}: {selectedMaterial.stock_quantity ?? 0} {selectedMaterial.unit}
                                             </div>
                                         )}
                                     </div>
