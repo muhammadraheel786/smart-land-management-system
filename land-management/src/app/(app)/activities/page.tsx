@@ -100,14 +100,14 @@ function ActivitiesContent() {
 
     const ACTIVITY_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string; desc: string }> = useMemo(() => ({
         irrigation: { label: t("dbIrrigation"), desc: "پانی دینا", icon: <Droplet className="w-8 h-8" />, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
-        fertilizer_application: { label: t("dbFertilizing"), desc: "کھاد ڈالنا", icon: <Leaf className="w-8 h-8" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
         pesticide_spray: { label: t("dbSpraying"), desc: "اسپرے کرنا", icon: <Zap className="w-8 h-8" />, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+        fertilizer_application: { label: t("dbFertilizing"), desc: "کھاد ڈالنا", icon: <Leaf className="w-8 h-8" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
         seed_sowing: { label: t("dbSowing"), desc: "بیج بونا", icon: <Sprout className="w-8 h-8" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
-        harvest: { label: t("dbHarvesting"), desc: "کٹائی", icon: <TrendingUp className="w-8 h-8" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
-        material_purchase: { label: t("materialsRecordPurchase"), desc: "خریداری", icon: <ShoppingCart className="w-8 h-8" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
+        harvest: { label: "Harvest & Sale", desc: "کٹائی اور فروخت", icon: <TrendingUp className="w-8 h-8" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
         labor: { label: t("dbLabor"), desc: "مزدوری", icon: <Users className="w-8 h-8" />, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
-        expense: { label: t("expensesNewExpense"), desc: "خرچہ", icon: <ArrowDownRight className="w-8 h-8" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
-        income: { label: t("addSale"), desc: "آمدنی / فروخت", icon: <ArrowUpRight className="w-8 h-8" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+        material_purchase: { label: "Buy Material", desc: "مواد کی خریداری", icon: <ShoppingCart className="w-8 h-8" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
+        expense: { label: "Other Bill / Cost", desc: "دیگر بل / خرچہ", icon: <ArrowDownRight className="w-8 h-8" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
+        income: { label: "Other Cash In", desc: "دیگر آمدنی", icon: <ArrowUpRight className="w-8 h-8" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
     }), [t]);
 
     // Data
