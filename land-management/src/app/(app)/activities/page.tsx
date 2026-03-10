@@ -44,11 +44,12 @@ async function apiFetch(path: string, opts?: RequestInit) {
 // ─── Activity Badge ──────────────────────────────────────────────────────────
 
 function ActivityBadge({ type, meta }: { type: string; meta?: any }) {
+    const { locale } = useLocale();
     const defaultMeta = { label: type, icon: <FileText className="w-4 h-4" />, color: "text-theme-muted", bg: "bg-theme-track", border: "border-theme" };
     const m = meta ?? defaultMeta;
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${m.color} ${m.bg} ${m.border}`}>
-            {m.icon} {m.label}
+            {m.icon} {locale === "ur" ? (m.desc || m.label) : m.label}
         </span>
     );
 }
@@ -76,15 +77,20 @@ function StatCard({ label, value, icon, gradient, textColor }: {
 // ─── Empty State ─────────────────────────────────────────────────────────────
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+    const { locale } = useLocale();
     return (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-600/20 border border-green-500/30 flex items-center justify-center mb-2">
                 <BarChart3 className="w-9 h-9 text-green-500" />
             </div>
-            <h3 className="text-xl font-bold text-theme">No activities yet</h3>
-            <p className="text-theme-muted max-w-sm">Start recording your farm activities — irrigation, purchases, harvests, expenses and more.</p>
+            <h3 className="text-xl font-bold text-theme">
+                {locale === "ur" ? "ابھی تک کوئی ریکارڈ نہیں ہے" : "No activities yet"}
+            </h3>
+            <p className="text-theme-muted max-w-sm">
+                {locale === "ur" ? "کھیت کے کام درج کرنا شروع کریں - جیسے پانی دینا، اسپرے، بیج بونا اور دیگر۔" : "Start recording your farm activities — irrigation, spraying, sowing and more."}
+            </p>
             <button onClick={onAdd} className="mt-2 flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-xl font-semibold transition-all active:scale-95">
-                <Plus className="w-4 h-4" /> Record First Activity
+                <Plus className="w-4 h-4" /> {locale === "ur" ? "پہلا ریکارڈ درج کریں" : "Record First Activity"}
             </button>
         </div>
     );
@@ -251,9 +257,9 @@ function ActivitiesContent() {
             const res = await apiFetch("/api/activities", { method: "POST", body: JSON.stringify(payload) });
             if (res?.id || res?.activity_type) {
                 setOpen(false); resetForm(); fetchData();
-                showToast("success", "Activity recorded successfully!");
+                showToast("success", locale === "ur" ? "ریکارڈ کامیابی سے محفوظ ہو گیا!" : "Activity recorded successfully!");
             } else {
-                showToast("error", res?.error ?? "Failed to save activity.");
+                showToast("error", locale === "ur" ? "محفوظ کرنے میں غلطی ہوئی۔" : (res?.error ?? "Failed to save activity."));
             }
         } catch {
             showToast("error", "Network error. Please try again.");
@@ -388,10 +394,12 @@ function ActivitiesContent() {
                                 onChange={e => setFilterType(e.target.value)}
                                 className="w-full min-w-0 pl-10 pr-10 py-3 text-sm rounded-xl bg-theme-track border border-theme text-theme appearance-none focus:ring-2 focus:ring-green-500 focus:outline-none"
                             >
-                                <option value="all">All Types</option>
-                                {Object.entries(ACTIVITY_META).map(([k, v]) => (
-                                    <option key={k} value={k}>{v.label}</option>
-                                ))}
+                                <option value="all">{locale === "ur" ? "تمام ریکارڈ" : "All Types"}</option>
+                                {Object.entries(ACTIVITY_META)
+                                    .filter(([k]) => k !== "material_purchase")
+                                    .map(([k, v]) => (
+                                        <option key={k} value={k}>{locale === "ur" ? v.desc : v.label}</option>
+                                    ))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
                         </div>
@@ -408,8 +416,8 @@ function ActivitiesContent() {
                                         <tr className="border-b border-theme bg-theme-track/40 text-xs text-theme-muted uppercase tracking-wider">
                                             <th className="px-6 py-3 text-left font-semibold">{t("dbActivity")}</th>
                                             <th className="px-4 py-3 text-left font-semibold">{t("date")}</th>
-                                            <th className="px-4 py-3 text-left font-semibold">{t("field")}</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Material / Qty</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{locale === "ur" ? "کھیت" : t("field")}</th>
+                                            <th className="px-4 py-3 text-left font-semibold">{locale === "ur" ? "مواد / مقدار" : "Material / Qty"}</th>
                                             <th className="px-4 py-3 text-right font-semibold">{t("purchaseShort")}</th>
                                             <th className="px-4 py-3 text-right font-semibold">{t("saleShort")}</th>
                                             <th className="px-4 py-3 text-left font-semibold">{t("dbNotes")}</th>
@@ -486,7 +494,9 @@ function ActivitiesContent() {
                                                         {meta?.icon || <FileText className="w-4 h-4 text-theme-muted" />}
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-bold text-theme leading-tight">{meta?.label || act.activity_type}</h4>
+                                                        <h4 className="text-sm font-bold text-theme leading-tight">
+                                                            {locale === "ur" ? (meta?.desc || meta?.label || act.activity_type) : (meta?.label || act.activity_type)}
+                                                        </h4>
                                                         <p className="text-[10px] text-theme-muted mt-0.5">{act.date?.split("T")[0]}</p>
                                                     </div>
                                                 </div>
@@ -563,29 +573,31 @@ function ActivitiesContent() {
                                         {locale === "ur" ? "کیا کام ہوا؟" : "What activity happened?"}
                                     </label>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {Object.entries(ACTIVITY_META).map(([k, v]) => (
-                                            <button
-                                                key={k} type="button"
-                                                onClick={() => {
-                                                    setActivityType(k as Activity["activity_type"]);
-                                                    setMaterialId("");
-                                                    setQuantity("");
-                                                    setCost("");
-                                                    setIncome("");
-                                                    setHarvestUnitPrice("");
-                                                }}
-                                                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2rem] border-2 transition-all duration-300
+                                        {Object.entries(ACTIVITY_META)
+                                            .filter(([k]) => k !== "material_purchase") // Hide 'Buy Material' from the Quick Selection Grid
+                                            .map(([k, v]) => (
+                                                <button
+                                                    key={k} type="button"
+                                                    onClick={() => {
+                                                        setActivityType(k as Activity["activity_type"]);
+                                                        setMaterialId("");
+                                                        setQuantity("");
+                                                        setCost("");
+                                                        setIncome("");
+                                                        setHarvestUnitPrice("");
+                                                    }}
+                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2rem] border-2 transition-all duration-300
                                                 ${activityType === k
-                                                        ? `bg-green-500 border-green-400 text-white shadow-xl shadow-green-500/30 scale-105`
-                                                        : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted active:scale-95"}`}
-                                            >
-                                                <span className={activityType === k ? "text-white" : v.color}>{v.icon}</span>
-                                                <div className="flex flex-col items-center">
-                                                    <span className="text-xs font-black uppercase text-center leading-tight">{v.label}</span>
-                                                    <span className={`text-[10px] font-bold opacity-60 ${locale === 'ur' ? 'hidden' : ''}`}>{v.desc}</span>
-                                                </div>
-                                            </button>
-                                        ))}
+                                                            ? `bg-green-500 border-green-400 text-white shadow-xl shadow-green-500/30 scale-105`
+                                                            : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted active:scale-95"}`}
+                                                >
+                                                    <span className={activityType === k ? "text-white" : v.color}>{v.icon}</span>
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="text-xs font-black uppercase text-center leading-tight">{v.label}</span>
+                                                        <span className={`text-[10px] font-bold opacity-60 ${locale === 'ur' ? 'hidden' : ''}`}>{v.desc}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
                                     </div>
                                 </div>
 
