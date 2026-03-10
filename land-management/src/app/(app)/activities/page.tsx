@@ -593,8 +593,14 @@ function ActivitiesContent() {
                                                 >
                                                     <span className={activityType === k ? "text-white" : v.color}>{v.icon}</span>
                                                     <div className="flex flex-col items-center">
-                                                        <span className="text-xs font-black uppercase text-center leading-tight">{v.label}</span>
-                                                        <span className={`text-[10px] font-bold opacity-60 ${locale === 'ur' ? 'hidden' : ''}`}>{v.desc}</span>
+                                                        <span className="text-xs font-black uppercase text-center leading-tight">
+                                                            {locale === "ur" ? v.desc : v.label}
+                                                        </span>
+                                                        {locale !== "ur" && (
+                                                            <span className="text-[10px] font-bold opacity-60">
+                                                                {v.desc}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </button>
                                             ))}
