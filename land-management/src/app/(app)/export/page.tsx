@@ -75,9 +75,8 @@ export default function ExportPage() {
       const fmtDate = (dateStr: string) => {
         if (!dateStr) return "";
         try {
-          // Add T12:00:00 to avoid timezone shifts on simple date strings
           const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`);
-          return format(d, "yyyy-MM-dd");
+          return format(d, "MMM d, yyyy");
         } catch {
           return dateStr;
         }
@@ -85,7 +84,7 @@ export default function ExportPage() {
 
       // 1. GENERAL SUMMARY SECTION
       rows.push(["LAND MANAGEMENT OVERALL SUMMARY"]);
-      rows.push(["Export Date", format(new Date(), "yyyy-MM-dd HH:mm")]);
+      rows.push(["Export Date", format(new Date(), "MMM d, yyyy")]);
       rows.push([]);
 
       const totalExp = expenses.reduce((a, b) => a + (Number(b.amount) || 0), 0) +
@@ -182,7 +181,9 @@ export default function ExportPage() {
       const a = document.createElement("a");
       a.href = url;
       a.download = `land-management-export-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
   };
@@ -229,10 +230,15 @@ export default function ExportPage() {
 
           <button
             onClick={exportData}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-lg shadow-xl shadow-green-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+            disabled={loading}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-lg shadow-xl shadow-green-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
-            <Download className="w-6 h-6" />
-            Download Data
+            {loading ? <span className="animate-pulse">Loading...</span> : (
+              <>
+                <Download className="w-6 h-6" />
+                Download Data
+              </>
+            )}
           </button>
         </div>
 
