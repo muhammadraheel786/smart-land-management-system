@@ -328,9 +328,9 @@ def water_analysis(request):
             field_temp = list(temp_col.find({'fieldId': fid}, {'_id': 0}).sort('date', -1).limit(7))
             last_water = field_water[0] if field_water else None
             last_date_s = last_water.get('date', '')[:10] if last_water else ''
-            # Supported both legacy durationMinutes and unified quantity_used
-            last_mins = last_water.get('quantity_used') or last_water.get('durationMinutes') or 30
+            last_mins = 30
             if last_water:
+                 last_mins = last_water.get('quantity_used') or last_water.get('durationMinutes') or 30
                  last_mins = _to_num(last_mins) if last_mins else 30
 
             # Rule-based warning
