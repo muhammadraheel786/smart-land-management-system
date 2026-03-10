@@ -94,20 +94,20 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 function ActivitiesContent() {
     const { isDataEntry } = useAuth();
-    const { t } = useLocale();
+    const { t, locale, setLocale } = useLocale();
     const searchParams = useSearchParams();
     const typeFromUrl = searchParams.get("type") || "all";
 
-    const ACTIVITY_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string }> = useMemo(() => ({
-        irrigation: { label: t("dbIrrigation"), icon: <Droplet className="w-4 h-4" />, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
-        fertilizer_application: { label: t("dbFertilizing"), icon: <Leaf className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-        pesticide_spray: { label: t("dbSpraying"), icon: <Zap className="w-4 h-4" />, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
-        seed_sowing: { label: t("dbSowing"), icon: <Sprout className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
-        harvest: { label: t("dbHarvesting"), icon: <TrendingUp className="w-4 h-4" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
-        material_purchase: { label: t("materialsRecordPurchase"), icon: <ShoppingCart className="w-4 h-4" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
-        labor: { label: t("dbLabor"), icon: <Users className="w-4 h-4" />, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
-        expense: { label: t("expensesNewExpense"), icon: <ArrowDownRight className="w-4 h-4" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
-        income: { label: t("addSale"), icon: <ArrowUpRight className="w-4 h-4" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+    const ACTIVITY_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string; desc: string }> = useMemo(() => ({
+        irrigation: { label: t("dbIrrigation"), desc: "پانی دینا", icon: <Droplet className="w-8 h-8" />, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
+        fertilizer_application: { label: t("dbFertilizing"), desc: "کھاد ڈالنا", icon: <Leaf className="w-8 h-8" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+        pesticide_spray: { label: t("dbSpraying"), desc: "اسپرے کرنا", icon: <Zap className="w-8 h-8" />, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+        seed_sowing: { label: t("dbSowing"), desc: "بیج بونا", icon: <Sprout className="w-8 h-8" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+        harvest: { label: t("dbHarvesting"), desc: "کٹائی", icon: <TrendingUp className="w-8 h-8" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
+        material_purchase: { label: t("materialsRecordPurchase"), desc: "خریداری", icon: <ShoppingCart className="w-8 h-8" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
+        labor: { label: t("dbLabor"), desc: "مزدوری", icon: <Users className="w-8 h-8" />, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+        expense: { label: t("expensesNewExpense"), desc: "خرچہ", icon: <ArrowDownRight className="w-8 h-8" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
+        income: { label: t("addSale"), desc: "آمدنی / فروخت", icon: <ArrowUpRight className="w-8 h-8" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
     }), [t]);
 
     // Data
@@ -300,18 +300,31 @@ function ActivitiesContent() {
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
-                                <BarChart3 className="w-5 h-5 text-white" />
+                                <FileText className="w-5 h-5 text-white" />
                             </div>
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">Farm Activities</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-theme tracking-tight uppercase">Register</h1>
                         </div>
-                        <p className="text-xs sm:text-sm text-theme-muted ml-[52px]">Unified ledger — income, expenses & stock</p>
+                        <p className="text-xs sm:text-sm text-theme-muted ml-[52px]">Daily Record • کھاتہ</p>
                     </div>
-                    <button
-                        onClick={() => { resetForm(); setOpen(true); }}
-                        className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-500 transition-all active:scale-95 whitespace-nowrap"
-                    >
-                        <Plus className="w-5 h-5" /> New Activity
-                    </button>
+
+                    <div className="flex items-center gap-2">
+                        <div className="flex bg-theme-track p-1 rounded-xl border border-theme">
+                            <button
+                                onClick={() => setLocale("ur")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${locale === "ur" ? "bg-green-500 text-white shadow-md shadow-green-500/20" : "text-theme-muted hover:text-theme"}`}
+                            >اردو</button>
+                            <button
+                                onClick={() => setLocale("en")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${locale === "en" ? "bg-green-500 text-white shadow-md shadow-green-500/20" : "text-theme-muted hover:text-theme"}`}
+                            >ENGLISH</button>
+                        </div>
+                        <button
+                            onClick={() => { resetForm(); setOpen(true); }}
+                            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-2xl font-black shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-500 transition-all active:scale-95 whitespace-nowrap"
+                        >
+                            <Plus className="w-6 h-6" /> {locale === "ur" ? "نیا ریکارڈ" : "NEW RECORD"}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats: hidden for Data Entry users */}
@@ -413,7 +426,7 @@ function ActivitiesContent() {
                                                     <td className="px-4 py-4 text-xs">
                                                         {mat ? (
                                                             <span className="flex items-center gap-1 text-theme">
-                                                                <Package className="w-3 h-3 text-theme-muted" />
+                                                                <Package className="w-3.5 h-3.5 text-theme-muted" />
                                                                 {mat.name} {act.quantity_used ? `× ${act.quantity_used}` : ""}
                                                             </span>
                                                         ) : act.quantity_used ? (
@@ -531,12 +544,14 @@ function ActivitiesContent() {
                             </div>
 
                             {/* Modal Body */}
-                            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
-                                {/* Activity Type */}
-                                <div className="px-1">
-                                    <label className="block text-xs font-bold text-theme-muted uppercase tracking-wider mb-3">Activity Type *</label>
-                                    <div className="grid grid-cols-2 xs:grid-cols-3 gap-2.5">
+                                {/* Activity Type - BIG BUTTONS */}
+                                <div className="space-y-4">
+                                    <label className="block text-xs font-black text-theme-muted uppercase tracking-widest text-center">
+                                        {locale === "ur" ? "کیا کام ہوا؟" : "What activity happened?"}
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-3">
                                         {Object.entries(ACTIVITY_META).map(([k, v]) => (
                                             <button
                                                 key={k} type="button"
@@ -548,176 +563,162 @@ function ActivitiesContent() {
                                                     setIncome("");
                                                     setHarvestUnitPrice("");
                                                 }}
-                                                className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-xs font-medium transition-all
-                        ${activityType === k
-                                                        ? `${v.bg} ${v.border} ${v.color} ring-2 ring-offset-1 ring-offset-theme-card ring-current`
-                                                        : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted"}`}
+                                                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2rem] border-2 transition-all duration-300
+                                                ${activityType === k
+                                                        ? `bg-green-500 border-green-400 text-white shadow-xl shadow-green-500/30 scale-105`
+                                                        : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted active:scale-95"}`}
                                             >
-                                                {v.icon} <span className="text-center leading-tight">{v.label}</span>
+                                                <span className={activityType === k ? "text-white" : v.color}>{v.icon}</span>
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-xs font-black uppercase text-center leading-tight">{v.label}</span>
+                                                    <span className={`text-[10px] font-bold opacity-60 ${locale === 'ur' ? 'hidden' : ''}`}>{v.desc}</span>
+                                                </div>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
-                                {/* Date */}
-                                <div>
-                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Date *</label>
-                                    <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                                <div className="w-full h-px bg-theme border-dashed border-t" />
+
+                                {/* Date & Field Pair */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                            {locale === "ur" ? "تاریخ" : "Date"}
+                                        </label>
+                                        <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                                            className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold focus:ring-4 focus:ring-green-500/10 focus:outline-none" />
+                                    </div>
+                                    {needsField && (
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                {locale === "ur" ? "کون سا کھیت؟" : "Select Field"}
+                                            </label>
+                                            <select value={fieldId} onChange={e => setFieldId(e.target.value)}
+                                                required={activityType !== "expense" && activityType !== "income"}
+                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold focus:ring-4 focus:ring-green-500/10 focus:outline-none">
+                                                <option value="">{locale === "ur" ? "کھیت منتخب کریں" : "Select..."}</option>
+                                                {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Field */}
-                                {needsField && (
-                                    <div>
-                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                            Field {activityType !== "expense" && "*"}
-                                        </label>
-                                        <select value={fieldId} onChange={e => setFieldId(e.target.value)}
-                                            required={activityType !== "expense" && activityType !== "income"}
-                                            className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
-                                            <option value="">Select field...</option>
-                                            {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {/* Material */}
+                                {/* Material Entry */}
                                 {needsMaterial && (
-                                    <div>
-                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Material *</label>
-                                        <select value={materialId} onChange={e => { setMaterialId(e.target.value); setQuantity(""); setCost(""); }}
-                                            required
-                                            className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
-                                            <option value="">Select material...</option>
-                                            {materials.map(m => (
-                                                <option key={m.id} value={m.id}>
-                                                    {m.name} — {m.stock_quantity ?? m.currentStock ?? 0} {m.unit} in stock
-                                                    {m.price_per_unit ? ` @ Rs ${m.price_per_unit}/${m.unit}` : ""}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {selectedMaterial?.price_per_unit && (
-                                            <p className="text-xs text-theme-muted flex items-center gap-1 mt-1 font-medium bg-theme-track/50 p-2 rounded-lg border border-theme/50">
-                                                <Info className="w-3.5 h-3.5 text-blue-500" />
-                                                <span>Current Stock: <b className="text-theme">{selectedMaterial?.stock_quantity ?? 0} {selectedMaterial?.unit ?? ""}</b></span>
-                                            </p>
-                                        )}
-                                        {selectedMaterial?.price_per_unit && (
-                                            <p className="mt-1.5 text-xs text-blue-400 flex items-center gap-1">
-                                                <Zap className="w-3 h-3" /> Rs {selectedMaterial.price_per_unit} per {selectedMaterial.unit} — cost auto-calculated
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Quantity */}
-                                {needsQuantity && (
-                                    <div>
-                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                            {activityType === "irrigation" ? "Duration (minutes)" :
-                                                activityType === "harvest" ? "Yield Quantity (kg)" :
-                                                    `Quantity ${selectedMaterial ? `(${selectedMaterial.unit})` : ""}`}
-                                            {activityType !== "irrigation" && " *"}
-                                        </label>
-                                        <input type="number" min="0" step="any" value={quantity}
-                                            onChange={e => setQuantity(e.target.value)}
-                                            required={activityType !== "irrigation"}
-                                            placeholder="0"
-                                            className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                                    </div>
-                                )}
-
-                                {/* Cost */}
-                                {needsCost && (
-                                    <div>
-                                        <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                            Total Cost (Rs) *
-                                            {autoCalcCost && needsMaterial && <span className="ml-2 font-normal text-amber-400 normal-case">auto-calculated</span>}
-                                        </label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
-                                            <input type="number" min="0" step="any" value={cost}
-                                                onChange={e => setCost(e.target.value)}
+                                    <div className="p-4 rounded-3xl bg-blue-500/5 border border-blue-500/10 space-y-4">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2 px-1">
+                                                {locale === "ur" ? "کیا مواد استعمال کیا؟" : "Which Material?"}
+                                            </label>
+                                            <select value={materialId} onChange={e => { setMaterialId(e.target.value); setQuantity(""); setCost(""); }}
                                                 required
-                                                placeholder="0"
-                                                className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
-                        ${autoCalcCost && needsMaterial ? "border-amber-500/50 bg-amber-500/5" : "border-theme"}`} />
+                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-blue-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                                <option value="">{locale === "ur" ? "مواد چنیں" : "Select..."}</option>
+                                                {materials.map(m => (
+                                                    <option key={m.id} value={m.id}>
+                                                        {m.name} ({m.stock_quantity || 0} {m.unit})
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
+                                        {selectedMaterial && (
+                                            <div className="flex items-center gap-2 text-[10px] font-black text-blue-500/70 bg-blue-500/10 p-2 rounded-xl border border-blue-500/20">
+                                                <Package className="w-3 h-3" />
+                                                STOCK: {selectedMaterial.stock_quantity ?? 0} {selectedMaterial.unit}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
-                                {/* Income / Harvest earnings */}
-                                {needsIncome && (
-                                    <div className="space-y-2">
-                                        {activityType === "harvest" && (
-                                            <div>
-                                                <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                                    Unit Price (Rs per unit) *
-                                                </label>
-                                                <div className="relative">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
+                                {/* Quantity & Costs Big Inputs */}
+                                <div className="space-y-4">
+                                    {needsQuantity && (
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                {activityType === "irrigation" ? (locale === "ur" ? "کتنے منٹ؟ (پانی)" : "Minutes of Water") :
+                                                    activityType === "harvest" ? (locale === "ur" ? "کتنی کٹائی ہوئی؟ (کلو)" : "Yield (kg)") :
+                                                        (locale === "ur" ? `کتنی مقدار؟ (${selectedMaterial?.unit || 'یونٹ'})` : "Total Quantity")}
+                                            </label>
+                                            <input type="number" min="0" step="any" value={quantity}
+                                                onChange={e => setQuantity(e.target.value)}
+                                                required={activityType !== "irrigation"}
+                                                placeholder="0.00"
+                                                className="w-full px-6 py-6 rounded-[2rem] bg-theme-track border-2 border-theme text-theme text-2xl font-black placeholder:opacity-20 focus:ring-4 focus:ring-green-500/10 focus:outline-none transition-all" />
+                                        </div>
+                                    )}
+
+                                    {needsCost && (
+                                        <div className="animate-in fade-in duration-500">
+                                            <label className="block text-[10px] font-black text-red-500 uppercase tracking-widest mb-2 px-1">
+                                                {locale === "ur" ? "کل خرچہ (روپے)" : "Total Cost (Money Out)"}
+                                                {autoCalcCost && needsMaterial && <span className="ml-2 font-black text-amber-500 italic uppercase">Auto</span>}
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-muted text-lg font-black opacity-30">Rs</span>
+                                                <input type="number" min="0" step="any" value={cost}
+                                                    onChange={e => setCost(e.target.value)}
+                                                    required
+                                                    placeholder="0"
+                                                    className={`w-full pl-16 pr-6 py-6 rounded-[2rem] bg-theme-track border-2 text-theme text-2xl font-black focus:ring-4 focus:ring-red-500/10 focus:outline-none transition-all
+                                                  ${autoCalcCost && needsMaterial ? "border-amber-500 bg-amber-500/5" : "border-theme"}`} />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {needsIncome && (
+                                        <div className="space-y-4 animate-in fade-in duration-500">
+                                            {activityType === "harvest" && (
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                        {locale === "ur" ? "ریٹ (روپے فی یونٹ)" : "Per Unit Price (Rate)"}
+                                                    </label>
                                                     <input
                                                         type="number"
                                                         min="0"
                                                         step="any"
                                                         value={harvestUnitPrice}
                                                         onChange={e => setHarvestUnitPrice(e.target.value)}
+                                                        placeholder="Rate"
+                                                        className="w-full px-6 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-lg font-black focus:outline-none"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <label className="block text-[10px] font-black text-green-500 uppercase tracking-widest mb-2 px-1">
+                                                    {locale === "ur" ? "کل آمدنی (فروخت)" : "Total Sale Amount (Money In)"}
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-muted text-lg font-black opacity-30">Rs</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="any"
+                                                        value={income}
+                                                        onChange={e => setIncome(e.target.value)}
+                                                        required
                                                         placeholder="0"
-                                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
+                                                        className="w-full pl-16 pr-6 py-6 rounded-[2rem] bg-theme-track border-2 border-green-500/30 text-theme text-2xl font-black focus:ring-4 focus:ring-green-500/10 focus:outline-none transition-all"
                                                     />
                                                 </div>
                                             </div>
-                                        )}
-                                        <div>
-                                            <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">
-                                                {t("saleAmount")} *
-                                                {activityType === "harvest" && autoHarvestIncome !== null && (
-                                                    <span className="ml-2 font-normal text-amber-400 normal-case">
-                                                        auto-calculated
-                                                    </span>
-                                                )}
-                                            </label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-medium">Rs</span>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    step="any"
-                                                    value={income}
-                                                    onChange={e => setIncome(e.target.value)}
-                                                    required
-                                                    placeholder="0"
-                                                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-theme-track border text-theme text-sm focus:ring-2 focus:ring-green-500 focus:outline-none
-                            ${activityType === "harvest" && autoHarvestIncome !== null ? "border-amber-500/50 bg-amber-500/5" : "border-theme"}`}
-                                                />
-                                            </div>
-                                            {activityType === "harvest" && autoHarvestIncome !== null && (
-                                                <p className="mt-1 text-xs text-theme-muted">
-                                                    {quantity || "0"} × {harvestUnitPrice || "0"} ={" "}
-                                                    <span className="font-semibold text-green-400">Rs {autoHarvestIncome}</span>
-                                                </p>
-                                            )}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
 
                                 {/* Notes */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-theme-muted uppercase tracking-wider mb-1.5">Notes</label>
+                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">Notes / یاد دہانی</label>
                                     <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                                        placeholder="Optional description..."
-                                        className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm resize-none focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                                        placeholder="..."
+                                        className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold resize-none focus:outline-none" />
                                 </div>
 
-                                {/* Submit */}
-                                <div className="flex gap-3 pt-2 pb-1">
+                                {/* Submit - HUGE SAVE BUTTON */}
+                                <div className="flex gap-4 pt-4 pb-8">
                                     <button type="submit" disabled={saving}
-                                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/20">
-                                        {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><CheckCircle className="w-4 h-4" /> Save Activity</>}
-                                    </button>
-                                    <button type="button" onClick={() => setOpen(false)}
-                                        className="px-5 py-3 rounded-xl bg-theme-track border border-theme text-theme-muted hover:text-theme font-semibold transition-colors">
-                                        Cancel
+                                        className="flex-1 flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl shadow-green-500/40 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+                                        {saving ? <><Loader2 className="w-6 h-6 animate-spin text-white" /> SAVING...</> : <><CheckCircle className="w-8 h-8" /> {locale === "ur" ? "محفوظ کریں" : "SAVE"}</>}
                                     </button>
                                 </div>
                             </form>
