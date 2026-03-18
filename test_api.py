@@ -3,7 +3,7 @@ try:
     # API_URL = "http://localhost:8000/api"
 
     # Production URL (change this to your actual Render URL)
-    API_URL = "https://land-management-api.onrender.com/api"
+    API_URL = "https://smart-land-management-system-beta.onrender.com/api"
 
     req = urllib.request.Request(f'{API_URL}/auth/login', method='POST', data=json.dumps({'email': 'smartland0990@admin.login.com', 'password': 'smartlandbyme@21'}).encode())
     req.add_header('Content-Type', 'application/json')
