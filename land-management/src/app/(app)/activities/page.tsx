@@ -146,6 +146,12 @@ function ActivitiesContent() {
     const [harvestUnitPrice, setHarvestUnitPrice] = useState("");
     const [notes, setNotes] = useState("");
 
+    // Custom / Generic activity
+    const [isCustomMode, setIsCustomMode] = useState(false);
+    const [customName, setCustomName] = useState("");
+    const [customType, setCustomType] = useState<'expense' | 'income'>('expense');
+    const [customAmount, setCustomAmount] = useState("");
+
     // Auto-calculate cost from material price × quantity
     const selectedMaterial = useMemo(() => materials.find(m => m.id === materialId), [materials, materialId]);
     const autoCalcCost = useMemo(() => {
@@ -236,6 +242,7 @@ function ActivitiesContent() {
     const resetForm = () => {
         setActivityType("expense"); setDate(new Date().toISOString().split("T")[0]);
         setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice(""); setNotes("");
+        setIsCustomMode(false); setCustomName(""); setCustomType("expense"); setCustomAmount("");
     };
 
     // ── Submit ──
@@ -243,16 +250,31 @@ function ActivitiesContent() {
         e.preventDefault();
         setSaving(true);
         try {
-            const payload: Partial<Activity> & Record<string, unknown> = {
-                activity_type: activityType,
-                date,
-                notes,
-            };
-            if (fieldId) payload.field_id = fieldId;
-            if (materialId) payload.material_id = materialId;
-            if (quantity) payload.quantity_used = Number(quantity);
-            if (cost) payload.cost = Number(cost);
-            if (income) payload.income = Number(income);
+            let payload: Partial<Activity> & Record<string, unknown>;
+
+            if (isCustomMode) {
+                // Generic / custom activity
+                payload = {
+                    activity_type: customType === 'expense' ? 'expense' : 'income',
+                    date,
+                    notes: `[${customName.trim()}]${notes ? ' ' + notes : ''}`,
+                };
+                if (customAmount) {
+                    if (customType === 'expense') payload.cost = Number(customAmount);
+                    else payload.income = Number(customAmount);
+                }
+            } else {
+                payload = {
+                    activity_type: activityType,
+                    date,
+                    notes,
+                };
+                if (fieldId) payload.field_id = fieldId;
+                if (materialId) payload.material_id = materialId;
+                if (quantity) payload.quantity_used = Number(quantity);
+                if (cost) payload.cost = Number(cost);
+                if (income) payload.income = Number(income);
+            }
 
             const res = await apiFetch("/api/activities", { method: "POST", body: JSON.stringify(payload) });
             if (res?.id || res?.activity_type) {
@@ -574,42 +596,128 @@ function ActivitiesContent() {
                                     </label>
                                     <div className="grid grid-cols-2 gap-3">
                                         {Object.entries(ACTIVITY_META)
-                                            .filter(([k]) => k !== "material_purchase") // Hide 'Buy Material' from the Quick Selection Grid
+                                            .filter(([k]) => k !== "material_purchase")
                                             .map(([k, v]) => (
                                                 <button
                                                     key={k} type="button"
                                                     onClick={() => {
+                                                        setIsCustomMode(false);
                                                         setActivityType(k as Activity["activity_type"]);
-                                                        setMaterialId("");
-                                                        setQuantity("");
-                                                        setCost("");
-                                                        setIncome("");
-                                                        setHarvestUnitPrice("");
+                                                        setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice("");
                                                     }}
                                                     className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2rem] border-2 transition-all duration-300
-                                                ${activityType === k
+                                                ${!isCustomMode && activityType === k
                                                             ? `bg-green-500 border-green-400 text-white shadow-xl shadow-green-500/30 scale-105`
                                                             : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted active:scale-95"}`}
                                                 >
-                                                    <span className={activityType === k ? "text-white" : v.color}>{v.icon}</span>
+                                                    <span className={!isCustomMode && activityType === k ? "text-white" : v.color}>{v.icon}</span>
                                                     <div className="flex flex-col items-center">
                                                         <span className="text-xs font-black uppercase text-center leading-tight">
                                                             {locale === "ur" ? v.desc : v.label}
                                                         </span>
                                                         {locale !== "ur" && (
-                                                            <span className="text-[10px] font-bold opacity-60">
-                                                                {v.desc}
-                                                            </span>
+                                                            <span className="text-[10px] font-bold opacity-60">{v.desc}</span>
                                                         )}
                                                     </div>
                                                 </button>
                                             ))}
+
+                                        {/* ── MORE / CUSTOM ACTIVITY BUTTON ── */}
+                                        <button
+                                            type="button"
+                                            onClick={() => { setIsCustomMode(true); setCustomName(""); setCustomAmount(""); setCustomType("expense"); }}
+                                            className={`col-span-2 flex items-center justify-center gap-3 p-4 rounded-[2rem] border-2 transition-all duration-300
+                                                ${isCustomMode
+                                                    ? "bg-purple-500 border-purple-400 text-white shadow-xl shadow-purple-500/30 scale-[1.02]"
+                                                    : "bg-theme-track border-dashed border-theme text-theme-muted hover:border-purple-500/50 hover:text-purple-400 active:scale-95"}`}
+                                        >
+                                            <Plus className={`w-6 h-6 ${isCustomMode ? 'text-white' : 'text-purple-400'}`} />
+                                            <div className="text-left">
+                                                <p className="text-xs font-black uppercase">{locale === "ur" ? "کوئی بھی کام" : "More / Custom Entry"}</p>
+                                                <p className="text-[10px] opacity-60">{locale === "ur" ? "اپنا نام لکھیں" : "Tractor, Rent, Transport..."}</p>
+                                            </div>
+                                        </button>
                                     </div>
                                 </div>
 
                                 <div className="w-full h-px bg-theme border-dashed border-t" />
 
-                                {/* Date & Field Pair */}
+                                {/* ── CUSTOM ACTIVITY FORM ── */}
+                                {isCustomMode && (
+                                    <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        {/* Activity Name */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2 px-1">
+                                                {locale === "ur" ? "کام کا نام" : "Activity Name (e.g. Tractor Expense)"}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={customName}
+                                                onChange={e => setCustomName(e.target.value)}
+                                                placeholder={locale === "ur" ? "مثلاً: ٹریکٹر خرچہ، کرایہ..." : "e.g. Tractor Expense, Rent, Transport..."}
+                                                required
+                                                className="w-full px-5 py-4 rounded-2xl bg-theme-track border border-purple-500/30 text-theme text-sm font-bold focus:ring-2 focus:ring-purple-500/30 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Expense or Income Toggle */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-3 px-1">
+                                                {locale === "ur" ? "پیسے ملے یا گئے؟" : "Is this Money In or Money Out?"}
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button type="button" onClick={() => setCustomType('expense')}
+                                                    className={`flex items-center justify-center gap-2 py-4 rounded-2xl border-2 font-black text-sm transition-all
+                                                        ${customType === 'expense' ? 'bg-red-500 text-white border-red-400 shadow-lg' : 'bg-theme-track border-theme text-theme-muted'}`}>
+                                                    <ArrowDownRight className="w-5 h-5" />
+                                                    {locale === "ur" ? "خرچہ" : "Expense"}
+                                                </button>
+                                                <button type="button" onClick={() => setCustomType('income')}
+                                                    className={`flex items-center justify-center gap-2 py-4 rounded-2xl border-2 font-black text-sm transition-all
+                                                        ${customType === 'income' ? 'bg-green-500 text-white border-green-400 shadow-lg' : 'bg-theme-track border-theme text-theme-muted'}`}>
+                                                    <ArrowUpRight className="w-5 h-5" />
+                                                    {locale === "ur" ? "آمدنی" : "Income"}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Amount */}
+                                        <div>
+                                            <label className={`block text-[10px] font-black uppercase tracking-widest mb-2 px-1 ${customType === 'expense' ? 'text-red-400' : 'text-green-400'}`}>
+                                                {locale === "ur" ? "رقم (روپے)" : `Amount (Rs)`}
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-muted text-lg font-black opacity-30">Rs</span>
+                                                <input
+                                                    type="number" min="0" step="any"
+                                                    value={customAmount}
+                                                    onChange={e => setCustomAmount(e.target.value)}
+                                                    required placeholder="0"
+                                                    className={`w-full pl-16 pr-6 py-6 rounded-[2rem] bg-theme-track border-2 text-theme text-2xl font-black focus:ring-4 focus:outline-none transition-all
+                                                        ${customType === 'expense' ? 'border-red-500/30 focus:ring-red-500/10' : 'border-green-500/30 focus:ring-green-500/10'}`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Date for custom */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">{locale === "ur" ? "تاریخ" : "Date"}</label>
+                                            <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold focus:outline-none" />
+                                        </div>
+
+                                        {/* Notes for custom */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">Notes / یاد دہانی</label>
+                                            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                                                placeholder="..."
+                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold resize-none focus:outline-none" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Date & Field Pair (only for non-custom) */}
+                                {!isCustomMode && <>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
@@ -751,6 +859,7 @@ function ActivitiesContent() {
                                         placeholder="..."
                                         className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold resize-none focus:outline-none" />
                                 </div>
+                                </>}
 
                                 {/* Submit - HUGE SAVE BUTTON */}
                                 <div className="flex gap-4 pt-4 pb-8">
