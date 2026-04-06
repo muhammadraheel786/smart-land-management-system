@@ -6,11 +6,12 @@ import {
     Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
     Droplet, DollarSign, Leaf, ShoppingCart, Users, Trash2, X,
     CheckCircle, AlertCircle, Filter, ChevronDown, Package, BarChart3,
-    Calendar, FileText, Zap, Map as MapIcon, Info
+    Calendar, FileText, Zap, Map as MapIcon, Info, Download
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { Activity, GeoFence, Material } from "@/types";
+import * as XLSX from "xlsx";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,7 @@ function ActivitiesContent() {
 
     // Filter
     const [filterType, setFilterType] = useState<string>(typeFromUrl);
+    const [exportDate, setExportDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
     useEffect(() => {
         if (typeFromUrl) setFilterType(typeFromUrl);
@@ -308,6 +310,58 @@ function ActivitiesContent() {
     const needsCost = ["material_purchase", "labor", "expense", "fertilizer_application", "pesticide_spray", "seed_sowing"].includes(activityType);
     const needsIncome = ["harvest", "income"].includes(activityType);
 
+    // ── Export to Excel ──
+    const exportToExcel = () => {
+        const targetDate = exportDate;
+        const dayActivities = activities.filter(a => {
+            const actDate = (a.date || "").split("T")[0];
+            return actDate === targetDate;
+        });
+
+        if (dayActivities.length === 0) {
+            showToast("error", locale === "ur" ? `${targetDate} کے لیے کوئی ریکارڈ نہیں ملا` : `No activities found for ${targetDate}`);
+            return;
+        }
+
+        const rows = dayActivities.map(act => {
+            const meta = ACTIVITY_META[act.activity_type];
+            const field = fields.find(f => f.id === act.field_id);
+            const mat = materials.find(m => m.id === act.material_id);
+            const typeName = locale === "ur" ? (meta?.desc || act.activity_type) : (meta?.label || act.activity_type);
+            return {
+                "Date": (act.date || "").split("T")[0],
+                "Type / قسم": typeName,
+                "Field / کھیت": field?.name || "-",
+                "Material / مواد": mat ? `${mat.name}${act.quantity_used ? ` × ${act.quantity_used}` : ""}` : "-",
+                "Income / آمدنی (Rs)": act.income ?? 0,
+                "Expense / خرچہ (Rs)": act.cost ?? 0,
+                "Notes / نوٹس": act.notes || "-",
+            };
+        });
+
+        const totalInc = dayActivities.reduce((s, a) => s + (a.income || 0), 0);
+        const totalExp = dayActivities.reduce((s, a) => s + (a.cost || 0), 0);
+
+        // Add summary row
+        rows.push({
+            "Date": "",
+            "Type / قسم": "TOTAL",
+            "Field / کھیت": "",
+            "Material / مواد": "",
+            "Income / آمدنی (Rs)": totalInc,
+            "Expense / خرچہ (Rs)": totalExp,
+            "Notes / نوٹس": `Net: Rs ${(totalInc - totalExp).toLocaleString()}`,
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        // Column widths
+        ws['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 30 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `Activities ${targetDate}`);
+        XLSX.writeFile(wb, `Farm-Register-${targetDate}.xlsx`);
+        showToast("success", locale === "ur" ? "فائل ڈاؤن لوڈ ہو رہی ہے" : `Exported ${dayActivities.length} records for ${targetDate}`);
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
@@ -403,12 +457,39 @@ function ActivitiesContent() {
 
                 {/* ── Activity Log Table ── */}
                 <div className="rounded-2xl border border-theme bg-theme-card shadow-sm overflow-hidden">
-                    {/* Table Header: stacked on mobile, filter full width */}
+                    {/* Table Header */}
                     <div className="px-4 sm:px-6 py-4 border-b border-theme space-y-3">
-                        <h2 className="text-base font-bold text-theme flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-theme-muted shrink-0" /> Activity Log
-                            <span className="px-2 py-0.5 rounded-full bg-theme-track border border-theme text-xs text-theme-muted font-medium">{activities.length}</span>
-                        </h2>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <h2 className="text-base font-bold text-theme flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-theme-muted shrink-0" /> Activity Log
+                                <span className="px-2 py-0.5 rounded-full bg-theme-track border border-theme text-xs text-theme-muted font-medium">{activities.length}</span>
+                            </h2>
+                        </div>
+
+                        {/* Daily Export Row */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <div className="flex items-center gap-2 flex-1 bg-theme-track border border-theme rounded-xl px-3 py-2">
+                                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                                <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest shrink-0">
+                                    {locale === "ur" ? "تاریخ" : "Day"}
+                                </label>
+                                <input
+                                    type="date"
+                                    value={exportDate}
+                                    onChange={e => setExportDate(e.target.value)}
+                                    className="flex-1 bg-transparent text-theme text-sm font-bold focus:outline-none min-w-0"
+                                />
+                            </div>
+                            <button
+                                onClick={exportToExcel}
+                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-5 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all whitespace-nowrap"
+                            >
+                                <Download className="w-4 h-4" />
+                                {locale === "ur" ? "ڈاؤن لوڈ Excel" : "Download Excel"}
+                            </button>
+                        </div>
+
+                        {/* Filter */}
                         <div className="relative w-full min-w-0">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none shrink-0" />
                             <select
