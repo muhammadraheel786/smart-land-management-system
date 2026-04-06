@@ -40,17 +40,29 @@ async function apiFetch(path: string, opts?: RequestInit) {
     return res.json();
 }
 
-// ─── Activity Badge ──────────────────────────────────────────────────────────
+// ─── Extract custom activity name from notes ────────────────────────────────
+// Custom activities save the name as "[Tractor Expense] optional notes"
+function extractCustomName(notes?: string | null): string | null {
+    if (!notes) return null;
+    const match = notes.match(/^\[(.+?)\]/);
+    return match ? match[1] : null;
+}
+
+function stripCustomName(notes?: string | null): string {
+    if (!notes) return "";
+    return notes.replace(/^\[.+?\]\s*/, "");
+}
 
 // ─── Activity Badge ──────────────────────────────────────────────────────────
 
-function ActivityBadge({ type, meta }: { type: string; meta?: any }) {
+function ActivityBadge({ type, meta, labelOverride }: { type: string; meta?: any; labelOverride?: string }) {
     const { locale } = useLocale();
     const defaultMeta = { label: type, icon: <FileText className="w-4 h-4" />, color: "text-theme-muted", bg: "bg-theme-track", border: "border-theme" };
     const m = meta ?? defaultMeta;
+    const displayLabel = labelOverride || (locale === "ur" ? (m.desc || m.label) : m.label);
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${m.color} ${m.bg} ${m.border}`}>
-            {m.icon} {locale === "ur" ? (m.desc || m.label) : m.label}
+            {m.icon} {displayLabel}
         </span>
     );
 }
@@ -327,7 +339,11 @@ function ActivitiesContent() {
             const meta = ACTIVITY_META[act.activity_type];
             const field = fields.find(f => f.id === act.field_id);
             const mat = materials.find(m => m.id === act.material_id);
-            const typeName = locale === "ur" ? (meta?.desc || act.activity_type) : (meta?.label || act.activity_type);
+            const customName = extractCustomName(act.notes);
+            const cleanNotes = customName ? stripCustomName(act.notes) : (act.notes || "");
+            const baseTypeName = locale === "ur" ? (meta?.desc || meta?.label || act.activity_type) : (meta?.label || act.activity_type);
+            const typeName = customName || baseTypeName;
+
             return {
                 "Date": (act.date || "").split("T")[0],
                 "Type / قسم": typeName,
@@ -335,7 +351,7 @@ function ActivitiesContent() {
                 "Material / مواد": mat ? `${mat.name}${act.quantity_used ? ` × ${act.quantity_used}` : ""}` : "-",
                 "Income / آمدنی (Rs)": act.income ?? 0,
                 "Expense / خرچہ (Rs)": act.cost ?? 0,
-                "Notes / نوٹس": act.notes || "-",
+                "Notes / نوٹس": cleanNotes || "-",
             };
         });
 
@@ -531,10 +547,16 @@ function ActivitiesContent() {
                                         {filtered.map(act => {
                                             const field = fields.find(f => f.id === act.field_id);
                                             const mat = materials.find(m => m.id === act.material_id);
+                                            const customName = extractCustomName(act.notes);
+                                            const cleanNotes = customName ? stripCustomName(act.notes) : (act.notes || "");
                                             return (
                                                 <tr key={act.id} className="hover:bg-theme-track/30 transition-colors group">
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <ActivityBadge type={act.activity_type} meta={ACTIVITY_META[act.activity_type]} />
+                                                        <ActivityBadge
+                                                            type={act.activity_type}
+                                                            meta={ACTIVITY_META[act.activity_type]}
+                                                            labelOverride={customName || undefined}
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-4 whitespace-nowrap text-theme-muted text-xs">
                                                         <span className="flex items-center gap-1">
@@ -566,7 +588,7 @@ function ActivitiesContent() {
                                                             : <span className="text-theme-muted">—</span>}
                                                     </td>
                                                     <td className="px-4 py-4 max-w-[180px]">
-                                                        <p className="text-theme-muted text-xs truncate">{act.notes || "—"}</p>
+                                                        <p className="text-theme-muted text-xs truncate">{cleanNotes || "—"}</p>
                                                     </td>
                                                     <td className="px-4 py-4 text-right">
                                                         <button
@@ -589,6 +611,8 @@ function ActivitiesContent() {
                                     const field = fields.find(f => f.id === act.field_id);
                                     const mat = materials.find(m => m.id === act.material_id);
                                     const meta = ACTIVITY_META[act.activity_type];
+                                    const customName = extractCustomName(act.notes);
+                                    const cleanNotes = customName ? stripCustomName(act.notes) : (act.notes || "");
                                     return (
                                         <div key={act.id} className="p-4 space-y-3 active:bg-theme-track/50 transition-colors">
                                             <div className="flex items-start justify-between gap-3">
@@ -598,7 +622,7 @@ function ActivitiesContent() {
                                                     </div>
                                                     <div>
                                                         <h4 className="text-sm font-bold text-theme leading-tight">
-                                                            {locale === "ur" ? (meta?.desc || meta?.label || act.activity_type) : (meta?.label || act.activity_type)}
+                                                            {customName || (locale === "ur" ? (meta?.desc || meta?.label || act.activity_type) : (meta?.label || act.activity_type))}
                                                         </h4>
                                                         <p className="text-[10px] text-theme-muted mt-0.5">{act.date?.split("T")[0]}</p>
                                                     </div>
@@ -630,9 +654,9 @@ function ActivitiesContent() {
                                             </div>
                                             <div className="flex items-center justify-between pt-1">
                                                 <div className="flex-1">
-                                                    {act.notes && (
+                                                    {cleanNotes && (
                                                         <p className="text-[11px] text-theme-muted italic line-clamp-2">
-                                                            "{act.notes}"
+                                                            "{cleanNotes}"
                                                         </p>
                                                     )}
                                                 </div>
