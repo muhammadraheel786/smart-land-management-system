@@ -166,6 +166,13 @@ function ActivitiesContent() {
     const [customType, setCustomType] = useState<'expense' | 'income'>('expense');
     const [customAmount, setCustomAmount] = useState("");
 
+    // Labour-specific fields
+    const [labourName, setLabourName] = useState("");
+    const [labourWorkType, setLabourWorkType] = useState("");
+    const [labourCount, setLabourCount] = useState("");
+    const [labourRate, setLabourRate] = useState("");
+    const [labourDays, setLabourDays] = useState("1");
+
     // Auto-calculate cost from material price × quantity
     const selectedMaterial = useMemo(() => materials.find(m => m.id === materialId), [materials, materialId]);
     const autoCalcCost = useMemo(() => {
@@ -202,6 +209,17 @@ function ActivitiesContent() {
             setIncome(autoHarvestIncome);
         }
     }, [activityType, quantity, harvestUnitPrice, autoHarvestIncome]);
+
+    // Auto-calculate labour cost: workers × rate × days
+    useEffect(() => {
+        if (activityType !== "labor") return;
+        const workers = Number(labourCount);
+        const rate = Number(labourRate);
+        const days = Number(labourDays) || 1;
+        if (workers > 0 && rate > 0) {
+            setCost((workers * rate * days).toFixed(0));
+        }
+    }, [activityType, labourCount, labourRate, labourDays]);
 
     // ── Fetch ──
     const fetchData = async () => {
@@ -257,6 +275,7 @@ function ActivitiesContent() {
         setActivityType("expense"); setDate(new Date().toISOString().split("T")[0]);
         setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice(""); setNotes("");
         setIsCustomMode(false); setCustomName(""); setCustomType("expense"); setCustomAmount("");
+        setLabourName(""); setLabourWorkType(""); setLabourCount(""); setLabourRate(""); setLabourDays("1");
     };
 
     // ── Submit ──
@@ -277,6 +296,23 @@ function ActivitiesContent() {
                     if (customType === 'expense') payload.cost = Number(customAmount);
                     else payload.income = Number(customAmount);
                 }
+            } else if (activityType === 'labor') {
+                // Labour entry – encode details into notes
+                const labourDetails = [
+                    labourName.trim() && `Worker: ${labourName.trim()}`,
+                    labourWorkType.trim() && `Work: ${labourWorkType.trim()}`,
+                    labourCount && `Workers: ${labourCount}`,
+                    labourRate && `Rate: Rs${labourRate}/day`,
+                    labourDays && Number(labourDays) > 1 && `Days: ${labourDays}`,
+                    notes.trim() && notes.trim(),
+                ].filter(Boolean).join(' | ');
+                payload = {
+                    activity_type: 'labor',
+                    date,
+                    notes: labourDetails,
+                };
+                if (fieldId) payload.field_id = fieldId;
+                if (cost) payload.cost = Number(cost);
             } else {
                 payload = {
                     activity_type: activityType,
@@ -845,6 +881,96 @@ function ActivitiesContent() {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* ── LABOUR DETAIL FORM ── */}
+                                {!isCustomMode && activityType === 'labor' && (
+                                    <div className="p-4 rounded-3xl bg-orange-500/5 border border-orange-500/15 space-y-4 animate-in fade-in duration-300">
+                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <Users className="w-3.5 h-3.5" />
+                                            {locale === 'ur' ? 'مزدور کی تفصیل' : 'Labour Details'}
+                                        </p>
+
+                                        {/* Labour Name */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                {locale === 'ur' ? 'مزدور کا نام' : 'Worker Name'}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={labourName}
+                                                onChange={e => setLabourName(e.target.value)}
+                                                placeholder={locale === 'ur' ? 'مثلاً: محمد علی' : 'e.g. Ahmed, Ali...'}
+                                                className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Work Type */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                {locale === 'ur' ? 'کام کی قسم' : 'Type of Work'}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={labourWorkType}
+                                                onChange={e => setLabourWorkType(e.target.value)}
+                                                placeholder={locale === 'ur' ? 'مثلاً: ہل چلانا، فصل کاٹنا...' : 'e.g. Ploughing, Harvesting, Weeding...'}
+                                                className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Workers × Rate × Days */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                    {locale === 'ur' ? 'تعداد' : 'Workers'}
+                                                </label>
+                                                <input
+                                                    type="number" min="1" step="1"
+                                                    value={labourCount}
+                                                    onChange={e => setLabourCount(e.target.value)}
+                                                    placeholder="1"
+                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                    {locale === 'ur' ? 'روز کی اجرت' : 'Rate/Day (Rs)'}
+                                                </label>
+                                                <input
+                                                    type="number" min="0" step="any"
+                                                    value={labourRate}
+                                                    onChange={e => setLabourRate(e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                    {locale === 'ur' ? 'دن' : 'Days'}
+                                                </label>
+                                                <input
+                                                    type="number" min="1" step="1"
+                                                    value={labourDays}
+                                                    onChange={e => setLabourDays(e.target.value)}
+                                                    placeholder="1"
+                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Auto total banner */}
+                                        {labourCount && labourRate && (
+                                            <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-2xl px-4 py-3">
+                                                <span className="text-xs font-black text-orange-400 uppercase">
+                                                    {locale === 'ur' ? 'کل ادائیگی (خودکار)' : 'Total Pay (Auto)'}
+                                                </span>
+                                                <span className="text-lg font-black text-orange-400">
+                                                    Rs {(Number(labourCount) * Number(labourRate) * (Number(labourDays) || 1)).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Material - SMART FILTERED */}
                                 {needsMaterial && (
