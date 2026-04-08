@@ -6,7 +6,7 @@ import {
     Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
     Droplet, DollarSign, Leaf, ShoppingCart, Users, Trash2, X,
     CheckCircle, AlertCircle, Filter, ChevronDown, Package, BarChart3,
-    Calendar, FileText, Zap, Map as MapIcon, Info, Download
+    Calendar, FileText, Zap, Map as MapIcon, Info, Download, Truck, Fuel
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
@@ -173,6 +173,13 @@ function ActivitiesContent() {
     const [labourRate, setLabourRate] = useState("");
     const [labourDays, setLabourDays] = useState("1");
 
+    // Tractor / Fuel specific fields
+    const [isTractorMode, setIsTractorMode] = useState(false);
+    const [tractorName, setTractorName] = useState("");
+    const [tractorHours, setTractorHours] = useState("");
+    const [tractorFuelL, setTractorFuelL] = useState("");
+    const [tractorFuelRate, setTractorFuelRate] = useState("");
+
     // Auto-calculate cost from material price × quantity
     const selectedMaterial = useMemo(() => materials.find(m => m.id === materialId), [materials, materialId]);
     const autoCalcCost = useMemo(() => {
@@ -220,6 +227,16 @@ function ActivitiesContent() {
             setCost((workers * rate * days).toFixed(0));
         }
     }, [activityType, labourCount, labourRate, labourDays]);
+
+    // Auto-calculate tractor fuel cost: litres × price/litre
+    useEffect(() => {
+        if (!isTractorMode) return;
+        const litres = Number(tractorFuelL);
+        const rate = Number(tractorFuelRate);
+        if (litres > 0 && rate > 0) {
+            setCost((litres * rate).toFixed(0));
+        }
+    }, [isTractorMode, tractorFuelL, tractorFuelRate]);
 
     // ── Fetch ──
     const fetchData = async () => {
@@ -276,6 +293,7 @@ function ActivitiesContent() {
         setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice(""); setNotes("");
         setIsCustomMode(false); setCustomName(""); setCustomType("expense"); setCustomAmount("");
         setLabourName(""); setLabourWorkType(""); setLabourCount(""); setLabourRate(""); setLabourDays("1");
+        setIsTractorMode(false); setTractorName(""); setTractorHours(""); setTractorFuelL(""); setTractorFuelRate("");
     };
 
     // ── Submit ──
@@ -296,6 +314,22 @@ function ActivitiesContent() {
                     if (customType === 'expense') payload.cost = Number(customAmount);
                     else payload.income = Number(customAmount);
                 }
+            } else if (isTractorMode) {
+                // Tractor / Fuel entry
+                const tractorDetails = [
+                    tractorName.trim() && `[🚜 ${tractorName.trim()}]`,
+                    tractorHours && `Hours: ${tractorHours}h`,
+                    tractorFuelL && `Fuel: ${tractorFuelL}L`,
+                    tractorFuelRate && `@Rs${tractorFuelRate}/L`,
+                    notes.trim() && notes.trim(),
+                ].filter(Boolean).join(' | ');
+                payload = {
+                    activity_type: 'expense',
+                    date,
+                    notes: tractorDetails,
+                };
+                if (fieldId) payload.field_id = fieldId;
+                if (cost) payload.cost = Number(cost);
             } else if (activityType === 'labor') {
                 // Labour entry – encode details into notes
                 const labourDetails = [
@@ -743,15 +777,16 @@ function ActivitiesContent() {
                                                     key={k} type="button"
                                                     onClick={() => {
                                                         setIsCustomMode(false);
+                                                        setIsTractorMode(false);
                                                         setActivityType(k as Activity["activity_type"]);
                                                         setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice("");
                                                     }}
                                                     className={`flex flex-col items-center justify-center gap-2 p-4 rounded-[2rem] border-2 transition-all duration-300
-                                                ${!isCustomMode && activityType === k
+                                                ${!isCustomMode && !isTractorMode && activityType === k
                                                             ? `bg-green-500 border-green-400 text-white shadow-xl shadow-green-500/30 scale-105`
                                                             : "bg-theme-track border-theme text-theme-muted hover:border-theme-muted active:scale-95"}`}
                                                 >
-                                                    <span className={!isCustomMode && activityType === k ? "text-white" : v.color}>{v.icon}</span>
+                                                    <span className={!isCustomMode && !isTractorMode && activityType === k ? "text-white" : v.color}>{v.icon}</span>
                                                     <div className="flex flex-col items-center">
                                                         <span className="text-xs font-black uppercase text-center leading-tight">
                                                             {locale === "ur" ? v.desc : v.label}
@@ -763,10 +798,26 @@ function ActivitiesContent() {
                                                 </button>
                                             ))}
 
+                                        {/* ── TRACTOR / FUEL BUTTON ── */}
+                                        <button
+                                            type="button"
+                                            onClick={() => { setIsTractorMode(true); setIsCustomMode(false); setCost(""); setTractorFuelL(""); setTractorFuelRate(""); }}
+                                            className={`col-span-2 flex items-center justify-center gap-3 p-4 rounded-[2rem] border-2 transition-all duration-300
+                                                ${isTractorMode
+                                                    ? "bg-teal-500 border-teal-400 text-white shadow-xl shadow-teal-500/30 scale-[1.02]"
+                                                    : "bg-theme-track border-dashed border-theme text-theme-muted hover:border-teal-500/50 hover:text-teal-400 active:scale-95"}`}
+                                        >
+                                            <Truck className={`w-6 h-6 ${isTractorMode ? 'text-white' : 'text-teal-400'}`} />
+                                            <div className="text-left">
+                                                <p className="text-xs font-black uppercase">{locale === "ur" ? "ٹریکٹر / ایندھن" : "Tractor / Fuel Entry"}</p>
+                                                <p className="text-[10px] opacity-60">{locale === "ur" ? "کونسا ٹریکٹر، کتنا ایندھن..." : "Which tractor, how much fuel..."}</p>
+                                            </div>
+                                        </button>
+
                                         {/* ── MORE / CUSTOM ACTIVITY BUTTON ── */}
                                         <button
                                             type="button"
-                                            onClick={() => { setIsCustomMode(true); setCustomName(""); setCustomAmount(""); setCustomType("expense"); }}
+                                            onClick={() => { setIsCustomMode(true); setIsTractorMode(false); setCustomName(""); setCustomAmount(""); setCustomType("expense"); }}
                                             className={`col-span-2 flex items-center justify-center gap-3 p-4 rounded-[2rem] border-2 transition-all duration-300
                                                 ${isCustomMode
                                                     ? "bg-purple-500 border-purple-400 text-white shadow-xl shadow-purple-500/30 scale-[1.02]"
@@ -775,7 +826,7 @@ function ActivitiesContent() {
                                             <Plus className={`w-6 h-6 ${isCustomMode ? 'text-white' : 'text-purple-400'}`} />
                                             <div className="text-left">
                                                 <p className="text-xs font-black uppercase">{locale === "ur" ? "کوئی بھی کام" : "More / Custom Entry"}</p>
-                                                <p className="text-[10px] opacity-60">{locale === "ur" ? "اپنا نام لکھیں" : "Tractor, Rent, Transport..."}</p>
+                                                <p className="text-[10px] opacity-60">{locale === "ur" ? "اپنا نام لکھیں" : "Rent, Transport, Other..."}</p>
                                             </div>
                                         </button>
                                     </div>
@@ -783,6 +834,97 @@ function ActivitiesContent() {
 
                                 <div className="w-full h-px bg-theme border-dashed border-t" />
 
+                                {/* ── TRACTOR FORM ── */}
+                                {isTractorMode && (
+                                    <div className="p-4 rounded-3xl bg-teal-500/5 border border-teal-500/15 space-y-4 animate-in fade-in duration-300">
+                                        <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <Truck className="w-3.5 h-3.5" />
+                                            {locale === 'ur' ? 'ٹریکٹر و ایندھن تفصیل' : 'Tractor & Fuel Details'}
+                                        </p>
+
+                                        {/* Tractor Name */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                {locale === 'ur' ? 'ٹریکٹر کا نام / نمبر' : 'Tractor Name / Number'}
+                                            </label>
+                                            <input type="text" value={tractorName} onChange={e => setTractorName(e.target.value)}
+                                                placeholder={locale === 'ur' ? 'مثلاً: ٹریکٹر A, PB-123...' : 'e.g. Tractor A, Old Massey, PB-123...'}
+                                                required
+                                                className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-teal-500/20 focus:outline-none" />
+                                        </div>
+
+                                        {/* Field */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                {locale === 'ur' ? 'کونسے کھیت میں؟' : 'Which Field?'}
+                                            </label>
+                                            <select value={fieldId} onChange={e => setFieldId(e.target.value)}
+                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-bold focus:outline-none">
+                                                <option value="">{locale === 'ur' ? 'کھیت منتخب کریں' : 'Select field (optional)'}</option>
+                                                {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                            </select>
+                                        </div>
+
+                                        {/* Date */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">{locale === 'ur' ? 'تاریخ' : 'Date'}</label>
+                                            <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-bold focus:outline-none" />
+                                        </div>
+
+                                        {/* Hours & Fuel */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                    {locale === 'ur' ? 'گھنٹے' : 'Hours Run'}
+                                                </label>
+                                                <input type="number" min="0" step="0.5" value={tractorHours}
+                                                    onChange={e => setTractorHours(e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                    {locale === 'ur' ? 'ایندھن (L)' : 'Fuel (Litres)'}
+                                                </label>
+                                                <input type="number" min="0" step="any" value={tractorFuelL}
+                                                    onChange={e => setTractorFuelL(e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                    {locale === 'ur' ? 'Rs/لیٹر' : 'Rs/Litre'}
+                                                </label>
+                                                <input type="number" min="0" step="any" value={tractorFuelRate}
+                                                    onChange={e => setTractorFuelRate(e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                            </div>
+                                        </div>
+
+                                        {/* Auto fuel cost */}
+                                        {tractorFuelL && tractorFuelRate && (
+                                            <div className="flex items-center justify-between bg-teal-500/10 border border-teal-500/20 rounded-2xl px-4 py-3">
+                                                <span className="text-xs font-black text-teal-400 uppercase flex items-center gap-1.5">
+                                                    <Fuel className="w-3.5 h-3.5" />
+                                                    {locale === 'ur' ? 'کل ایندھن لاگت (خودکار)' : 'Total Fuel Cost (Auto)'}
+                                                </span>
+                                                <span className="text-lg font-black text-teal-400">
+                                                    Rs {(Number(tractorFuelL) * Number(tractorFuelRate)).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Notes */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">Notes / یاد دہانی</label>
+                                            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+                                                placeholder="..."
+                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-bold resize-none focus:outline-none" />
+                                        </div>
+                                    </div>
+                                )}
                                 {/* ── CUSTOM ACTIVITY FORM ── */}
                                 {isCustomMode && (
                                     <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
