@@ -138,7 +138,8 @@ function ActivitiesContent() {
 
     // Filter
     const [filterType, setFilterType] = useState<string>(typeFromUrl);
-    const [exportDate, setExportDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const [exportStartDate, setExportStartDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const [exportEndDate, setExportEndDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
     useEffect(() => {
         if (typeFromUrl) setFilterType(typeFromUrl);
@@ -394,18 +395,22 @@ function ActivitiesContent() {
 
     // ── Export to Excel ──
     const exportToExcel = () => {
-        const targetDate = exportDate;
-        const dayActivities = activities.filter(a => {
+        const startDate = exportStartDate;
+        const endDate = exportEndDate;
+
+        if (!startDate || !endDate) return;
+
+        const rangeActivities = activities.filter(a => {
             const actDate = (a.date || "").split("T")[0];
-            return actDate === targetDate;
+            return actDate >= startDate && actDate <= endDate;
         });
 
-        if (dayActivities.length === 0) {
-            showToast("error", locale === "ur" ? `${targetDate} کے لیے کوئی ریکارڈ نہیں ملا` : `No activities found for ${targetDate}`);
+        if (rangeActivities.length === 0) {
+            showToast("error", locale === "ur" ? `${startDate} سے ${endDate} تک کوئی ریکارڈ نہیں ملا` : `No activities found between ${startDate} and ${endDate}`);
             return;
         }
 
-        const rows = dayActivities.map(act => {
+        const rows = rangeActivities.map(act => {
             const meta = ACTIVITY_META[act.activity_type];
             const field = fields.find(f => f.id === act.field_id);
             const mat = materials.find(m => m.id === act.material_id);
@@ -425,8 +430,8 @@ function ActivitiesContent() {
             };
         });
 
-        const totalInc = dayActivities.reduce((s, a) => s + (a.income || 0), 0);
-        const totalExp = dayActivities.reduce((s, a) => s + (a.cost || 0), 0);
+        const totalInc = rangeActivities.reduce((s, a) => s + (a.income || 0), 0);
+        const totalExp = rangeActivities.reduce((s, a) => s + (a.cost || 0), 0);
 
         // Add summary row
         rows.push({
@@ -443,9 +448,11 @@ function ActivitiesContent() {
         // Column widths
         ws['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 30 }];
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, `Activities ${targetDate}`);
-        XLSX.writeFile(wb, `Farm-Register-${targetDate}.xlsx`);
-        showToast("success", locale === "ur" ? "فائل ڈاؤن لوڈ ہو رہی ہے" : `Exported ${dayActivities.length} records for ${targetDate}`);
+
+        const titleText = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
+        XLSX.utils.book_append_sheet(wb, ws, `Activities`);
+        XLSX.writeFile(wb, `Farm-Register-${startDate}-to-${endDate}.xlsx`);
+        showToast("success", locale === "ur" ? "فائل ڈاؤن لوڈ ہو رہی ہے" : `Exported ${rangeActivities.length} records for ${titleText}`);
     };
 
     if (loading) {
@@ -552,23 +559,37 @@ function ActivitiesContent() {
                             </h2>
                         </div>
 
-                        {/* Daily Export Row */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                            <div className="flex items-center gap-2 flex-1 bg-theme-track border border-theme rounded-xl px-3 py-2">
-                                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-                                <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest shrink-0">
-                                    {locale === "ur" ? "تاریخ" : "Day"}
-                                </label>
-                                <input
-                                    type="date"
-                                    value={exportDate}
-                                    onChange={e => setExportDate(e.target.value)}
-                                    className="flex-1 bg-transparent text-theme text-sm font-bold focus:outline-none min-w-0"
-                                />
+                        {/* Date Range Export Row */}
+                        <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-2">
+                            <div className="grid grid-cols-2 gap-2 flex-1">
+                                <div className="flex items-center gap-2 bg-theme-track border border-theme rounded-xl px-3 py-2 min-w-0">
+                                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                                    <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest shrink-0">
+                                        {locale === "ur" ? "سے" : "From:"}
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={exportStartDate}
+                                        onChange={e => setExportStartDate(e.target.value)}
+                                        className="flex-1 bg-transparent text-theme text-sm font-bold focus:outline-none min-w-0"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 bg-theme-track border border-theme rounded-xl px-3 py-2 min-w-0">
+                                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                                    <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest shrink-0">
+                                        {locale === "ur" ? "تک" : "To:"}
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={exportEndDate}
+                                        onChange={e => setExportEndDate(e.target.value)}
+                                        className="flex-1 bg-transparent text-theme text-sm font-bold focus:outline-none min-w-0"
+                                    />
+                                </div>
                             </div>
                             <button
                                 onClick={exportToExcel}
-                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-5 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all whitespace-nowrap"
+                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-5 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all w-full xl:w-auto shrink-0 whitespace-nowrap"
                             >
                                 <Download className="w-4 h-4" />
                                 {locale === "ur" ? "ڈاؤن لوڈ Excel" : "Download Excel"}
