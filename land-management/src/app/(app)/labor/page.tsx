@@ -222,7 +222,43 @@ function LaborContent() {
     }, [slipWorker, slipMonth, slipStartDate, slipEndDate, slipMode]);
 
     const handlePrint = () => {
-        window.print();
+        const content = document.getElementById('payment-slip');
+        if (!content) return;
+        
+        const printWindow = window.open('', '_blank', 'width=800,height=900');
+        if (!printWindow) {
+            showToast("error", "Please allow pop-ups to print slips.");
+            return;
+        }
+
+        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map(s => s.outerHTML)
+            .join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Payment Slip - ${slipWorker?.name}</title>
+                    ${styles}
+                    <style>
+                        body { background: white !important; color: black !important; padding: 20px !important; }
+                        #payment-slip { border: 2px solid #000 !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 auto !important; max-width: 800px !important; }
+                        .no-print { display: none !important; }
+                        @page { margin: 1cm; }
+                    </style>
+                </head>
+                <body>
+                    ${content.outerHTML}
+                    <script>
+                        setTimeout(() => {
+                            window.print();
+                            window.close();
+                        }, 500);
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
     };
 
     return (
@@ -781,56 +817,7 @@ function LaborContent() {
                         </div>
                     </div>
 
-                    <style dangerouslySetInnerHTML={{ __html: `
-                        @media print {
-                            /* Hide all common layout elements */
-                            nav, aside, button, .print-hidden, header, footer, .fixed, .absolute:not(.print-force) {
-                                display: none !important;
-                            }
-                            
-                            /* Reset body and container for printing */
-                            body, html {
-                                background: white !important;
-                                color: black !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                width: 100% !important;
-                                height: auto !important;
-                                overflow: visible !important;
-                            }
-
-                            /* Ensure our specific container is visible and full-screen */
-                            .slip-modal-container {
-                                display: block !important;
-                                position: static !important;
-                                width: 100% !important;
-                                padding: 0 !important;
-                                margin: 0 !important;
-                                z-index: 1 !important;
-                            }
-
-                            #payment-slip {
-                                border: none !important;
-                                padding: 0 !important;
-                                box-shadow: none !important;
-                                display: block !important;
-                            }
-
-                            .print:block {
-                                display: block !important;
-                            }
-
-                            /* Ensure table/flex/grid internals work */
-                            #payment-slip .flex { display: flex !important; }
-                            #payment-slip .grid { display: grid !important; grid-template-columns: 1fr 1fr !important; }
-                            #payment-slip table { width: 100% !important; border-collapse: collapse !important; }
-                            
-                            @page {
-                                margin: 0.5cm;
-                                size: auto;
-                            }
-                        }
-                    ` }} />
+                    {/* Print CSS styles removed as we now use Window-based isolated printing */}
                 </div>
             )}
             <div className="h-20 md:hidden" />
