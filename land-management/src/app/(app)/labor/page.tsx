@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from "react";
 import {
     Users, Plus, Loader2, Search, Building2, MapPin, CheckCircle,
     AlertCircle, Briefcase, Calendar, DollarSign, ArrowUpRight,
-    ArrowDownRight, MoreVertical, X, Info, Download, Trash2, ShieldCheck, Mail
+    ArrowDownRight, MoreVertical, X, Info, Download, Trash2, ShieldCheck, Mail, FileText, Printer, ChevronRight
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
@@ -126,6 +126,14 @@ function LaborContent() {
     // Active worker for detailed modal
     const [activeWorkerInfo, setActiveWorkerInfo] = useState<any | null>(null);
 
+    // Slip Generation State
+    const [openSlip, setOpenSlip] = useState(false);
+    const [slipWorker, setSlipWorker] = useState<any | null>(null);
+    const [slipMonth, setSlipMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [slipStartDate, setSlipStartDate] = useState("");
+    const [slipEndDate, setSlipEndDate] = useState("");
+    const [slipMode, setSlipMode] = useState<"monthly" | "range">("monthly");
+
     // Helpers
     const resetForm = () => {
         setDate(new Date().toISOString().split("T")[0]);
@@ -185,6 +193,36 @@ function LaborContent() {
         } catch {
             showToast("error", "Failed to delete.");
         }
+    };
+
+    const slipData = useMemo(() => {
+        if (!slipWorker) return null;
+        let filtered = slipWorker.events;
+        if (slipMode === "monthly") {
+            filtered = slipWorker.events.filter((ev: any) => ev.date?.startsWith(slipMonth));
+        } else if (slipStartDate && slipEndDate) {
+            filtered = slipWorker.events.filter((ev: any) => {
+                const d = ev.date?.split('T')[0];
+                return d >= slipStartDate && d <= slipEndDate;
+            });
+        }
+
+        const total = filtered.reduce((acc: number, curr: any) => acc + (curr.cost || 0), 0);
+        const paid = filtered.reduce((acc: number, curr: any) => acc + (curr.notes.includes('Status: Unpaid') ? 0 : (curr.cost || 0)), 0);
+        const unpaid = total - paid;
+
+        return {
+            workerName: slipWorker.name,
+            events: filtered,
+            total,
+            paid,
+            unpaid,
+            period: slipMode === "monthly" ? slipMonth : `${slipStartDate} to ${slipEndDate}`
+        };
+    }, [slipWorker, slipMonth, slipStartDate, slipEndDate, slipMode]);
+
+    const handlePrint = () => {
+        window.print();
     };
 
     return (
@@ -507,9 +545,14 @@ function LaborContent() {
                                     <p className="text-xs font-semibold text-theme-muted uppercase tracking-widest mt-0.5">Worker Profile</p>
                                 </div>
                             </div>
-                            <button onClick={() => setActiveWorkerInfo(null)} className="p-2.5 rounded-xl hover:bg-theme-track border border-transparent hover:border-theme text-theme-muted transition-all active:scale-95">
-                                <X className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => { setSlipWorker(activeWorkerInfo); setOpenSlip(true); }} className="p-2.5 rounded-xl bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border border-orange-500/20 transition-all active:scale-95 flex items-center gap-2 text-xs font-bold">
+                                    <FileText className="w-4 h-4" /> {locale === "ur" ? "سلپ بنائیں" : "Generate Slip"}
+                                </button>
+                                <button onClick={() => setActiveWorkerInfo(null)} className="p-2.5 rounded-xl hover:bg-theme-track border border-transparent hover:border-theme text-theme-muted transition-all active:scale-95">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
@@ -592,6 +635,170 @@ function LaborContent() {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+                </div>
+            )}
+
+            {/* ══════════════ PAYMENT SLIP MODAL ══════════════ */}
+            {openSlip && slipWorker && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 print:p-0 print:static print:z-0">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md print:hidden" onClick={() => setOpenSlip(false)} />
+                    <div className="relative z-10 w-full max-w-2xl bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:rounded-none">
+                        
+                        {/* Control Header - Hide on print */}
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50 print:hidden shrink-0">
+                            <div className="flex items-center gap-3 text-slate-600">
+                                <Printer className="w-5 h-5" />
+                                <h3 className="font-bold">Payment Slip Preview</h3>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button onClick={handlePrint} className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-orange-600 transition-colors">
+                                    <Printer className="w-4 h-4" /> Print
+                                </button>
+                                <button onClick={() => setOpenSlip(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Slip Settings - Hide on print */}
+                        <div className="p-6 bg-slate-50/50 border-b border-slate-100 space-y-4 print:hidden shrink-0">
+                            <div className="flex p-1 bg-slate-200/50 rounded-xl w-fit">
+                                <button onClick={() => setSlipMode("monthly")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${slipMode === "monthly" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500"}`}>Monthly Slip</button>
+                                <button onClick={() => setSlipMode("range")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${slipMode === "range" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500"}`}>Date Range</button>
+                            </div>
+                            <div className="flex flex-wrap gap-4 items-end">
+                                {slipMode === "monthly" ? (
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5">Select Month</label>
+                                        <input type="month" value={slipMonth} onChange={e => setSlipMonth(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5">From</label>
+                                            <input type="date" value={slipStartDate} onChange={e => setSlipStartDate(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5">To</label>
+                                            <input type="date" value={slipEndDate} onChange={e => setSlipEndDate(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none" />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ACTUAL PRINTABLE SLIP CONTENT */}
+                        <div className="flex-1 overflow-y-auto p-10 print:overflow-visible print:p-0">
+                            <div id="payment-slip" className="bg-white border-[3px] border-slate-200 rounded-px p-8 min-h-[600px] flex flex-col print:border-none print:p-2">
+                                {/* Slip Header */}
+                                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
+                                    <div>
+                                        <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-1">Mashori Farm</h1>
+                                        <p className="text-sm font-bold text-slate-500">Labor Payment Statement • ریکارڈ ادائیگی</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Issue Date</div>
+                                        <div className="text-sm font-black text-slate-900">{new Date().toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+
+                                {/* Worker Info Box */}
+                                <div className="grid grid-cols-2 gap-8 mb-8">
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase mb-1">Employee Name / نام</div>
+                                        <div className="text-xl font-black text-slate-900 uppercase">{slipData?.workerName}</div>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase mb-1">Period / دورانیہ</div>
+                                        <div className="text-xl font-black text-slate-900 uppercase">{slipData?.period}</div>
+                                    </div>
+                                </div>
+
+                                {/* Items Table */}
+                                <div className="flex-1">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b-2 border-slate-900">
+                                                <th className="py-3 text-[10px] font-black text-slate-400 uppercase">Date</th>
+                                                <th className="py-3 text-[10px] font-black text-slate-400 uppercase">Description / Details</th>
+                                                <th className="py-3 text-right text-[10px] font-black text-slate-400 uppercase">Status</th>
+                                                <th className="py-3 text-right text-[10px] font-black text-slate-400 uppercase">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {slipData?.events.length === 0 ? (
+                                                <tr><td colSpan={4} className="py-10 text-center text-slate-400 font-bold">No entries found for this period.</td></tr>
+                                            ) : (
+                                                slipData?.events.map((ev: any) => (
+                                                    <tr key={ev.id} className="text-sm font-bold">
+                                                        <td className="py-4 text-slate-500 whitespace-nowrap">{ev.date?.split('T')[0]}</td>
+                                                        <td className="py-4 text-slate-900">
+                                                            <div>{ev.notes.split('|').find((p: string) => p.includes('Work:'))?.replace('Work:', '').trim() || "Farm Labor"}</div>
+                                                            <div className="text-[10px] text-slate-400 font-black">{ev.notes.split('|').find((p: string) => p.includes('Period:'))?.trim() || ""}</div>
+                                                        </td>
+                                                        <td className="py-4 text-right">
+                                                            <span className={`text-[10px] uppercase font-black ${ev.notes.includes('Status: Unpaid') ? 'text-red-500' : 'text-green-600'}`}>
+                                                                {ev.notes.includes('Status: Unpaid') ? 'Unpaid' : 'Paid'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 text-right text-slate-900">Rs {ev.cost?.toLocaleString()}</td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Summary Box */}
+                                <div className="mt-8 border-t-2 border-slate-900 pt-8 flex justify-end">
+                                    <div className="w-64 space-y-3">
+                                        <div className="flex justify-between items-center text-sm font-bold text-slate-500 px-2">
+                                            <span>Sub Total:</span>
+                                            <span>Rs {slipData?.total.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm font-black text-green-600 px-2 bg-green-50 rounded-lg py-2">
+                                            <span>Cleared:</span>
+                                            <span>Rs {slipData?.paid.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-lg font-black text-white px-3 bg-red-600 rounded-xl py-3 shadow-lg shadow-red-500/20">
+                                            <span>Payable:</span>
+                                            <span>Rs {slipData?.unpaid.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Footer Note */}
+                                <div className="mt-12 pt-8 border-t border-slate-100 flex justify-between items-end">
+                                    <div className="max-w-[200px]">
+                                        <div className="h-[2px] bg-slate-900 w-full mb-2"></div>
+                                        <div className="text-xs font-black text-slate-900 text-center uppercase tracking-wide">Manager's Signature</div>
+                                    </div>
+                                    <div className="text-right text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                        This is a computer generated document
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <style jsx global>{`
+                        @media print {
+                            body * {
+                                visibility: hidden;
+                            }
+                            #payment-slip, #payment-slip * {
+                                visibility: visible;
+                            }
+                            #payment-slip {
+                                position: absolute;
+                                left: 0;
+                                top: 0;
+                                width: 100%;
+                            }
+                        }
+                    `}</style>
                 </div>
             )}
             <div className="h-20 md:hidden" />
