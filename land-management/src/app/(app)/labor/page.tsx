@@ -637,8 +637,6 @@ function LaborContent() {
                     </div>
                 </div>
             )}
-                </div>
-            )}
 
             {/* ══════════════ PAYMENT SLIP MODAL ══════════════ */}
             {openSlip && slipWorker && (
