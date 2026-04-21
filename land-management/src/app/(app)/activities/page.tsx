@@ -283,6 +283,42 @@ function ActivitiesContent() {
         return Array.from(workers).sort();
     }, [activities]);
 
+    const workerHistory = useMemo(() => {
+        const workerName = labourName.trim();
+        if (!workerName || !uniqueWorkers.includes(workerName)) return null;
+
+        const workerActivities = activities.filter(a => {
+            if (a.activity_type !== 'labor') return false;
+            const match = a.notes?.match(/Worker:\s*([^|]+)/);
+            return match && match[1].trim() === workerName;
+        });
+
+        if (workerActivities.length === 0) return null;
+
+        // Sort by date descending
+        workerActivities.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+
+        let totalUnpaid = 0;
+        workerActivities.forEach(a => {
+            const isUnpaid = a.notes?.includes('Status: Unpaid');
+            if (isUnpaid) {
+                totalUnpaid += (a.cost || 0);
+            }
+        });
+
+        const lastActivity = workerActivities[0];
+        const periodMatch = lastActivity.notes?.match(/Period:\s*([^|]+)/);
+        const rateMatch = lastActivity.notes?.match(/Rate:\s*Rs([^/]+)\/day/);
+
+        return {
+            lastWorked: periodMatch ? periodMatch[1].trim() : (lastActivity.date?.split('T')[0] || "Unknown"),
+            lastRate: rateMatch ? rateMatch[1].trim() : "-",
+            lastPaidStatus: lastActivity.notes?.includes('Status: Unpaid') ? 'Unpaid' : 'Paid',
+            lastAmount: lastActivity.cost || 0,
+            totalUnpaid
+        };
+    }, [labourName, activities, uniqueWorkers]);
+
     // ── Filtered Materials based on Activity ──
     const relevantMaterials = useMemo(() => {
         if (activityType === "seed_sowing") return materials.filter(m => m.category === "seed");
@@ -1092,6 +1128,32 @@ function ActivitiesContent() {
                                                         <option key={w} value={w} />
                                                     ))}
                                                 </datalist>
+                                                {workerHistory && (
+                                                    <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                                                        <p className="text-[11px] font-black text-orange-600 mb-2 uppercase flex items-center gap-1.5">
+                                                            <Info className="w-3.5 h-3.5" />
+                                                            {locale === 'ur' ? 'مزدو کی پچھلی تفصیلات' : 'Previous Details'}
+                                                        </p>
+                                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-theme-muted">{locale === 'ur' ? 'پچھلا کام' : 'Last Worked'}</span>
+                                                                <span className="font-semibold text-theme">{workerHistory.lastWorked}</span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-theme-muted">{locale === 'ur' ? 'پچھلی اجرت' : 'Last Rate'}</span>
+                                                                <span className="font-semibold text-theme">{workerHistory.lastRate ? `Rs ${workerHistory.lastRate}` : '-'}</span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-theme-muted">{locale === 'ur' ? 'آخری ادائیگی' : 'Last Payment'}</span>
+                                                                <span className={`font-semibold ${workerHistory.lastPaidStatus === 'Unpaid' ? 'text-red-500' : 'text-green-500'}`}>{workerHistory.lastPaidStatus}</span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-theme-muted">{locale === 'ur' ? 'کل بقایا' : 'Total Unpaid'}</span>
+                                                                <span className="font-semibold text-red-500">Rs {workerHistory.totalUnpaid.toLocaleString()}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
