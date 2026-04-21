@@ -1008,8 +1008,6 @@ function ActivitiesContent() {
                                     )}
                                 </div>
 
-                                </div>
-
                                 {/* Material - SMART FILTERED */}
                                 {needsMaterial && (
                                     <div className="p-4 rounded-3xl bg-blue-500/5 border border-blue-500/10 space-y-4">
