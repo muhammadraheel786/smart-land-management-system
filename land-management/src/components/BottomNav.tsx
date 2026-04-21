@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map as MapIcon, Menu, BarChart2, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Map as MapIcon, Menu, BarChart2, ClipboardList, Users } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,13 +19,13 @@ export default function BottomNav() {
     const navItems = [
         { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
         { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics", adminOnly: true },
-        { href: "/map", icon: MapIcon, labelKey: "landMap", adminOnly: true },
         { href: "/activities", icon: ClipboardList, labelKey: "activities" },
+        { href: "/labor", icon: Users, labelKey: "dbLabor" },
     ].filter(item => !item.adminOnly || !isDataEntry);
 
     const isActive = (href: string) => {
         if (pathname === href) return true;
-        if (href === "/fields" || href === "/map" || href === "/activities") return pathname.startsWith(href);
+        if (href === "/fields" || href === "/map" || href === "/activities" || href === "/labor") return pathname.startsWith(href);
         return false;
     };
 

@@ -25,6 +25,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  Users,
 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard", fallbackLabel: "Dashboard" },
   { href: "/activities", icon: BookOpen, labelKey: "activities", fallbackLabel: "Activities" },
   { href: "/materials", icon: Package, labelKey: "materials", fallbackLabel: "Materials" },
+  { href: "/labor", icon: Users, labelKey: "dbLabor", fallbackLabel: "Labor Hub" },
   { href: "/field-recommendations", icon: Lightbulb, labelKey: "fieldRecommendations", fallbackLabel: "Field Recs" },
   { href: "/water", icon: Droplets, labelKey: "waterManagement", fallbackLabel: "Water Log" },
   { href: "/map", icon: Map, labelKey: "landMap", fallbackLabel: "Map View" },

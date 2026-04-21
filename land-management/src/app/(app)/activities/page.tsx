@@ -123,7 +123,6 @@ function ActivitiesContent() {
         fertilizer_application: { label: t("dbFertilizing"), desc: "کھاد ڈالنا", icon: <Leaf className="w-8 h-8" />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
         seed_sowing: { label: t("dbSowing"), desc: "بیج بونا", icon: <Sprout className="w-8 h-8" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
         harvest: { label: "Harvest & Sale", desc: "کٹائی اور فروخت", icon: <TrendingUp className="w-8 h-8" />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
-        labor: { label: t("dbLabor"), desc: "مزدوری", icon: <Users className="w-8 h-8" />, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
         material_purchase: { label: "Buy Material", desc: "مواد کی خریداری", icon: <ShoppingCart className="w-8 h-8" />, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
         expense: { label: "Other Bill / Cost", desc: "دیگر بل / خرچہ", icon: <ArrowDownRight className="w-8 h-8" />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
         income: { label: "Other Cash In", desc: "دیگر آمدنی", icon: <ArrowUpRight className="w-8 h-8" />, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
@@ -166,16 +165,6 @@ function ActivitiesContent() {
     const [customName, setCustomName] = useState("");
     const [customType, setCustomType] = useState<'expense' | 'income'>('expense');
     const [customAmount, setCustomAmount] = useState("");
-
-    // Labour-specific fields
-    const [labourName, setLabourName] = useState("");
-    const [labourWorkType, setLabourWorkType] = useState("");
-    const [labourCount, setLabourCount] = useState("");
-    const [labourRate, setLabourRate] = useState("");
-    const [labourDays, setLabourDays] = useState("1");
-    const [labourStartDate, setLabourStartDate] = useState(new Date().toISOString().split("T")[0]);
-    const [labourEndDate, setLabourEndDate] = useState(new Date().toISOString().split("T")[0]);
-    const [labourStatus, setLabourStatus] = useState("Paid");
 
     // Tractor / Fuel specific fields
     const [isTractorMode, setIsTractorMode] = useState(false);
@@ -221,17 +210,6 @@ function ActivitiesContent() {
         }
     }, [activityType, quantity, harvestUnitPrice, autoHarvestIncome]);
 
-    // Auto-calculate labour cost: workers × rate × days
-    useEffect(() => {
-        if (activityType !== "labor") return;
-        const workers = Number(labourCount);
-        const rate = Number(labourRate);
-        const days = Number(labourDays) || 1;
-        if (workers > 0 && rate > 0) {
-            setCost((workers * rate * days).toFixed(0));
-        }
-    }, [activityType, labourCount, labourRate, labourDays]);
-
     // Auto-calculate tractor fuel cost: litres × price/litre
     useEffect(() => {
         if (!isTractorMode) return;
@@ -269,56 +247,6 @@ function ActivitiesContent() {
         setTimeout(() => setToast(null), 3500);
     };
 
-    const uniqueWorkers = useMemo(() => {
-        const workers = new Set<string>();
-        activities.filter(a => a.activity_type === 'labor').forEach(a => {
-            if (a.notes) {
-                // Extract worker name which is stored like "Worker: Ahmed" ending before |
-                const match = a.notes.match(/Worker:\s*([^|]+)/);
-                if (match && match[1]) {
-                    workers.add(match[1].trim());
-                }
-            }
-        });
-        return Array.from(workers).sort();
-    }, [activities]);
-
-    const workerHistory = useMemo(() => {
-        const workerName = labourName.trim();
-        if (!workerName || !uniqueWorkers.includes(workerName)) return null;
-
-        const workerActivities = activities.filter(a => {
-            if (a.activity_type !== 'labor') return false;
-            const match = a.notes?.match(/Worker:\s*([^|]+)/);
-            return match && match[1].trim() === workerName;
-        });
-
-        if (workerActivities.length === 0) return null;
-
-        // Sort by date descending
-        workerActivities.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-
-        let totalUnpaid = 0;
-        workerActivities.forEach(a => {
-            const isUnpaid = a.notes?.includes('Status: Unpaid');
-            if (isUnpaid) {
-                totalUnpaid += (a.cost || 0);
-            }
-        });
-
-        const lastActivity = workerActivities[0];
-        const periodMatch = lastActivity.notes?.match(/Period:\s*([^|]+)/);
-        const rateMatch = lastActivity.notes?.match(/Rate:\s*Rs([^/]+)\/day/);
-
-        return {
-            lastWorked: periodMatch ? periodMatch[1].trim() : (lastActivity.date?.split('T')[0] || "Unknown"),
-            lastRate: rateMatch ? rateMatch[1].trim() : "-",
-            lastPaidStatus: lastActivity.notes?.includes('Status: Unpaid') ? 'Unpaid' : 'Paid',
-            lastAmount: lastActivity.cost || 0,
-            totalUnpaid
-        };
-    }, [labourName, activities, uniqueWorkers]);
-
     // ── Filtered Materials based on Activity ──
     const relevantMaterials = useMemo(() => {
         if (activityType === "seed_sowing") return materials.filter(m => m.category === "seed");
@@ -346,8 +274,6 @@ function ActivitiesContent() {
         setActivityType("expense"); setDate(new Date().toISOString().split("T")[0]);
         setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice(""); setNotes("");
         setIsCustomMode(false); setCustomName(""); setCustomType("expense"); setCustomAmount("");
-        setLabourName(""); setLabourWorkType(""); setLabourCount(""); setLabourRate(""); setLabourDays("1");
-        setLabourStartDate(new Date().toISOString().split("T")[0]); setLabourEndDate(new Date().toISOString().split("T")[0]); setLabourStatus("Paid");
         setIsTractorMode(false); setTractorName(""); setTractorHours(""); setTractorFuelL(""); setTractorFuelRate("");
     };
 
@@ -382,25 +308,6 @@ function ActivitiesContent() {
                     activity_type: 'expense',
                     date,
                     notes: tractorDetails,
-                };
-                if (fieldId) payload.field_id = fieldId;
-                if (cost) payload.cost = Number(cost);
-            } else if (activityType === 'labor') {
-                // Labour entry – encode details into notes
-                const labourDetails = [
-                    labourName.trim() && `Worker: ${labourName.trim()}`,
-                    labourWorkType.trim() && `Work: ${labourWorkType.trim()}`,
-                    labourCount && `Workers: ${labourCount}`,
-                    labourRate && `Rate: Rs${labourRate}/day`,
-                    labourDays && Number(labourDays) > 1 && `Days: ${labourDays}`,
-                    (labourStartDate && labourEndDate) ? `Period: ${labourStartDate} to ${labourEndDate}` : '',
-                    labourStatus && `Status: ${labourStatus}`,
-                    notes.trim() && notes.trim(),
-                ].filter(Boolean).join(' | ');
-                payload = {
-                    activity_type: 'labor',
-                    date,
-                    notes: labourDetails,
                 };
                 if (fieldId) payload.field_id = fieldId;
                 if (cost) payload.cost = Number(cost);
@@ -443,10 +350,10 @@ function ActivitiesContent() {
     };
 
     // ── Which form fields to show ──
-    const needsField = ["irrigation", "fertilizer_application", "pesticide_spray", "seed_sowing", "harvest", "labor", "expense"].includes(activityType);
+    const needsField = ["irrigation", "fertilizer_application", "pesticide_spray", "seed_sowing", "harvest", "expense"].includes(activityType);
     const needsMaterial = ["fertilizer_application", "pesticide_spray", "seed_sowing", "material_purchase"].includes(activityType);
     const needsQuantity = ["fertilizer_application", "pesticide_spray", "seed_sowing", "material_purchase", "irrigation", "harvest"].includes(activityType);
-    const needsCost = ["material_purchase", "labor", "expense", "fertilizer_application", "pesticide_spray", "seed_sowing"].includes(activityType);
+    const needsCost = ["material_purchase", "expense", "fertilizer_application", "pesticide_spray", "seed_sowing"].includes(activityType);
     const needsIncome = ["harvest", "income"].includes(activityType);
 
     // ── Export to Excel ──
@@ -1101,168 +1008,7 @@ function ActivitiesContent() {
                                     )}
                                 </div>
 
-                                {/* ── LABOUR DETAIL FORM ── */}
-                                {!isCustomMode && activityType === 'labor' && (
-                                    <div className="p-4 rounded-3xl bg-orange-500/5 border border-orange-500/15 space-y-4 animate-in fade-in duration-300">
-                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest flex items-center gap-1.5">
-                                            <Users className="w-3.5 h-3.5" />
-                                            {locale === 'ur' ? 'مزدور کی تفصیل' : 'Labour Details'}
-                                        </p>
-
-                                        {/* Labour Name */}
-                                        <div>
-                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                {locale === 'ur' ? 'مزدور کا نام' : 'Worker Name'}
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    list="worker-names"
-                                                    value={labourName}
-                                                    onChange={e => setLabourName(e.target.value)}
-                                                    placeholder={locale === 'ur' ? 'مثلاً: محمد علی' : 'Select or type e.g. Ahmed...'}
-                                                    className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                                                />
-                                                <datalist id="worker-names">
-                                                    {uniqueWorkers.map(w => (
-                                                        <option key={w} value={w} />
-                                                    ))}
-                                                </datalist>
-                                                {workerHistory && (
-                                                    <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl">
-                                                        <p className="text-[11px] font-black text-orange-600 mb-2 uppercase flex items-center gap-1.5">
-                                                            <Info className="w-3.5 h-3.5" />
-                                                            {locale === 'ur' ? 'مزدو کی پچھلی تفصیلات' : 'Previous Details'}
-                                                        </p>
-                                                        <div className="grid grid-cols-2 gap-2 text-xs">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-theme-muted">{locale === 'ur' ? 'پچھلا کام' : 'Last Worked'}</span>
-                                                                <span className="font-semibold text-theme">{workerHistory.lastWorked}</span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-theme-muted">{locale === 'ur' ? 'پچھلی اجرت' : 'Last Rate'}</span>
-                                                                <span className="font-semibold text-theme">{workerHistory.lastRate ? `Rs ${workerHistory.lastRate}` : '-'}</span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-theme-muted">{locale === 'ur' ? 'آخری ادائیگی' : 'Last Payment'}</span>
-                                                                <span className={`font-semibold ${workerHistory.lastPaidStatus === 'Unpaid' ? 'text-red-500' : 'text-green-500'}`}>{workerHistory.lastPaidStatus}</span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-theme-muted">{locale === 'ur' ? 'کل بقایا' : 'Total Unpaid'}</span>
-                                                                <span className="font-semibold text-red-500">Rs {workerHistory.totalUnpaid.toLocaleString()}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Work Type */}
-                                        <div>
-                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                {locale === 'ur' ? 'کام کی قسم' : 'Type of Work'}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={labourWorkType}
-                                                onChange={e => setLabourWorkType(e.target.value)}
-                                                placeholder={locale === 'ur' ? 'مثلاً: ہل چلانا، فصل کاٹنا...' : 'e.g. Ploughing, Harvesting, Weeding...'}
-                                                className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                                            />
-                                        </div>
-
-                                        {/* Workers × Rate × Days */}
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'تعداد' : 'Workers'}
-                                                </label>
-                                                <input
-                                                    type="number" min="1" step="1"
-                                                    value={labourCount}
-                                                    onChange={e => setLabourCount(e.target.value)}
-                                                    placeholder="1"
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'روز کی اجرت' : 'Rate/Day (Rs)'}
-                                                </label>
-                                                <input
-                                                    type="number" min="0" step="any"
-                                                    value={labourRate}
-                                                    onChange={e => setLabourRate(e.target.value)}
-                                                    placeholder="0"
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'دن' : 'Days'}
-                                                </label>
-                                                <input
-                                                    type="number" min="1" step="1"
-                                                    value={labourDays}
-                                                    onChange={e => setLabourDays(e.target.value)}
-                                                    placeholder="1"
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Period & Status */}
-                                        <div className="grid grid-cols-2 xs:grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'کب سے (From Date)' : 'From Date'}
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    value={labourStartDate}
-                                                    onChange={e => setLabourStartDate(e.target.value)}
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'کب تک (To Date)' : 'To Date'}
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    value={labourEndDate}
-                                                    onChange={e => setLabourEndDate(e.target.value)}
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:outline-none"
-                                                />
-                                            </div>
-                                            <div className="col-span-2 xs:col-span-1">
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'ادائیگی (Status)' : 'Status'}
-                                                </label>
-                                                <select
-                                                    value={labourStatus}
-                                                    onChange={e => setLabourStatus(e.target.value)}
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:outline-none"
-                                                >
-                                                    <option value="Paid">{locale === 'ur' ? 'ادا کر دیا (Paid)' : 'Paid'}</option>
-                                                    <option value="Unpaid">{locale === 'ur' ? 'باقی (Unpaid)' : 'Unpaid'}</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Auto total banner */}
-                                        {labourCount && labourRate && (
-                                            <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-2xl px-4 py-3">
-                                                <span className="text-xs font-black text-orange-400 uppercase">
-                                                    {locale === 'ur' ? 'کل ادائیگی (خودکار)' : 'Total Pay (Auto)'}
-                                                </span>
-                                                <span className="text-lg font-black text-orange-400">
-                                                    Rs {(Number(labourCount) * Number(labourRate) * (Number(labourDays) || 1)).toLocaleString()}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                </div>
 
                                 {/* Material - SMART FILTERED */}
                                 {needsMaterial && (
