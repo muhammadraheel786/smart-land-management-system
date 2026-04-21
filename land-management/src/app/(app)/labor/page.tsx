@@ -640,9 +640,9 @@ function LaborContent() {
 
             {/* ══════════════ PAYMENT SLIP MODAL ══════════════ */}
             {openSlip && slipWorker && (
-                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 print:p-0 print:static print:z-0">
+                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 print:p-0 print:static print:z-0 print-container">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-md print:hidden" onClick={() => setOpenSlip(false)} />
-                    <div className="relative z-10 w-full max-w-2xl bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:rounded-none">
+                    <div className="relative z-10 w-full max-w-2xl bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] print:max-h-none print:h-auto print:shadow-none print:rounded-none">
                         
                         {/* Control Header - Hide on print */}
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50 print:hidden shrink-0">
@@ -781,22 +781,55 @@ function LaborContent() {
                         </div>
                     </div>
 
-                    <style jsx global>{`
+                    <style dangerouslySetInnerHTML={{ __html: `
                         @media print {
+                            /* Hide everything by default */
                             body * {
-                                visibility: hidden;
+                                display: none !important;
+                            }
+                            /* Show only the slip and its parents necessary for rendering */
+                            .print-container, .print-container * {
+                                display: block !important;
+                                visibility: visible !important;
                             }
                             #payment-slip, #payment-slip * {
-                                visibility: visible;
+                                display: block !important;
+                                visibility: visible !important;
                             }
-                            #payment-slip {
-                                position: absolute;
-                                left: 0;
-                                top: 0;
-                                width: 100%;
+                            /* Ensure table cells and flex containers show correctly */
+                            #payment-slip table, #payment-slip tr, #payment-slip td, #payment-slip th {
+                                display: table-cell !important;
+                                border-bottom: 1px solid #e2e8f0 !important;
+                            }
+                            #payment-slip thead, #payment-slip tbody {
+                                display: table-header-group !important;
+                            }
+                            #payment-slip thead th {
+                                display: table-cell !important;
+                            }
+                            #payment-slip .flex {
+                                display: flex !important;
+                            }
+                            #payment-slip .grid {
+                                display: grid !important;
+                                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                            }
+                            /* Position the slip for full page print */
+                            .print-container {
+                                position: absolute !important;
+                                left: 0 !important;
+                                top: 0 !important;
+                                width: 100% !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                background: white !important;
+                            }
+                            /* Remove extra margins/paddings from body */
+                            @page {
+                                margin: 1cm;
                             }
                         }
-                    `}</style>
+                    ` }} />
                 </div>
             )}
             <div className="h-20 md:hidden" />
