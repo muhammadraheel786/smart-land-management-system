@@ -60,4 +60,5 @@ urlpatterns = [
     path('api/health', health_view),
     path('api/ready', ready_view),
     path('api/', include('api.urls')),
+    path('api', include('api.urls')),
 ]

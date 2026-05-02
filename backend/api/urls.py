@@ -16,11 +16,17 @@ urlpatterns = [
     path("activities/<str:pk>", activities_view.activities_detail),
 
     # Labour Management
+    path("labours/dashboard/", labour_view.labour_dashboard),
     path("labours/dashboard", labour_view.labour_dashboard),
+    path("labours/", labour_view.labour_list),
     path("labours", labour_view.labour_list),
+    path("labours/<str:pk>/", labour_view.labour_detail),
     path("labours/<str:pk>", labour_view.labour_detail),
+    path("labours/<str:pk>/transactions/", labour_view.labour_transactions),
     path("labours/<str:pk>/transactions", labour_view.labour_transactions),
+    path("transactions/<str:tx_id>/", labour_view.transaction_detail),
     path("transactions/<str:tx_id>", labour_view.transaction_detail),
+    path("labours/<str:pk>/attendance/", labour_view.labour_attendance),
     path("labours/<str:pk>/attendance", labour_view.labour_attendance),
 
     path("thaka", views.thaka_list),
