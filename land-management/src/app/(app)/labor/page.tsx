@@ -70,7 +70,7 @@ function LaborDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-20">
+        <div className="min-h-screen bg-theme pb-20 text-theme">
             {/* TOAST */}
             {toast && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200]">
@@ -84,14 +84,14 @@ function LaborDashboard() {
             {view === "dashboard" && (
                 <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-theme-card p-6 rounded-3xl shadow-sm border border-theme">
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
                                 <Users className="w-7 h-7" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">{locale === 'ur' ? 'لیبر مینجمنٹ' : 'Labour Management'}</h1>
-                                <p className="text-slate-500 font-medium text-sm flex items-center gap-1">
+                                <h1 className="text-2xl font-black text-theme tracking-tight">{locale === 'ur' ? 'لیبر مینجمنٹ' : 'Labour Management'}</h1>
+                                <p className="text-theme-muted font-medium text-sm flex items-center gap-1">
                                     {locale === 'ur' ? 'مزدوروں کا مکمل حساب کتاب' : 'Complete worker tracking'}
                                 </p>
                             </div>
@@ -105,52 +105,52 @@ function LaborDashboard() {
 
                     {/* Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Users className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-slate-400 uppercase">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3>
+                                <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl"><Users className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-theme-muted uppercase">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-slate-900">{stats?.total_labour || 0}</p>
+                                <p className="text-3xl font-black text-theme">{stats?.total_labour || 0}</p>
                                 <p className="text-xs font-bold text-green-500 mt-1">{stats?.active_labour || 0} Active • {stats?.inactive_labour || 0} Inactive</p>
                             </div>
                         </div>
-                        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                        <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><Banknote className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-slate-400 uppercase">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3>
+                                <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-theme-muted uppercase">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3>
                             </div>
                             <div>
-                                <p className="text-2xl font-black text-slate-900">Rs {stats?.total_paid_overall?.toLocaleString() || 0}</p>
-                                <p className="text-xs font-bold text-slate-400 mt-1">This Month: Rs {stats?.paid_this_month?.toLocaleString() || 0}</p>
+                                <p className="text-2xl font-black text-theme">Rs {stats?.total_paid_overall?.toLocaleString() || 0}</p>
+                                <p className="text-xs font-bold text-theme-muted mt-1">This Month: Rs {stats?.paid_this_month?.toLocaleString() || 0}</p>
                             </div>
                         </div>
-                        <div className="bg-red-50 p-5 rounded-3xl border border-red-100 shadow-sm flex flex-col justify-between">
+                        <div className="bg-red-500/10 p-5 rounded-3xl border border-red-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="p-2 bg-red-100 text-red-600 rounded-xl"><AlertCircle className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-red-500/70 uppercase">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3>
+                                <div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-red-400 uppercase">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-red-600">Rs {stats?.pending_salary?.toLocaleString() || 0}</p>
+                                <p className="text-3xl font-black text-red-500">Rs {stats?.pending_salary?.toLocaleString() || 0}</p>
                             </div>
                         </div>
-                        <div className="bg-orange-50 p-5 rounded-3xl border border-orange-100 shadow-sm flex flex-col justify-between">
+                        <div className="bg-orange-500/10 p-5 rounded-3xl border border-orange-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="p-2 bg-orange-100 text-orange-600 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-orange-500/70 uppercase">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3>
+                                <div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-orange-400 uppercase">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-orange-600">Rs {stats?.advances_given?.toLocaleString() || 0}</p>
+                                <p className="text-3xl font-black text-orange-500">Rs {stats?.advances_given?.toLocaleString() || 0}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Workers List */}
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row items-center gap-4 bg-slate-50/50">
+                    <div className="bg-theme-card rounded-3xl shadow-sm border border-theme overflow-hidden">
+                        <div className="p-4 border-b border-theme flex flex-col md:flex-row items-center gap-4 bg-theme-track">
                             <div className="relative flex-1 w-full">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                <input type="text" placeholder={locale === 'ur' ? 'مزدور کا نام تلاش کریں...' : 'Search labour name...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10" />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
+                                <input type="text" placeholder={locale === 'ur' ? 'مزدور کا نام تلاش کریں...' : 'Search labour name...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-theme-card border border-theme rounded-2xl text-sm font-bold text-theme placeholder-theme focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10" />
                             </div>
                         </div>
 
@@ -158,7 +158,7 @@ function LaborDashboard() {
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-slate-50 text-xs uppercase tracking-widest text-slate-400 font-black border-b border-slate-100">
+                                    <tr className="bg-theme-track text-xs uppercase tracking-widest text-theme-muted font-black border-b border-theme">
                                         <th className="p-4">{locale === 'ur' ? 'مزدور' : 'Worker'}</th>
                                         <th className="p-4">{locale === 'ur' ? 'کام' : 'Type'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'دن' : 'Days'}</th>
@@ -168,27 +168,27 @@ function LaborDashboard() {
                                         <th className="p-4 text-center">{locale === 'ur' ? 'حالت' : 'Status'}</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => (
-                                        <tr key={l.id} onClick={() => handleSelectLabour(l)} className="hover:bg-slate-50 cursor-pointer transition-colors group">
+                                        <tr key={l.id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group">
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 uppercase shrink-0 overflow-hidden">
+                                                    <div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 overflow-hidden border border-theme">
                                                         {l.photo ? <img src={l.photo} className="w-full h-full object-cover" /> : l.name[0]}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-slate-900 group-hover:text-orange-500 transition-colors">{l.name}</p>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase">{l.phone || 'No Phone'}</p>
+                                                        <p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p>
+                                                        <p className="text-[10px] font-bold text-theme-muted uppercase">{l.phone || 'No Phone'}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-sm font-bold text-slate-600">{l.work_type}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-slate-600">{l.days_worked || 0}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-slate-900">Rs {l.total_salary.toLocaleString()}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-green-600">Rs {l.total_paid.toLocaleString()}</td>
+                                            <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">{l.days_worked || 0}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.total_salary.toLocaleString()}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid.toLocaleString()}</td>
                                             <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance.toLocaleString()}</td>
                                             <td className="p-4 text-center">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${l.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${l.status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-theme-track text-theme-muted border border-theme'}`}>
                                                     {l.status}
                                                 </span>
                                             </td>
@@ -261,36 +261,36 @@ function AddLabourModal({ open, onClose, onSave, locale }: any) {
 
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-lg bg-theme-card border border-theme rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-theme-track border-b border-theme p-6 flex justify-between items-center text-theme">
                     <h2 className="text-xl font-black">{locale === 'ur' ? 'نیا مزدور شامل کریں' : 'Add New Labour'}</h2>
-                    <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"><X className="w-5 h-5" /></button>
+                    <button onClick={onClose} className="p-2 bg-theme border border-theme hover:bg-theme-hover rounded-xl transition-colors"><X className="w-5 h-5 text-theme-muted" /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'پورا نام' : 'Full Name'}</label>
-                        <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-lg font-bold focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10" placeholder="Ali Raza" />
+                        <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'پورا نام' : 'Full Name'}</label>
+                        <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl text-lg font-bold text-theme focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 placeholder-theme" placeholder="Ali Raza" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'فون نمبر' : 'Phone Number'}</label>
-                            <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500" placeholder="0300..." />
+                            <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'فون نمبر' : 'Phone Number'}</label>
+                            <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl font-bold text-theme focus:outline-none focus:border-orange-500 placeholder-theme" placeholder="0300..." />
                         </div>
                         <div>
-                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">CNIC</label>
-                            <input type="text" value={form.cnic} onChange={e => setForm({...form, cnic: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500" placeholder="Optional" />
+                            <label className="block text-xs font-black text-theme-muted uppercase mb-2">CNIC</label>
+                            <input type="text" value={form.cnic} onChange={e => setForm({...form, cnic: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl font-bold text-theme focus:outline-none focus:border-orange-500 placeholder-theme" placeholder="Optional" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'کام کی قسم' : 'Work Type'}</label>
-                            <select value={form.work_type} onChange={e => setForm({...form, work_type: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500 appearance-none">
-                                <option>Helper</option>
-                                <option>Mason</option>
-                                <option>Driver</option>
-                                <option>Guard</option>
-                                <option>Plumber</option>
+                            <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'کام کی قسم' : 'Work Type'}</label>
+                            <select value={form.work_type} onChange={e => setForm({...form, work_type: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl font-bold text-theme focus:outline-none focus:border-orange-500 appearance-none">
+                                <option className="bg-theme-card">Helper</option>
+                                <option className="bg-theme-card">Mason</option>
+                                <option className="bg-theme-card">Driver</option>
+                                <option className="bg-theme-card">Guard</option>
+                                <option className="bg-theme-card">Plumber</option>
                             </select>
                         </div>
                         <div>
