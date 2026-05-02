@@ -5,10 +5,10 @@
 //
 // To be defensive, we strip any accidental trailing slash or `/api`
 // segment so both of these work:
-// - https://smart-land-management-system-beta.onrender.com
-// - https://smart-land-management-system-beta.onrender.com/api
+// - https://smart-land-management-api.fly.dev
+// - https://smart-land-management-api.fly.dev/api
 const rawBase =
-  process.env.NEXT_PUBLIC_API_URL || "https://smart-land-management-system-beta.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL || "https://smart-land-management-api.fly.dev";
 
 export const API_BASE_URL = rawBase
   .replace(/\/+$/, "")
