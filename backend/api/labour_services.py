@@ -35,9 +35,9 @@ class LabourService:
                 halfs = attn_col.count_documents({'labour_id': lid, 'status': 'half_day'})
                 total_salary = (days + (halfs * 0.5)) * _to_num(l.get('salary_amount', 0))
             
-            total_paid = sum(t['amount'] for t in trans if t['type'] == 'salary')
-            advance_given = sum(t['amount'] for t in trans if t['type'] == 'advance')
-            advance_recovered = sum(t['amount'] for t in trans if t['type'] == 'recovery')
+            total_paid = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'salary')
+            advance_given = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'advance')
+            advance_recovered = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'recovery')
             
             l['total_salary'] = total_salary
             l['total_paid'] = total_paid
@@ -49,23 +49,52 @@ class LabourService:
 
     @staticmethod
     def create_labour(data):
+        # Validation
+        required_fields = ['name', 'salary_type', 'salary_amount']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+        
+        # Validate salary_amount is a positive number
+        salary_amount = _to_num(data.get('salary_amount', 0))
+        if salary_amount <= 0:
+            raise ValueError("Salary amount must be greater than 0")
+        
+        # Validate salary_type
+        salary_type = data.get('salary_type', 'daily')
+        if salary_type not in ['daily', 'monthly']:
+            raise ValueError("Salary type must be 'daily' or 'monthly'")
+        
+        # Validate work_type
+        work_type = data.get('work_type', 'Helper')
+        valid_work_types = ['Helper', 'Mason', 'Driver', 'Guard', 'Plumber', 'Electrician', 'Carpenter', 'Painter', 'Welder']
+        if work_type not in valid_work_types:
+            raise ValueError(f"Work type must be one of: {', '.join(valid_work_types)}")
+        
         col = get_collection('labours')
         doc = {
             'id': data.get('id') or generate_id(),
-            'name': data.get('name', ''),
-            'father_name': data.get('father_name', ''),
-            'cnic': data.get('cnic', ''),
-            'phone': data.get('phone', ''),
-            'address': data.get('address', ''),
-            'emergency_contact': data.get('emergency_contact', ''),
+            'name': data.get('name', '').strip(),
+            'father_name': data.get('father_name', '').strip(),
+            'cnic': data.get('cnic', '').strip(),
+            'phone': data.get('phone', '').strip(),
+            'address': data.get('address', '').strip(),
+            'emergency_contact': data.get('emergency_contact', '').strip(),
             'joining_date': data.get('joining_date', datetime.utcnow().strftime('%Y-%m-%d')),
-            'work_type': data.get('work_type', 'Helper'),
-            'salary_type': data.get('salary_type', 'daily'), # daily or monthly
-            'salary_amount': _to_num(data.get('salary_amount', 0)),
+            'work_type': work_type,
+            'salary_type': salary_type,
+            'salary_amount': salary_amount,
             'status': data.get('status', 'Active'),
             'photo': data.get('photo', ''),
             'created_at': datetime.utcnow().isoformat() + 'Z'
         }
+        
+        # Check if labour with same phone already exists
+        if doc['phone']:
+            existing = col.find_one({'phone': doc['phone']})
+            if existing:
+                raise ValueError("Labour with this phone number already exists")
+        
         col.insert_one(doc)
         if '_id' in doc: del doc['_id']
         return doc

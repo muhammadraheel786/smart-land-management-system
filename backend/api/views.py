@@ -29,7 +29,8 @@ def _to_num(val):
 
 def _api_error(message, status=500, detail=None):
     """Return JSON error response and log. Use for production-safe error handling."""
-    payload = {"error": message}
+    msg = str(message) or f"Unknown error {status}"
+    payload = {"error": msg}
     if detail is not None:
         payload["detail"] = str(detail)
     if status >= 500:

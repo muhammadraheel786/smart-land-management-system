@@ -33,7 +33,7 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     let errorMsg = `API error ${res.status}`;
     try {
       const data = await res.json();
-      errorMsg = data?.error ?? data?.detail ?? errorMsg;
+      errorMsg = data?.error || data?.detail || errorMsg;
       if (typeof errorMsg !== "string") errorMsg = JSON.stringify(errorMsg);
     } catch {
       // Ignored: fallback to status code
@@ -336,5 +336,37 @@ export const api = {
   },
   async getFieldRecommendations() {
     return fetchJson<{ fieldId: string; fieldName: string; reason: string; message: string; priority: string }[]>('/field-recommendations');
+  },
+  
+  // Labour Management
+  async getLabours() {
+    return fetchJson<any[]>('/labours');
+  },
+  async getLabourDashboard() {
+    return fetchJson<any>('/labours/dashboard');
+  },
+  async addLabour(labour: any) {
+    return fetchJson<any>('/labours', {
+      method: 'POST',
+      body: JSON.stringify(labour),
+    });
+  },
+  async getLabourProfile(id: string) {
+    const lData = await fetchJson<any>(`/labours/${id}`);
+    const tData = await fetchJson<any[]>(`/labours/${id}/transactions`);
+    const aData = await fetchJson<any[]>(`/labours/${id}/attendance`);
+    return { ...lData, transactions: tData, attendance: aData };
+  },
+  async addTransaction(labourId: string, tx: any) {
+    return fetchJson<any>(`/labours/${labourId}/transactions`, {
+      method: 'POST',
+      body: JSON.stringify(tx),
+    });
+  },
+  async markAttendance(labourId: string, attendance: any) {
+    return fetchJson<any>(`/labours/${labourId}/attendance`, {
+      method: 'POST',
+      body: JSON.stringify(attendance),
+    });
   },
 };
