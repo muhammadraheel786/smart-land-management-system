@@ -1,259 +1,600 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import {
-    Users, Plus, Loader2, Search, Building2, MapPin, CheckCircle,
-    AlertCircle, Briefcase, Calendar, DollarSign, ArrowUpRight,
-    ArrowDownRight, MoreVertical, X, Info, Download, Trash2, ShieldCheck, Mail, FileText, Printer, ChevronRight
+    Users, Plus, Loader2, Search, MapPin, CheckCircle,
+    AlertCircle, X, FileText, Printer, Phone, Volume2, Clock, Banknote, ListTodo,
+    ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocale } from "@/contexts/LocaleContext";
-import * as XLSX from "xlsx";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
-const API_URL = rawApiUrl.replace(/\/+$/, "").replace(/\/api$/, "");
-
-function getAuthHeaders(): Record<string, string> {
-    const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;
-    const h: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) h["Authorization"] = `Bearer ${token}`;
-    return h;
-}
-
-async function apiFetch(path: string, opts?: RequestInit) {
-    const targetPath = path.startsWith("/api") ? path : `/api${path}`;
-    const res = await fetch(`${API_URL}${targetPath}`, {
-        ...opts,
-        headers: { ...getAuthHeaders(), ...(opts?.headers ?? {}) }
+// Utility API caller
+async function apiFetch(path: string, options: RequestInit = {}) {
+    const res = await fetch(path, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...options.headers,
+        },
     });
     if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData?.error || `API error ${res.status}`);
+        let err;
+        try { err = await res.json(); } catch { err = { error: res.statusText }; }
+        throw new Error(err.error || "API Error");
     }
-    if (res.status === 204) return null;
-    return res.json();
+    if (res.status !== 204) {
+        return res.json();
+    }
+    return null;
 }
 
-function LaborContent() {
-    const { t, locale, setLocale } = useLocale();
+function LaborDashboard() {
+    const { isDataEntry } = useAuth();
+    const locale: string = "en"; // default locale; can be wired to context later
 
-    // Data
-    const [activities, setActivities] = useState<any[]>([]); // Using 'any' since we only care about labor specific structure inside notes
+    // Data State
+    const [labours, setLabours] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+
+    // View State
+    const [view, setView] = useState<"dashboard" | "profile">("dashboard");
+    const [selectedLabour, setSelectedLabour] = useState<any>(null);
+
+    // Modal States
+    const [openAddLabour, setOpenAddLabour] = useState(false);
+    const [openAddPayment, setOpenAddPayment] = useState(false);
+    const [openAddAdvance, setOpenAddAdvance] = useState(false);
+    const [openAttendance, setOpenAttendance] = useState(false);
+    const [openSlip, setOpenSlip] = useState(false);
+    const [slipWorker, setSlipWorker] = useState<any>(null);
+
+    // Toast
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-    // Modal
-    const [openAdd, setOpenAdd] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const showToast = (type: "success" | "error", msg: string) => {
+        setToast({ type, msg });
+        if(type === 'success') speak(msg); // Speak success messages
+        setTimeout(() => setToast(null), 3000);
+    };
 
-    // Form Variables
-    const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-    const [labourName, setLabourName] = useState("");
-    const [labourWorkType, setLabourWorkType] = useState("");
-    const [labourCount, setLabourCount] = useState("");
-    const [labourRate, setLabourRate] = useState("");
-    const [labourDays, setLabourDays] = useState("1");
-    const [labourStartDate, setLabourStartDate] = useState(new Date().toISOString().split("T")[0]);
-    const [labourEndDate, setLabourEndDate] = useState(new Date().toISOString().split("T")[0]);
-    const [labourStatus, setLabourStatus] = useState("Paid");
-    const [notes, setNotes] = useState("");
+    const speak = (text: string) => {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = locale === 'ur' ? 'ur-PK' : 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
+    };
 
-    // Read Data
     const fetchData = async () => {
-        setLoading(true);
         try {
-            const acts = await apiFetch("/api/activities");
-            if (Array.isArray(acts)) {
-                setActivities(acts.filter(a => a.activity_type === 'labor'));
-            }
-        } catch {
-            setActivities([]);
-            showToast("error", "Failed to load labor data.");
+            const [lData, sData] = await Promise.all([
+                apiFetch("/api/labours"),
+                apiFetch("/api/labours/dashboard")
+            ]);
+            setLabours(lData);
+            setStats(sData);
+        } catch (err: any) {
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        fetchData();
+    }, []);
 
-    const showToast = (type: "success" | "error", msg: string) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 3500);
+    const fetchProfile = async (id: string) => {
+        try {
+            const lData = await apiFetch(`/api/labours/${id}`);
+            const tData = await apiFetch(`/api/labours/${id}/transactions`);
+            const aData = await apiFetch(`/api/labours/${id}/attendance`);
+            setSelectedLabour({ ...lData, transactions: tData, attendance: aData });
+        } catch (err) {
+            console.error(err);
+        }
     };
 
-    // Calculate Unique Workers and their Stats
-    const workerStats = useMemo(() => {
-        const stats: Record<string, { totalPaid: number, totalUnpaid: number, lastWorked: string, name: string, events: any[] }> = {};
-        
-        activities.forEach(a => {
-            if (!a.notes) return;
-            const nameMatch = a.notes.match(/Worker:\s*([^|]+)/);
-            if (!nameMatch) return;
-            const name = nameMatch[1].trim();
-
-            if (!stats[name]) {
-                stats[name] = { totalPaid: 0, totalUnpaid: 0, lastWorked: "", name, events: [] };
-            }
-
-            stats[name].events.push(a);
-
-            const isUnpaid = a.notes.includes('Status: Unpaid');
-            if (isUnpaid) {
-                stats[name].totalUnpaid += (a.cost || 0);
-            } else {
-                stats[name].totalPaid += (a.cost || 0);
-            }
-
-            const aDate = a.date?.split("T")[0];
-            if (!stats[name].lastWorked || aDate > stats[name].lastWorked) {
-                stats[name].lastWorked = aDate;
-            }
-        });
-
-        // Ensure events are sorted by date
-        Object.values(stats).forEach(stat => {
-            stat.events.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-        });
-
-        // Sort workers alphabetically
-        return Object.values(stats).sort((a, b) => a.name.localeCompare(b.name));
-    }, [activities]);
-
-    const uniqueWorkerNames = useMemo(() => workerStats.map(w => w.name), [workerStats]);
-
-    // Active worker for detailed modal
-    const [activeWorkerInfo, setActiveWorkerInfo] = useState<any | null>(null);
-
-    // Slip Generation State
-    const [openSlip, setOpenSlip] = useState(false);
-    const [slipWorker, setSlipWorker] = useState<any | null>(null);
-    const [slipMonth, setSlipMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-    const [slipStartDate, setSlipStartDate] = useState("");
-    const [slipEndDate, setSlipEndDate] = useState("");
-    const [slipMode, setSlipMode] = useState<"monthly" | "range">("monthly");
-
-    // Helpers
-    const resetForm = () => {
-        setDate(new Date().toISOString().split("T")[0]);
-        setLabourName(""); setLabourWorkType(""); setLabourCount(""); setLabourRate(""); setLabourDays("1");
-        setLabourStartDate(new Date().toISOString().split("T")[0]); setLabourEndDate(new Date().toISOString().split("T")[0]); setLabourStatus("Paid");
-        setNotes("");
+    const handleSelectLabour = (l: any) => {
+        fetchProfile(l.id);
+        setView("profile");
     };
 
-    const handleAddSubmit = async (e: React.FormEvent) => {
+    // --- Search & Filter ---
+    const [searchTerm, setSearchTerm] = useState("");
+    const filteredLabours = useMemo(() => {
+        return labours.filter(l => l.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }, [labours, searchTerm]);
+
+    if (loading) {
+        return <div className="flex h-screen items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>;
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-50 pb-20">
+            {/* TOAST */}
+            {toast && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200]">
+                    <div className={`px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold text-white text-sm animate-bounce ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+                        {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                        {toast.msg}
+                    </div>
+                </div>
+            )}
+
+            {view === "dashboard" && (
+                <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                                <Users className="w-7 h-7" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">{locale === 'ur' ? 'لیبر مینجمنٹ' : 'Labour Management'}</h1>
+                                <p className="text-slate-500 font-medium text-sm flex items-center gap-1 cursor-pointer" onClick={() => speak(locale === 'ur' ? 'یہ لیبر مینجمنٹ سیکشن ہے۔ یہاں آپ اپنے مزدوروں کا حساب کتاب رکھ سکتے ہیں۔' : 'This is the Labour Management section.')}>
+                                    <Volume2 className="w-4 h-4 text-orange-500" />
+                                    {locale === 'ur' ? 'مزدوروں کا مکمل حساب کتاب' : 'Complete worker tracking'}
+                                </p>
+                            </div>
+                        </div>
+                        <button onClick={() => setOpenAddLabour(true)} className="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 text-lg">
+                            <Plus className="w-6 h-6" /> {locale === 'ur' ? 'نیا مزدور شامل کریں' : 'Add Labour'}
+                        </button>
+                    </div>
+
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Users className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-slate-400 uppercase">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3>
+                            </div>
+                            <div>
+                                <p className="text-3xl font-black text-slate-900">{stats?.total_labour || 0}</p>
+                                <p className="text-xs font-bold text-green-500 mt-1">{stats?.active_labour || 0} Active • {stats?.inactive_labour || 0} Inactive</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><Banknote className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-slate-400 uppercase">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3>
+                            </div>
+                            <div>
+                                <p className="text-2xl font-black text-slate-900">Rs {stats?.total_paid_overall?.toLocaleString() || 0}</p>
+                                <p className="text-xs font-bold text-slate-400 mt-1">This Month: Rs {stats?.paid_this_month?.toLocaleString() || 0}</p>
+                            </div>
+                        </div>
+                        <div className="bg-red-50 p-5 rounded-3xl border border-red-100 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                            <AlertCircle className="absolute -bottom-4 -right-4 w-24 h-24 text-red-500/5" />
+                            <div className="flex items-center gap-2 mb-2 relative z-10">
+                                <div className="p-2 bg-red-100 text-red-600 rounded-xl"><AlertCircle className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-red-500/70 uppercase">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3>
+                            </div>
+                            <div className="relative z-10">
+                                <p className="text-3xl font-black text-red-600">Rs {stats?.pending_salary?.toLocaleString() || 0}</p>
+                            </div>
+                        </div>
+                        <div className="bg-orange-50 p-5 rounded-3xl border border-orange-100 shadow-sm flex flex-col justify-between">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="p-2 bg-orange-100 text-orange-600 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div>
+                                <h3 className="text-xs font-black text-orange-500/70 uppercase">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3>
+                            </div>
+                            <div>
+                                <p className="text-3xl font-black text-orange-600">Rs {stats?.advances_given?.toLocaleString() || 0}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Table / List */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                <input type="text" placeholder={locale === 'ur' ? 'مزدور کا نام تلاش کریں...' : 'Search labour name...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10" />
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 text-xs uppercase tracking-widest text-slate-400 font-black border-b border-slate-100">
+                                        <th className="p-4">Worker</th>
+                                        <th className="p-4">Type</th>
+                                        <th className="p-4 text-right">Days</th>
+                                        <th className="p-4 text-right">Total Salary</th>
+                                        <th className="p-4 text-right">Paid</th>
+                                        <th className="p-4 text-right">Remaining</th>
+                                        <th className="p-4 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {filteredLabours.map(l => (
+                                        <tr key={l.id} onClick={() => handleSelectLabour(l)} className="hover:bg-slate-50 cursor-pointer transition-colors group">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 uppercase">
+                                                        {l.photo ? <img src={l.photo} className="w-full h-full object-cover rounded-full" /> : l.name[0]}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-900 group-hover:text-orange-500 transition-colors">{l.name}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase">{l.phone || 'No Phone'}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-sm font-bold text-slate-600">{l.work_type}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-slate-600">{l.days_worked || 0}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-slate-900">Rs {l.total_salary.toLocaleString()}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-green-600">Rs {l.total_paid.toLocaleString()}</td>
+                                            <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance.toLocaleString()}</td>
+                                            <td className="p-4 text-center">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${l.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                    {l.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredLabours.length === 0 && (
+                                        <tr><td colSpan={7} className="p-8 text-center text-slate-400 font-bold">No records found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Profile View */}
+            {view === "profile" && selectedLabour && (
+                <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+                    <button onClick={() => { setView("dashboard"); fetchData(); }} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold mb-4 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 w-fit">
+                        <ArrowUpRight className="w-5 h-5 rotate-[-135deg]" /> Back to Dashboard
+                    </button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Profile Info Card */}
+                        <div className="md:col-span-1 bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-orange-400 to-red-500" />
+                            <div className="relative z-10 w-24 h-24 mx-auto bg-white rounded-full p-1 shadow-xl mb-4 mt-6">
+                                <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-3xl font-black text-slate-400">
+                                    {selectedLabour.name[0]}
+                                </div>
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-900 mb-1">{selectedLabour.name}</h2>
+                            <p className="text-sm font-bold text-slate-500 mb-6">{selectedLabour.work_type} • {selectedLabour.salary_type.toUpperCase()}</p>
+                            
+                            <div className="space-y-3 text-left">
+                                <div className="bg-slate-50 p-3 rounded-2xl flex items-center gap-3">
+                                    <Phone className="w-5 h-5 text-slate-400" />
+                                    <span className="text-sm font-bold text-slate-700">{selectedLabour.phone || 'No Phone'}</span>
+                                </div>
+                                <div className="bg-slate-50 p-3 rounded-2xl flex items-center gap-3">
+                                    <MapPin className="w-5 h-5 text-slate-400" />
+                                    <span className="text-sm font-bold text-slate-700 truncate">{selectedLabour.address || 'No Address'}</span>
+                                </div>
+                                <div className="bg-slate-50 p-3 rounded-2xl flex items-center justify-between">
+                                    <span className="text-xs font-black text-slate-400 uppercase">Base Salary</span>
+                                    <span className="text-sm font-black text-slate-900">Rs {selectedLabour.salary_amount} / {selectedLabour.salary_type === 'daily' ? 'Day' : 'Month'}</span>
+                                </div>
+                            </div>
+
+                            <button className="w-full mt-6 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors">
+                                <Printer className="w-5 h-5" /> {locale === 'ur' ? 'پروفائل پرنٹ کریں' : 'Print Profile'}
+                            </button>
+                        </div>
+
+                        {/* Financials & Actions */}
+                        <div className="md:col-span-2 space-y-6">
+                            {/* Salary Summary Box */}
+                            <div className="bg-slate-900 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <Banknote className="w-5 h-5" /> {locale === 'ur' ? 'تنخواہ کا حساب' : 'Salary Summary'}
+                                </h3>
+                                
+                                <div className="grid grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <p className="text-xs font-black text-slate-400 uppercase mb-1">Total Generated</p>
+                                        <p className="text-2xl font-black">Rs {selectedLabour.total_salary.toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-slate-400 uppercase mb-1">Total Paid</p>
+                                        <p className="text-2xl font-black text-emerald-400">Rs {selectedLabour.total_paid.toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-slate-400 uppercase mb-1">Remaining Balance</p>
+                                        <p className="text-3xl font-black text-red-400">Rs {selectedLabour.balance.toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-slate-400 uppercase mb-1">Advance Pending</p>
+                                        <p className="text-3xl font-black text-orange-400">Rs {selectedLabour.advance_balance.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Huge Action Buttons */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => setOpenAddPayment(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white p-6 rounded-3xl shadow-lg shadow-emerald-500/30 flex flex-col items-center justify-center gap-3 transition-transform active:scale-95 group">
+                                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Banknote className="w-6 h-6" /></div>
+                                    <span className="font-black text-lg">{locale === 'ur' ? 'تنخواہ دیں' : 'Pay Salary'}</span>
+                                </button>
+                                <button onClick={() => setOpenAttendance(true)} className="bg-blue-500 hover:bg-blue-600 text-white p-6 rounded-3xl shadow-lg shadow-blue-500/30 flex flex-col items-center justify-center gap-3 transition-transform active:scale-95 group">
+                                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Clock className="w-6 h-6" /></div>
+                                    <span className="font-black text-lg">{locale === 'ur' ? 'حاضری لگائیں' : 'Mark Attendance'}</span>
+                                </button>
+                                <button onClick={() => setOpenAddAdvance(true)} className="bg-orange-500 hover:bg-orange-600 text-white p-6 rounded-3xl shadow-lg shadow-orange-500/30 flex flex-col items-center justify-center gap-3 transition-transform active:scale-95 group">
+                                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><ArrowDownRight className="w-6 h-6" /></div>
+                                    <span className="font-black text-lg">{locale === 'ur' ? 'ایڈوانس دیں' : 'Add Advance'}</span>
+                                </button>
+                                <button onClick={() => { setOpenSlip(true); setSlipWorker(selectedLabour); }} className="bg-slate-800 hover:bg-slate-900 text-white p-6 rounded-3xl shadow-lg shadow-slate-900/30 flex flex-col items-center justify-center gap-3 transition-transform active:scale-95 group">
+                                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><FileText className="w-6 h-6" /></div>
+                                    <span className="font-black text-lg">{locale === 'ur' ? 'سلپ بنائیں' : 'Print Slip'}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Transactions Log */}
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                        <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2"><ListTodo className="w-5 h-5 text-slate-400" /> Transaction History</h3>
+                        <div className="space-y-4">
+                            {selectedLabour.transactions?.map((t: any) => (
+                                <div key={t.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${t.type === 'salary' ? 'bg-emerald-100 text-emerald-600' : t.type === 'advance' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                            {t.type === 'salary' ? <Banknote className="w-6 h-6" /> : <ArrowDownRight className="w-6 h-6" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900 capitalize">{t.type}</p>
+                                            <p className="text-xs font-bold text-slate-500">{t.date} • {t.notes || 'No notes'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`font-black text-lg ${t.type === 'salary' ? 'text-emerald-500' : t.type === 'advance' ? 'text-orange-500' : 'text-blue-500'}`}>
+                                            Rs {t.amount.toLocaleString()}
+                                        </p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.payment_method}</p>
+                                    </div>
+                                </div>
+                            ))}
+                            {(!selectedLabour.transactions || selectedLabour.transactions.length === 0) && (
+                                <p className="text-center text-slate-400 font-bold py-8">No transactions yet.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODALS */}
+            
+            {/* Add Labour Modal */}
+            <AddLabourModal open={openAddLabour} onClose={() => setOpenAddLabour(false)} onSave={() => { setOpenAddLabour(false); fetchData(); showToast('success', locale === 'ur' ? 'مزدور شامل کر دیا گیا' : 'Labour Added Successfully'); }} locale={locale} />
+            
+            {/* Add Payment Modal */}
+            <AddTransactionModal open={openAddPayment} onClose={() => setOpenAddPayment(false)} type="salary" labour={selectedLabour} onSave={() => { setOpenAddPayment(false); fetchProfile(selectedLabour.id); fetchData(); showToast('success', 'Payment Added!'); }} locale={locale} />
+            
+            {/* Add Advance Modal */}
+            <AddTransactionModal open={openAddAdvance} onClose={() => setOpenAddAdvance(false)} type="advance" labour={selectedLabour} onSave={() => { setOpenAddAdvance(false); fetchProfile(selectedLabour.id); fetchData(); showToast('success', 'Advance Added!'); }} locale={locale} />
+            
+            {/* Mark Attendance Modal */}
+            <AttendanceModal open={openAttendance} onClose={() => setOpenAttendance(false)} labour={selectedLabour} onSave={() => { setOpenAttendance(false); fetchProfile(selectedLabour.id); fetchData(); showToast('success', 'Attendance Marked!'); }} locale={locale} />
+            
+            {/* Slip Modal */}
+            <SlipModal open={openSlip} onClose={() => setOpenSlip(false)} labour={slipWorker} />
+        </div>
+    );
+}
+
+// ---------------------------------------------------------
+// MODAL COMPONENTS
+// ---------------------------------------------------------
+
+function AddLabourModal({ open, onClose, onSave, locale }: any) {
+    if (!open) return null;
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({
+        name: '', phone: '', cnic: '', work_type: 'Helper', salary_type: 'daily', salary_amount: ''
+    });
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         try {
-            const labourDetails = [
-                labourName.trim() && `Worker: ${labourName.trim()}`,
-                labourWorkType.trim() && `Work: ${labourWorkType.trim()}`,
-                labourCount && `Workers: ${labourCount}`,
-                labourRate && `Rate: Rs${labourRate}/day`,
-                labourDays && Number(labourDays) > 1 && `Days: ${labourDays}`,
-                (labourStartDate && labourEndDate) ? `Period: ${labourStartDate} to ${labourEndDate}` : '',
-                labourStatus && `Status: ${labourStatus}`,
-                notes.trim() && notes.trim(),
-            ].filter(Boolean).join(' | ');
-
-            const workers = Number(labourCount) || 0;
-            const rate = Number(labourRate) || 0;
-            const days = Number(labourDays) || 1;
-            const totalCost = workers * rate * days;
-
-            const payload = {
-                activity_type: 'labor',
-                date,
-                notes: labourDetails,
-                cost: totalCost
-            };
-
-            const res = await apiFetch("/api/activities", { method: "POST", body: JSON.stringify(payload) });
-            if (res?.id || res?.activity_type) {
-                setOpenAdd(false); resetForm(); fetchData();
-                showToast("success", locale === "ur" ? "ریکارڈ کامیابی سے محفوظ ہو گیا!" : "Labor recorded successfully!");
-            } else {
-                showToast("error", locale === "ur" ? "محفوظ کرنے میں غلطی ہوئی۔" : "Failed to save labor activity.");
-            }
-        } catch {
-            showToast("error", "Network error. Please try again.");
-        } finally {
-            setSaving(false);
+            await apiFetch('/api/labours', { method: 'POST', body: JSON.stringify(form) });
+            onSave();
+        } catch (err) {
+            alert("Error saving labour");
         }
+        setSaving(false);
     };
 
-    const handleDelete = async (id: string) => {
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
+                    <h2 className="text-xl font-black">{locale === 'ur' ? 'نیا مزدور شامل کریں' : 'Add New Labour'}</h2>
+                    <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"><X className="w-5 h-5" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'پورا نام' : 'Full Name'}</label>
+                        <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-lg font-bold focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10" placeholder="Ali Raza" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'فون نمبر' : 'Phone Number'}</label>
+                            <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500" placeholder="0300..." />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">CNIC</label>
+                            <input type="text" value={form.cnic} onChange={e => setForm({...form, cnic: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500" placeholder="Optional" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'کام کی قسم' : 'Work Type'}</label>
+                            <select value={form.work_type} onChange={e => setForm({...form, work_type: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500 appearance-none">
+                                <option>Helper</option>
+                                <option>Mason</option>
+                                <option>Driver</option>
+                                <option>Guard</option>
+                                <option>Plumber</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'تنخواہ کی قسم' : 'Salary Type'}</label>
+                            <select value={form.salary_type} onChange={e => setForm({...form, salary_type: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500 appearance-none">
+                                <option value="daily">{locale === 'ur' ? 'روزانہ (Daily)' : 'Daily Wage'}</option>
+                                <option value="monthly">{locale === 'ur' ? 'ماہانہ (Monthly)' : 'Monthly Salary'}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'رقم' : 'Base Salary Amount'}</label>
+                        <input required type="number" value={form.salary_amount} onChange={e => setForm({...form, salary_amount: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xl font-black text-orange-600 focus:outline-none focus:border-orange-500" placeholder="Rs" />
+                    </div>
+                    <button type="submit" disabled={saving} className="w-full bg-green-500 hover:bg-green-600 text-white p-5 rounded-2xl font-black text-xl shadow-xl shadow-green-500/20 active:scale-95 transition-all mt-4 flex justify-center items-center gap-2">
+                        {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle className="w-6 h-6" /> Save Worker</>}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function AddTransactionModal({ open, onClose, onSave, type, labour, locale }: any) {
+    if (!open || !labour) return null;
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({ amount: '', notes: '', date: new Date().toISOString().split('T')[0] });
+
+    const isSalary = type === 'salary';
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
         try {
-            await apiFetch(`/api/activities/${id}`, { method: "DELETE" });
-            setDeleteId(null); 
-            setActiveWorkerInfo(null);
-            fetchData();
-            showToast("success", "Activity deleted.");
-        } catch {
-            showToast("error", "Failed to delete.");
+            await apiFetch(`/api/labours/${labour.id}/transactions`, { method: 'POST', body: JSON.stringify({...form, type}) });
+            onSave();
+        } catch (err) {
+            alert("Error saving");
         }
+        setSaving(false);
     };
 
-    const slipData = useMemo(() => {
-        if (!slipWorker) return null;
-        let filtered = slipWorker.events;
-        if (slipMode === "monthly") {
-            filtered = slipWorker.events.filter((ev: any) => ev.date?.startsWith(slipMonth));
-        } else if (slipStartDate && slipEndDate) {
-            filtered = slipWorker.events.filter((ev: any) => {
-                const d = ev.date?.split('T')[0];
-                return d >= slipStartDate && d <= slipEndDate;
-            });
+    return (
+        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
+                <div className={`p-6 flex justify-between items-center text-white ${isSalary ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                    <h2 className="text-xl font-black">{isSalary ? (locale === 'ur' ? 'تنخواہ دیں' : 'Pay Salary') : (locale === 'ur' ? 'ایڈوانس دیں' : 'Give Advance')}</h2>
+                    <button onClick={onClose} className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"><X className="w-5 h-5" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {isSalary && labour.balance > 0 && (
+                        <div className="bg-emerald-50 text-emerald-700 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between font-bold">
+                            <span>Pending Due:</span>
+                            <span className="text-xl">Rs {labour.balance.toLocaleString()}</span>
+                        </div>
+                    )}
+                    <div>
+                        <label className="block text-xs font-black text-slate-400 uppercase mb-2 text-center">{locale === 'ur' ? 'رقم درج کریں' : 'Enter Amount'}</label>
+                        <input required type="number" autoFocus value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className={`w-full bg-slate-50 border-2 p-6 rounded-3xl text-center text-4xl font-black focus:outline-none transition-colors ${isSalary ? 'text-emerald-600 border-emerald-100 focus:border-emerald-500' : 'text-orange-600 border-orange-100 focus:border-orange-500'}`} placeholder="0" />
+                    </div>
+                    {isSalary && Number(form.amount) > labour.balance && labour.balance > 0 && (
+                        <p className="text-xs font-bold text-orange-500 text-center animate-pulse">
+                            Extra amount (Rs {Number(form.amount) - labour.balance}) will auto-convert to Advance.
+                        </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Date</label>
+                            <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-bold focus:outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Notes</label>
+                            <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-bold focus:outline-none" placeholder="..." />
+                        </div>
+                    </div>
+                    <button type="submit" disabled={saving || !form.amount} className={`w-full text-white p-5 rounded-2xl font-black text-xl shadow-xl transition-all flex justify-center items-center gap-2 ${!form.amount ? 'opacity-50 grayscale' : ''} ${isSalary ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'}`}>
+                        {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle className="w-6 h-6" /> Confirm {isSalary ? 'Payment' : 'Advance'}</>}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function AttendanceModal({ open, onClose, onSave, labour, locale }: any) {
+    if (!open || !labour) return null;
+    const [saving, setSaving] = useState(false);
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+    const mark = async (status: string) => {
+        setSaving(true);
+        try {
+            await apiFetch(`/api/labours/${labour.id}/attendance`, { method: 'POST', body: JSON.stringify({ date, status }) });
+            onSave();
+        } catch (err) {
+            alert("Error saving");
         }
+        setSaving(false);
+    };
 
-        const total = filtered.reduce((acc: number, curr: any) => acc + (curr.cost || 0), 0);
-        const paid = filtered.reduce((acc: number, curr: any) => acc + (curr.notes.includes('Status: Unpaid') ? 0 : (curr.cost || 0)), 0);
-        const unpaid = total - paid;
+    return (
+        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200">
+                <div className="p-6 flex justify-between items-center text-slate-900 border-b border-slate-100 bg-slate-50">
+                    <h2 className="text-xl font-black">{locale === 'ur' ? 'حاضری' : 'Attendance'}</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-xl transition-colors"><X className="w-5 h-5" /></button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl font-black text-center text-lg focus:outline-none focus:border-blue-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => mark('present')} disabled={saving} className="bg-emerald-500 hover:bg-emerald-600 text-white p-5 rounded-2xl font-black text-lg shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+                            {locale === 'ur' ? 'حاضر' : 'Present'}
+                        </button>
+                        <button onClick={() => mark('absent')} disabled={saving} className="bg-red-500 hover:bg-red-600 text-white p-5 rounded-2xl font-black text-lg shadow-lg shadow-red-500/20 active:scale-95 transition-all">
+                            {locale === 'ur' ? 'غیر حاضر' : 'Absent'}
+                        </button>
+                        <button onClick={() => mark('half_day')} disabled={saving} className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 p-5 rounded-2xl font-black text-lg shadow-lg shadow-yellow-400/20 active:scale-95 transition-all col-span-2">
+                            {locale === 'ur' ? 'آدھا دن' : 'Half Day'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
-        return {
-            workerName: slipWorker.name,
-            events: filtered,
-            total,
-            paid,
-            unpaid,
-            period: slipMode === "monthly" ? slipMonth : `${slipStartDate} to ${slipEndDate}`
-        };
-    }, [slipWorker, slipMonth, slipStartDate, slipEndDate, slipMode]);
+function SlipModal({ open, onClose, labour }: any) {
+    if (!open || !labour) return null;
 
     const handlePrint = () => {
         const content = document.getElementById('payment-slip');
         if (!content) return;
         
         const printWindow = window.open('', '_blank', 'width=800,height=900');
-        if (!printWindow) {
-            showToast("error", "Please allow pop-ups to print slips.");
-            return;
-        }
+        if (!printWindow) return;
 
-        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-            .map(s => s.outerHTML)
-            .join('');
-
+        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Payment Slip - ${slipWorker?.name}</title>
+                    <title>Payment Slip - ${labour.name}</title>
                     ${styles}
                     <style>
                         body { background: white !important; color: black !important; padding: 20px !important; }
-                        #payment-slip { border: 2px solid #000 !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 auto !important; max-width: 800px !important; }
-                        .no-print { display: none !important; }
-                        @page { margin: 1cm; }
+                        #payment-slip { border: 2px solid #000 !important; max-width: 800px !important; margin: 0 auto !important; }
                     </style>
                 </head>
                 <body>
                     ${content.outerHTML}
                     <script>
-                        setTimeout(() => {
-                            window.print();
-                            window.close();
-                        }, 500);
+                        setTimeout(() => { window.print(); window.close(); }, 500);
                     </script>
                 </body>
             </html>
@@ -262,578 +603,81 @@ function LaborContent() {
     };
 
     return (
-        <div className="min-h-screen bg-theme">
-            {toast && (
-                <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-medium animate-fade-in
-          ${toast.type === "success" ? "bg-green-500/95 text-white border-green-400" : "bg-red-500/95 text-white border-red-400"}`}>
-                    {toast.type === "success" ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-                    {toast.msg}
-                </div>
-            )}
-
-            <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-                {/* ── Header ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                                <Users className="w-5 h-5 text-white" />
-                            </div>
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-theme tracking-tight uppercase">Labor Hub</h1>
-                        </div>
-                        <p className="text-xs sm:text-sm text-theme-muted ml-[52px]">Employees & Manpower • مزدور</p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <div className="flex bg-theme-track p-1 rounded-xl border border-theme">
-                            <button
-                                onClick={() => setLocale("ur")}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${locale === "ur" ? "bg-orange-500 text-white shadow-md shadow-orange-500/20" : "text-theme-muted hover:text-theme"}`}
-                            >اردو</button>
-                            <button
-                                onClick={() => setLocale("en")}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${locale === "en" ? "bg-orange-500 text-white shadow-md shadow-orange-500/20" : "text-theme-muted hover:text-theme"}`}
-                            >ENGLISH</button>
-                        </div>
-                        <button
-                            onClick={() => { resetForm(); setOpenAdd(true); }}
-                            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-5 py-3 rounded-2xl font-black shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:from-orange-400 hover:to-red-500 transition-all active:scale-95 whitespace-nowrap"
-                        >
-                            <Plus className="w-6 h-6" /> {locale === "ur" ? "نیا ریکارڈ" : "ADD LABOR"}
-                        </button>
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50 shrink-0">
+                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><FileText className="w-6 h-6 text-slate-400" /> Salary Slip Preview</h2>
+                    <div className="flex gap-2">
+                        <button onClick={handlePrint} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2"><Printer className="w-4 h-4" /> Print PDF</button>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-xl"><X className="w-5 h-5" /></button>
                     </div>
                 </div>
-
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-                        <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                            <Loader2 className="h-7 w-7 animate-spin text-orange-500" />
-                        </div>
-                        <p className="text-theme-muted text-sm">Loading labor register...</p>
-                    </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {workerStats.map(worker => (
-                                <div key={worker.name} className="group relative bg-theme-card border border-theme rounded-2xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-full bg-orange-500/10 text-orange-600 flex items-center justify-center text-xl font-bold uppercase border border-orange-500/20">
-                                                {worker.name[0]}
-                                            </div>
-                                            <div>
-                                                <h3 className="text-lg font-black text-theme">{worker.name}</h3>
-                                                <p className="text-xs text-theme-muted flex items-center gap-1">
-                                                    <Calendar className="w-3.5 h-3.5" /> {locale === "ur" ? "آخری کام" : "Last Entry"}: {worker.lastWorked}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => setActiveWorkerInfo(worker)} className="p-2 rounded-xl bg-theme-track text-theme-muted hover:text-orange-500 transition-colors border border-theme hover:border-orange-500/30">
-                                            <Info className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-3 rounded-xl bg-green-500/5 border border-green-500/10">
-                                            <p className="text-[10px] font-black uppercase text-green-600/70 mb-1">{locale === "ur" ? "کل ادائیگیاں" : "Total Paid"}</p>
-                                            <p className="text-lg font-black text-green-500">Rs {worker.totalPaid.toLocaleString()}</p>
-                                        </div>
-                                        <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
-                                            <p className="text-[10px] font-black uppercase text-red-600/70 mb-1">{locale === "ur" ? "کل بقایا" : "Total Unpaid"}</p>
-                                            <p className="text-lg font-black text-red-500">Rs {worker.totalUnpaid.toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setActiveWorkerInfo(worker)}
-                                        className="w-full mt-4 py-2 rounded-xl font-bold text-sm bg-theme-track border border-theme text-theme hover:bg-orange-500/10 hover:text-orange-600 hover:border-orange-500/30 transition-all"
-                                    >
-                                        {locale === "ur" ? "تفصیلات دیکھیں" : "View Full History"}
-                                    </button>
-                                </div>
-                            ))}
-
-                            {workerStats.length === 0 && (
-                                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
-                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500/20 to-red-600/20 border border-orange-500/30 flex items-center justify-center mb-4">
-                                        <Users className="w-10 h-10 text-orange-500" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-theme mb-2">{locale === "ur" ? "کوئی مزدور درج نہیں" : "No Labor Profiles Yet"}</h3>
-                                    <p className="text-theme-muted max-w-sm mx-auto mb-6">
-                                        {locale === "ur" ? "مزدور اور عملے کا ریکارڈ شامل کرنا شروع کریں۔" : "Start adding your workers and staff records to build their history."}
-                                    </p>
-                                    <button onClick={() => { resetForm(); setOpenAdd(true); }} className="flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/25">
-                                        <Plus className="w-5 h-5" /> {locale === "ur" ? "نیا عملہ" : "Add Labor"}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
-            </div>
-
-            {/* ══════════════ ADD NEW RECORD MODAL ══════════════ */}
-            {openAdd && (
-                <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpenAdd(false)} />
-                    <div className="relative z-10 w-full sm:max-w-lg bg-theme-card rounded-t-3xl sm:rounded-2xl shadow-2xl border border-theme flex flex-col max-h-[92vh]">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-theme shrink-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                                    <Plus className="w-4 h-4 text-orange-500" />
-                                </div>
-                                <h2 className="text-lg font-bold text-theme">{locale === "ur" ? "مزدور کا ریکارڈ" : "Record Labor"}</h2>
-                            </div>
-                            <button onClick={() => setOpenAdd(false)} className="p-2 rounded-xl hover:bg-theme-track text-theme-muted transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleAddSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-                            
-                            {/* Same Labour Form as previously on activity page */}
-                            <div className="space-y-4">
-                                {/* Worker Name (Datalist) */}
-                                <div>
-                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                        {locale === 'ur' ? 'مزدور کا نام' : 'Worker Name'}
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            list="worker-names"
-                                            value={labourName}
-                                            onChange={e => setLabourName(e.target.value)}
-                                            placeholder={locale === 'ur' ? 'مثلاً: محمد علی' : 'Select or type e.g. Ahmed...'}
-                                            required
-                                            className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                                        />
-                                        <datalist id="worker-names">
-                                            {uniqueWorkerNames.map(w => (
-                                                <option key={w} value={w} />
-                                            ))}
-                                        </datalist>
-                                        
-                                        {workerStats.find(w => w.name === labourName.trim()) && (
-                                            <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl animate-fade-in">
-                                                <p className="text-[11px] font-black text-orange-600 mb-2 uppercase flex items-center gap-1.5">
-                                                    <ShieldCheck className="w-3.5 h-3.5" />
-                                                    {locale === 'ur' ? 'اس مزدور کا پرانا کھاتہ موجود ہے' : 'Existing Worker Profile Found'}
-                                                </p>
-                                                <div className="flex justify-between items-center text-xs font-semibold text-theme">
-                                                    <span>Total Unpaid:</span>
-                                                    <span className="text-red-500">Rs {workerStats.find(w => w.name === labourName.trim())?.totalUnpaid.toLocaleString()}</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Work Type */}
-                                <div>
-                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                        {locale === 'ur' ? 'کام کی قسم' : 'Type of Work'}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={labourWorkType}
-                                        onChange={e => setLabourWorkType(e.target.value)}
-                                        placeholder={locale === 'ur' ? 'مثلاً: ہل چلانا، فصل کاٹنا...' : 'e.g. Ploughing, Harvesting, Weeding...'}
-                                        required
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:ring-2 focus:ring-orange-500/20 focus:outline-none"
-                                    />
-                                </div>
-
-                                {/* Workers × Rate × Days */}
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                            {locale === 'ur' ? 'تعداد' : 'Workers'}
-                                        </label>
-                                        <input
-                                            type="number" min="1" step="1"
-                                            value={labourCount}
-                                            onChange={e => setLabourCount(e.target.value)}
-                                            required
-                                            placeholder="1"
-                                            className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                            {locale === 'ur' ? 'روز کی اجرت' : 'Rate/Day (Rs)'}
-                                        </label>
-                                        <input
-                                            type="number" min="0" step="any"
-                                            value={labourRate}
-                                            onChange={e => setLabourRate(e.target.value)}
-                                            required
-                                            placeholder="0"
-                                            className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                            {locale === 'ur' ? 'دن' : 'Days'}
-                                        </label>
-                                        <input
-                                            type="number" min="1" step="1"
-                                            value={labourDays}
-                                            onChange={e => setLabourDays(e.target.value)}
-                                            required
-                                            placeholder="1"
-                                            className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-black text-center focus:outline-none"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Period & Status */}
-                                <div className="grid grid-cols-2 xs:grid-cols-3 gap-3">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                            {locale === 'ur' ? 'کب سے (From)' : 'From Date'}
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={labourStartDate}
-                                            onChange={e => setLabourStartDate(e.target.value)}
-                                            className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                            {locale === 'ur' ? 'کب تک (To)' : 'To Date'}
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={labourEndDate}
-                                            onChange={e => setLabourEndDate(e.target.value)}
-                                            className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:outline-none"
-                                        />
-                                    </div>
-                                    <div className="col-span-2 xs:col-span-1">
-                                        <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                            {locale === 'ur' ? 'ادائیگی' : 'Status'}
-                                        </label>
-                                        <select
-                                            value={labourStatus}
-                                            onChange={e => setLabourStatus(e.target.value)}
-                                            className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:outline-none"
-                                        >
-                                            <option value="Paid">{locale === 'ur' ? 'ادا کر دیا (Paid)' : 'Paid'}</option>
-                                            <option value="Unpaid">{locale === 'ur' ? 'باقی (Unpaid)' : 'Unpaid'}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1">
-                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                        {locale === 'ur' ? 'ریکارڈ شامل کرنے کی تاریخ' : 'Entry Date'}
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={date}
-                                        onChange={e => setDate(e.target.value)}
-                                        className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-orange-500/20 text-theme text-sm font-bold focus:outline-none"
-                                    />
-                                </div>
-
-                                {/* Custom Notes */}
-                                <div>
-                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">Notes / یاد دہانی</label>
-                                    <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                                        placeholder="..."
-                                        className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold resize-none focus:outline-none" />
-                                </div>
-
-                                {labourCount && labourRate && (
-                                    <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-2xl px-4 py-4 mt-4">
-                                        <span className="text-xs font-black text-orange-400 uppercase">
-                                            {locale === 'ur' ? 'کل ادائیگی (خودکار)' : 'Total Cost'}
-                                        </span>
-                                        <span className="text-2xl font-black text-orange-500">
-                                            Rs {((Number(labourCount) || 0) * (Number(labourRate) || 0) * (Number(labourDays) || 1)).toLocaleString()}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="flex gap-4 pt-4 pb-8">
-                                <button type="submit" disabled={saving}
-                                    className="flex-1 flex items-center justify-center gap-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-orange-500/40 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
-                                    {saving ? <><Loader2 className="w-6 h-6 animate-spin text-white" /> SAVING...</> : <><CheckCircle className="w-6 h-6" /> {locale === "ur" ? "محفوظ کریں" : "SAVE LABOR"}</>}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* ══════════════ WORKER DETAIL MODAL ══════════════ */}
-            {activeWorkerInfo && (
-                <div className="fixed inset-0 z-[105] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActiveWorkerInfo(null)} />
-                    <div className="relative z-10 w-full sm:max-w-2xl bg-theme-card rounded-t-3xl sm:rounded-3xl shadow-2xl border border-theme flex flex-col max-h-[92vh]">
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-theme shrink-0 bg-theme-track/30">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center text-xl font-bold uppercase border border-orange-500/30">
-                                    {activeWorkerInfo.name[0]}
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-black text-theme tracking-tight">{activeWorkerInfo.name}</h2>
-                                    <p className="text-xs font-semibold text-theme-muted uppercase tracking-widest mt-0.5">Worker Profile</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => { setSlipWorker(activeWorkerInfo); setOpenSlip(true); }} className="p-2.5 rounded-xl bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border border-orange-500/20 transition-all active:scale-95 flex items-center gap-2 text-xs font-bold">
-                                    <FileText className="w-4 h-4" /> {locale === "ur" ? "سلپ بنائیں" : "Generate Slip"}
-                                </button>
-                                <button onClick={() => setActiveWorkerInfo(null)} className="p-2.5 rounded-xl hover:bg-theme-track border border-transparent hover:border-theme text-theme-muted transition-all active:scale-95">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 rounded-2xl bg-green-500/5 border border-green-500/10 text-center">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-green-600/70 mb-2">Total Cleared</p>
-                                    <p className="text-2xl font-black text-green-500">Rs {activeWorkerInfo.totalPaid.toLocaleString()}</p>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/10 text-center relative overflow-hidden">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-red-600/70 mb-2">Remaining Unpaid</p>
-                                    <p className="text-2xl font-black text-red-500">Rs {activeWorkerInfo.totalUnpaid.toLocaleString()}</p>
-                                    {activeWorkerInfo.totalUnpaid > 0 && <AlertCircle className="absolute -bottom-4 -right-4 w-16 h-16 text-red-500/10 pointer-events-none" />}
-                                </div>
-                            </div>
-
+                <div className="flex-1 overflow-y-auto p-8">
+                    <div id="payment-slip" className="border-2 border-slate-900 p-8 min-h-[600px] flex flex-col bg-white">
+                        <div className="border-b-2 border-slate-900 pb-6 mb-8 flex justify-between">
                             <div>
-                                <h4 className="text-sm font-black text-theme mb-4 flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-theme-muted" /> Job History 
-                                    <span className="px-2 py-0.5 rounded-full bg-theme-track border border-theme text-[10px] font-black text-theme-muted">{activeWorkerInfo.events.length}</span>
-                                </h4>
-                                <div className="space-y-3">
-                                    {activeWorkerInfo.events.map((ev: any) => {
-                                        const cleanNotes = ev.notes.replace(/Worker:\s*[^|]+\|\s*/, '') || "-"; 
-                                        const isUnpaid = ev.notes.includes('Status: Unpaid');
-                                        return (
-                                            <div key={ev.id} className="relative pl-6 py-2 border-l-2 border-theme-track last:border-transparent group">
-                                                <div className={`absolute -left-[9px] top-4 w-4 h-4 rounded-full border-4 border-theme-card ${isUnpaid ? 'bg-red-500' : 'bg-green-500'}`} />
-                                                <div className="bg-theme-track/30 border border-theme rounded-2xl p-4 hover:border-theme-muted transition-colors">
-                                                    <div className="flex justify-between items-start mb-2 gap-4">
-                                                        <span className="text-xs font-bold text-theme-muted bg-theme-track px-2 py-1 rounded-lg border border-theme">
-                                                            {ev.date?.split('T')[0]}
-                                                        </span>
-                                                        <div className="flex flex-col items-end">
-                                                            <span className="text-base font-black text-theme">Rs {ev.cost?.toLocaleString()}</span>
-                                                            <span className={`text-[10px] font-black uppercase tracking-widest ${isUnpaid ? 'text-red-500' : 'text-green-500'}`}>{isUnpaid ? 'Unpaid' : 'Paid'}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-sm font-medium text-theme/90 space-y-1">
-                                                        {cleanNotes.split('|').map((part: string, idx: number) => {
-                                                            const partT = part.trim();
-                                                            if(!partT) return null;
-                                                            if(partT.startsWith('Status:')) return null;
-                                                            return <div key={idx} className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-theme-muted/30 shrink-0 mt-1.5" /> <span>{partT}</span></div>
-                                                        })}
-                                                    </div>
-                                                    <div className="mt-4 pt-3 border-t border-theme-track flex justify-end">
-                                                         <button onClick={() => setDeleteId(ev.id)} className="p-1.5 rounded-lg text-theme-muted hover:text-red-500 hover:bg-red-500/10 active:bg-theme-track transition-colors flex items-center gap-1.5 text-xs font-bold">
-                                                            <Trash2 className="w-3.5 h-3.5" /> Delete Entry
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
+                                <h1 className="text-3xl font-black uppercase tracking-tighter">Mashori Farm</h1>
+                                <p className="text-sm font-bold text-slate-500">Official Labour Payment Slip</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Date</p>
+                                <p className="text-sm font-black">{new Date().toLocaleDateString()}</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirm */}
-            {deleteId && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
-                    <div className="relative z-10 bg-theme-card border border-theme rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
-                            <Trash2 className="w-6 h-6 text-red-500" />
-                        </div>
-                        <h3 className="text-lg font-bold text-theme text-center mb-2">Delete Labor Entry?</h3>
-                        <p className="text-theme-muted text-sm text-center mb-6">This record will be permanently removed.</p>
-                        <div className="flex gap-3">
-                            <button onClick={() => deleteId && handleDelete(deleteId)}
-                                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-semibold transition-colors">
-                                Yes, Delete
-                            </button>
-                            <button onClick={() => setDeleteId(null)}
-                                className="flex-1 bg-theme-track border border-theme text-theme-muted hover:text-theme py-2.5 rounded-xl font-semibold transition-colors">
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ══════════════ PAYMENT SLIP MODAL ══════════════ */}
-            {openSlip && slipWorker && (
-                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 print:p-0 print:m-0 print:relative print:z-0 print:bg-white slip-modal-container">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md print:hidden" onClick={() => setOpenSlip(false)} />
-                    <div className="relative z-10 w-full max-w-2xl bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] print:max-h-none print:h-auto print:shadow-none print:rounded-none print:w-full print:block">
                         
-                        {/* Control Header - Hide on print */}
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50 print:hidden shrink-0">
-                            <div className="flex items-center gap-3 text-slate-600">
-                                <Printer className="w-5 h-5" />
-                                <h3 className="font-bold">Payment Slip Preview</h3>
+                        <div className="grid grid-cols-2 gap-8 mb-8">
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Worker Name</p>
+                                <p className="text-xl font-black uppercase">{labour.name}</p>
+                                <p className="text-xs font-bold text-slate-500 mt-1">{labour.work_type}</p>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <button onClick={handlePrint} className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-orange-600 transition-colors">
-                                    <Printer className="w-4 h-4" /> Print
-                                </button>
-                                <button onClick={() => setOpenSlip(false)} className="p-2 text-slate-400 hover:text-slate-600">
-                                    <X className="w-5 h-5" />
-                                </button>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Salary Basis</p>
+                                <p className="text-xl font-black uppercase">{labour.salary_type}</p>
+                                <p className="text-xs font-bold text-slate-500 mt-1">Rs {labour.salary_amount} / {labour.salary_type === 'daily' ? 'Day' : 'Month'}</p>
                             </div>
                         </div>
 
-                        {/* Slip Settings - Hide on print */}
-                        <div className="p-6 bg-slate-50/50 border-b border-slate-100 space-y-4 print:hidden shrink-0">
-                            <div className="flex p-1 bg-slate-200/50 rounded-xl w-fit">
-                                <button onClick={() => setSlipMode("monthly")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${slipMode === "monthly" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500"}`}>Monthly Slip</button>
-                                <button onClick={() => setSlipMode("range")} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${slipMode === "range" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500"}`}>Date Range</button>
-                            </div>
-                            <div className="flex flex-wrap gap-4 items-end">
-                                {slipMode === "monthly" ? (
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5">Select Month</label>
-                                        <input type="month" value={slipMonth} onChange={e => setSlipMonth(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none" />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5">From</label>
-                                            <input type="date" value={slipStartDate} onChange={e => setSlipStartDate(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5">To</label>
-                                            <input type="date" value={slipEndDate} onChange={e => setSlipEndDate(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none" />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                        <div className="mb-8">
+                            <table className="w-full text-left">
+                                <tbody className="divide-y divide-slate-100">
+                                    <tr>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Total Earned</td>
+                                        <td className="py-4 text-right font-black text-xl">Rs {labour.total_salary.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Total Paid</td>
+                                        <td className="py-4 text-right font-black text-xl text-green-600">Rs {labour.total_paid.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Advances Balance</td>
+                                        <td className="py-4 text-right font-black text-xl text-orange-500">Rs {labour.advance_balance.toLocaleString()}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
 
-                        {/* ACTUAL PRINTABLE SLIP CONTENT */}
-                        <div className="flex-1 overflow-y-auto p-10 print:overflow-visible print:p-0">
-                            <div id="payment-slip" className="bg-white border-[3px] border-slate-200 rounded-px p-8 min-h-[600px] flex flex-col print:border-none print:p-2">
-                                {/* Slip Header */}
-                                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
-                                    <div>
-                                        <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase mb-1">Mashori Farm</h1>
-                                        <p className="text-sm font-bold text-slate-500">Labor Payment Statement • ریکارڈ ادائیگی</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Issue Date</div>
-                                        <div className="text-sm font-black text-slate-900">{new Date().toLocaleDateString()}</div>
-                                    </div>
-                                </div>
-
-                                {/* Worker Info Box */}
-                                <div className="grid grid-cols-2 gap-8 mb-8">
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase mb-1">Employee Name / نام</div>
-                                        <div className="text-xl font-black text-slate-900 uppercase">{slipData?.workerName}</div>
-                                    </div>
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase mb-1">Period / دورانیہ</div>
-                                        <div className="text-xl font-black text-slate-900 uppercase">{slipData?.period}</div>
-                                    </div>
-                                </div>
-
-                                {/* Items Table */}
-                                <div className="flex-1">
-                                    <table className="w-full text-left">
-                                        <thead>
-                                            <tr className="border-b-2 border-slate-900">
-                                                <th className="py-3 text-[10px] font-black text-slate-400 uppercase">Date</th>
-                                                <th className="py-3 text-[10px] font-black text-slate-400 uppercase">Description / Details</th>
-                                                <th className="py-3 text-right text-[10px] font-black text-slate-400 uppercase">Status</th>
-                                                <th className="py-3 text-right text-[10px] font-black text-slate-400 uppercase">Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {slipData?.events.length === 0 ? (
-                                                <tr><td colSpan={4} className="py-10 text-center text-slate-400 font-bold">No entries found for this period.</td></tr>
-                                            ) : (
-                                                slipData?.events.map((ev: any) => (
-                                                    <tr key={ev.id} className="text-sm font-bold">
-                                                        <td className="py-4 text-slate-500 whitespace-nowrap">{ev.date?.split('T')[0]}</td>
-                                                        <td className="py-4 text-slate-900">
-                                                            <div>{ev.notes.split('|').find((p: string) => p.includes('Work:'))?.replace('Work:', '').trim() || "Farm Labor"}</div>
-                                                            <div className="text-[10px] text-slate-400 font-black">{ev.notes.split('|').find((p: string) => p.includes('Period:'))?.trim() || ""}</div>
-                                                        </td>
-                                                        <td className="py-4 text-right">
-                                                            <span className={`text-[10px] uppercase font-black ${ev.notes.includes('Status: Unpaid') ? 'text-red-500' : 'text-green-600'}`}>
-                                                                {ev.notes.includes('Status: Unpaid') ? 'Unpaid' : 'Paid'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="py-4 text-right text-slate-900">Rs {ev.cost?.toLocaleString()}</td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Summary Box */}
-                                <div className="mt-8 border-t-2 border-slate-900 pt-8 flex justify-end">
-                                    <div className="w-64 space-y-3">
-                                        <div className="flex justify-between items-center text-sm font-bold text-slate-500 px-2">
-                                            <span>Sub Total:</span>
-                                            <span>Rs {slipData?.total.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm font-black text-green-600 px-2 bg-green-50 rounded-lg py-2">
-                                            <span>Cleared:</span>
-                                            <span>Rs {slipData?.paid.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-lg font-black text-white px-3 bg-red-600 rounded-xl py-3 shadow-lg shadow-red-500/20">
-                                            <span>Payable:</span>
-                                            <span>Rs {slipData?.unpaid.toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Footer Note */}
-                                <div className="mt-12 pt-8 border-t border-slate-100 flex justify-between items-end">
-                                    <div className="max-w-[200px]">
-                                        <div className="h-[2px] bg-slate-900 w-full mb-2"></div>
-                                        <div className="text-xs font-black text-slate-900 text-center uppercase tracking-wide">Manager's Signature</div>
-                                    </div>
-                                    <div className="text-right text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                                        This is a computer generated document
-                                    </div>
-                                </div>
+                        <div className="mt-auto border-t-2 border-slate-900 pt-6 flex justify-between items-end">
+                            <div className="bg-red-50 text-red-600 px-6 py-4 rounded-2xl border border-red-100">
+                                <p className="text-xs font-black uppercase tracking-widest mb-1">Payable Balance Due</p>
+                                <p className="text-3xl font-black">Rs {labour.balance.toLocaleString()}</p>
+                            </div>
+                            <div className="w-48 border-t-2 border-slate-400 pt-2 text-center text-xs font-black uppercase text-slate-400">
+                                Manager Signature
                             </div>
                         </div>
                     </div>
-
-                    {/* Print CSS styles removed as we now use Window-based isolated printing */}
                 </div>
-            )}
-            <div className="h-20 md:hidden" />
+            </div>
         </div>
     );
 }
 
 export default function LaborPage() {
     return (
-        <Suspense fallback={
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-                <p className="text-theme-muted">Loading labor hub...</p>
-            </div>
-        }>
-            <LaborContent />
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>}>
+            <LaborDashboard />
         </Suspense>
     );
 }
