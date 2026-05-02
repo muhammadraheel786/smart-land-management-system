@@ -31,6 +31,34 @@ function parseLabourNotes(notes?: string): LabourMeta | null {
   }
 }
 
+function parseLabourTxNotes(notes?: string): { labourId: string; tx: any } | null {
+  if (!notes || !notes.startsWith("LABOUR_TX::")) return null;
+  try {
+    const raw = notes.replace("LABOUR_TX::", "");
+    const idx = raw.indexOf("::");
+    if (idx <= 0) return null;
+    const labourId = raw.slice(0, idx);
+    const tx = JSON.parse(raw.slice(idx + 2));
+    return { labourId, tx };
+  } catch {
+    return null;
+  }
+}
+
+function parseLabourAttNotes(notes?: string): { labourId: string; attendance: any } | null {
+  if (!notes || !notes.startsWith("LABOUR_ATT::")) return null;
+  try {
+    const raw = notes.replace("LABOUR_ATT::", "");
+    const idx = raw.indexOf("::");
+    if (idx <= 0) return null;
+    const labourId = raw.slice(0, idx);
+    const attendance = JSON.parse(raw.slice(idx + 2));
+    return { labourId, attendance };
+  } catch {
+    return null;
+  }
+}
+
 function mapActivityToLabour(a: any): any {
   const meta = parseLabourNotes(a?.notes);
   return {
@@ -392,7 +420,7 @@ export const api = {
         // Fallback to unified activities (activity_type=labor)
         const activities = await fetchJson<any[]>('/activities');
         return (activities || [])
-          .filter((a) => a?.activity_type === "labor")
+          .filter((a) => parseLabourNotes(a?.notes))
           .map(mapActivityToLabour);
       }
       throw e;
@@ -403,10 +431,21 @@ export const api = {
       return await fetchJson<any>('/labours/dashboard');
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        const labours = await api.getLabours();
+        const [labours, activities] = await Promise.all([
+          api.getLabours(),
+          fetchJson<any[]>('/activities'),
+        ]);
+        const txRows = (activities || [])
+          .map((a) => parseLabourTxNotes(a?.notes))
+          .filter(Boolean) as Array<{ labourId: string; tx: any }>;
         const total = labours.length;
         const totalSalary = labours.reduce((s, l) => s + (Number(l.total_salary) || 0), 0);
-        const totalPaid = labours.reduce((s, l) => s + (Number(l.total_paid) || 0), 0);
+        const totalPaid = txRows
+          .filter((r) => r.tx?.type === "salary")
+          .reduce((s, r) => s + (Number(r.tx?.amount) || 0), 0);
+        const advances = txRows
+          .filter((r) => r.tx?.type === "advance")
+          .reduce((s, r) => s + (Number(r.tx?.amount) || 0), 0);
         const pending = Math.max(0, totalSalary - totalPaid);
         return {
           total_labour: total,
@@ -415,7 +454,7 @@ export const api = {
           total_paid_overall: totalPaid,
           paid_this_month: totalPaid,
           pending_salary: pending,
-          advances_given: 0,
+          advances_given: advances,
         };
       }
       throw e;
@@ -459,9 +498,50 @@ export const api = {
       return { ...lData, transactions: tData, attendance: aData };
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        const labours = await api.getLabours();
-        const found = labours.find((l) => (l.id || l._id) === id);
-        return { ...(found || { id, _id: id, name: "Labour" }), transactions: [], attendance: [] };
+        const [labours, activities] = await Promise.all([
+          api.getLabours(),
+          fetchJson<any[]>('/activities'),
+        ]);
+        const found = labours.find((l) => (l.id || l._id) === id) || { id, _id: id, name: "Labour" };
+        const txData = (activities || [])
+          .map((a) => {
+            const parsed = parseLabourTxNotes(a?.notes);
+            if (!parsed || parsed.labourId !== id) return null;
+            return {
+              id: a?.id,
+              type: parsed.tx?.type || "salary",
+              amount: Number(parsed.tx?.amount || 0),
+              date: parsed.tx?.date || a?.date,
+              notes: parsed.tx?.notes || "",
+            };
+          })
+          .filter(Boolean);
+        const attData = (activities || [])
+          .map((a) => {
+            const parsed = parseLabourAttNotes(a?.notes);
+            if (!parsed || parsed.labourId !== id) return null;
+            return {
+              id: a?.id,
+              status: parsed.attendance?.status || "present",
+              date: parsed.attendance?.date || a?.date,
+            };
+          })
+          .filter(Boolean);
+        const totalPaid = txData
+          .filter((t: any) => t.type === "salary")
+          .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
+        const advances = txData
+          .filter((t: any) => t.type === "advance")
+          .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
+        const totalSalary = Number(found.total_salary || found.salary_amount || 0);
+        return {
+          ...found,
+          total_paid: totalPaid,
+          advance_balance: advances,
+          balance: Math.max(0, totalSalary - totalPaid),
+          transactions: txData,
+          attendance: attData,
+        };
       }
       throw e;
     }
