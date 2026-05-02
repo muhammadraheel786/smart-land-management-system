@@ -7,6 +7,7 @@ from . import labour_view
 urlpatterns = [
     # All API endpoints are defined without trailing slash to avoid Next.js
     # 308 redirects and 404s (canonical form: /api/...).
+    # Sync marker: keep Render backend in step with main branch.
     path("auth/login", login_view),
     path("dashboard", views.dashboard),
     path("fields", views.fields_list),
