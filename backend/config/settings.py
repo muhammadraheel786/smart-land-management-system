@@ -78,6 +78,7 @@ MONGO_SERVER_SELECTION_TIMEOUT_MS = int(os.environ.get('MONGO_SERVER_SELECTION_T
 PRODUCTION_CORS_ORIGINS = [
     'https://www.mashorifarm.com',
     'https://mashorifarm.com',
+    'https://smart-land-management-system-beta.onrender.com',
 ]
 LOCALHOST_ORIGINS = [
     'http://localhost:3000',
@@ -104,6 +105,7 @@ CORS_ALLOW_CREDENTIALS = True
 PRODUCTION_CSRF_ORIGINS = [
     'https://www.mashorifarm.com',
     'https://mashorifarm.com',
+    'https://smart-land-management-system-beta.onrender.com',
 ]
 _csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', '').strip()
 if _csrf:
