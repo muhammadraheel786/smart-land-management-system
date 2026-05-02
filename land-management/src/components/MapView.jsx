@@ -175,6 +175,7 @@ export default function MapView() {
           preview={preview}
           onFieldClick={handleFieldClick}
           sidebarCollapsed={sidebarCollapsed}
+          drawActive={drawActive}
         >
           {drawActive && (
             <DrawControls
@@ -204,7 +205,7 @@ export default function MapView() {
           </div>
         )}
 
-        {selectedField && (
+        {selectedField && !drawActive && (
           <div className="absolute top-[80px] left-4 right-4 sm:top-4 sm:left-auto sm:right-4 z-[1000] sm:w-80 md:w-96 bg-[var(--card)]/95 backdrop-blur-2xl border border-[var(--border)] rounded-[2rem] shadow-2xl p-5 sm:p-6 text-[var(--foreground)] animate-in slide-in-from-bottom-8 sm:slide-in-from-right-8 duration-500 overflow-y-auto max-h-[calc(100%-100px)] sm:max-h-[calc(100vh-120px)] no-scrollbar">
             {/* Header */}
             <div className="relative -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 mb-6 p-5 sm:p-6 rounded-t-[2rem] bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent border-b border-[var(--border)]">

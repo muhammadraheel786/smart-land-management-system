@@ -67,6 +67,14 @@ function DrawControls({
       setCurrentPos(e.latlng);
     },
 
+    touchstart(e) {
+      if (!isActive) return;
+      if (e?.latlng) {
+        const { lat, lng } = e.latlng;
+        drawState.addPoint(lat, lng);
+      }
+    },
+
     contextmenu(e) {
       if (!isActive) return;
       e.originalEvent.preventDefault();
@@ -136,7 +144,7 @@ function DrawControls({
       )}
 
       {/* Floating controls */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[2000] bg-[var(--card)]/90 backdrop-blur-xl border border-[var(--border)] rounded-2xl shadow-2xl p-5 space-y-4 min-w-[320px] max-w-sm animate-in slide-in-from-top-4">
+      <div className="absolute bottom-4 left-2 right-2 sm:top-6 sm:left-1/2 sm:right-auto sm:bottom-auto sm:-translate-x-1/2 z-[2000] bg-[var(--card)]/90 backdrop-blur-xl border border-[var(--border)] rounded-2xl shadow-2xl p-4 sm:p-5 space-y-3 sm:space-y-4 sm:min-w-[320px] sm:max-w-sm animate-in slide-in-from-bottom-4 sm:slide-in-from-top-4">
         <div className="text-center">
           <div className="text-sm font-bold text-[var(--foreground)] mb-2 flex items-center justify-center gap-2">
             <Pencil className="w-4 h-4 text-green-500" />

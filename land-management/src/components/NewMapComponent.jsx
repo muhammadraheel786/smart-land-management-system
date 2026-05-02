@@ -79,6 +79,7 @@ export default function MapComponent({
   preview,
   onFieldClick,
   sidebarCollapsed,
+  drawActive = false,
   children,
 }) {
   const activeLayer = useMemo(
@@ -136,10 +137,14 @@ export default function MapComponent({
                 opacity: 0.9,
               }}
               eventHandlers={{
-                click: () => onFieldClick?.(field),
+                click: () => {
+                  if (drawActive) return;
+                  onFieldClick?.(field);
+                },
               }}
             >
-              <Popup maxWidth={350} minWidth={300}>
+              {!drawActive && (
+                <Popup maxWidth={350} minWidth={300}>
                 <div className="p-4 max-h-[500px] overflow-y-auto no-scrollbar font-sans">
                   {/* Header */}
                   <div className="flex items-center gap-3 mb-4 p-2 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
@@ -200,7 +205,8 @@ export default function MapComponent({
                     </p>
                   </div>
                 </div>
-              </Popup>
+                </Popup>
+              )}
             </Polygon>
           );
         })}
