@@ -48,6 +48,11 @@ function Sidebar({
   onMyLocation,
   onCoordinatesApply,
   onDrawStart,
+  drawActive,
+  drawPointsCount,
+  onDrawUndo,
+  onDrawFinish,
+  onDrawCancel,
   onSaveField,
   onClearPreview,
   fieldsCount,
@@ -197,14 +202,47 @@ function Sidebar({
                 <p className="text-[var(--muted)] mb-6 text-sm leading-relaxed">
                   Draw polygon or rectangle directly on map for pinpoint accuracy.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => onDrawStart?.()}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 py-3.5 px-8 font-bold text-white hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
-                >
-                  <Pencil className="h-5 w-5" />
-                  Start Drawing
-                </button>
+                {!drawActive ? (
+                  <button
+                    type="button"
+                    onClick={() => onDrawStart?.()}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 py-3.5 px-8 font-bold text-white hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
+                  >
+                    <Pencil className="h-5 w-5" />
+                    Start Drawing
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-[var(--foreground)]">
+                      Drawing active - Points: {drawPointsCount}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onDrawUndo?.()}
+                        disabled={!drawPointsCount}
+                        className="rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 text-xs font-bold text-[var(--foreground)] disabled:opacity-50"
+                      >
+                        Undo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDrawFinish?.()}
+                        disabled={(drawPointsCount || 0) < 3}
+                        className="rounded-xl bg-green-500 py-2.5 text-xs font-bold text-white disabled:opacity-50"
+                      >
+                        Finish
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDrawCancel?.()}
+                        className="rounded-xl bg-red-500/90 py-2.5 text-xs font-bold text-white"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

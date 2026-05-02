@@ -143,43 +143,7 @@ function DrawControls({
         />
       )}
 
-      {/* Minimal controls: keep map fully visible */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[2000]">
-        <div className="px-3 py-1.5 rounded-full bg-[var(--card)]/85 backdrop-blur border border-[var(--border)] text-[11px] font-bold text-[var(--foreground)] shadow-lg">
-          {shape === "polygon" ? "Polygon" : "Rectangle"} • {points.length} pts
-        </div>
-      </div>
-
-      <div className="absolute bottom-4 right-3 z-[2000] flex flex-col gap-2">
-        {shape === "polygon" && (
-          <>
-            <button
-              onClick={undo}
-              disabled={points.length === 0}
-              className="w-11 h-11 rounded-full bg-[var(--card)]/90 backdrop-blur border border-[var(--border)] text-[var(--foreground)] disabled:opacity-40 shadow-lg flex items-center justify-center"
-              title="Undo"
-            >
-              ↩
-            </button>
-            <button
-              onClick={finishDrawing}
-              disabled={points.length < 3}
-              className="w-11 h-11 rounded-full bg-green-500/90 border border-green-400/30 text-white disabled:opacity-40 shadow-lg flex items-center justify-center"
-              title="Finish"
-            >
-              <Check className="w-5 h-5" />
-            </button>
-          </>
-        )}
-
-        <button
-          onClick={onCancel}
-          className="w-11 h-11 rounded-full bg-red-500/90 border border-red-400/30 text-white shadow-lg flex items-center justify-center"
-          title="Cancel drawing"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Controls moved to sidebar draw menu */}
     </>
   );
 }

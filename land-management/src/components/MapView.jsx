@@ -156,6 +156,15 @@ export default function MapView() {
           onMyLocation={onMyLocationWrap}
           onCoordinatesApply={onCoordinatesApplyWrap}
           onDrawStart={handleDrawStartWrap}
+          drawActive={drawActive}
+          drawPointsCount={drawState.points?.length || 0}
+          onDrawUndo={() => drawState.undoPoint()}
+          onDrawFinish={() => {
+            if ((drawState.points?.length || 0) >= 3) {
+              handleDrawFinish(drawState.points);
+            }
+          }}
+          onDrawCancel={() => setDrawActive(false)}
           onSaveField={handleSaveField}
           onClearPreview={clearPreview}
           fieldsCount={fieldsCount}
