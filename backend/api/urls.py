@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from .auth import login_view
 from . import activities_view
+from . import labour_view
 
 urlpatterns = [
     # All API endpoints are defined without trailing slash to avoid Next.js
@@ -13,6 +14,14 @@ urlpatterns = [
     # Unified Activities
     path("activities", activities_view.activities_list),
     path("activities/<str:pk>", activities_view.activities_detail),
+
+    # Labour Management
+    path("labours/dashboard", labour_view.labour_dashboard),
+    path("labours", labour_view.labour_list),
+    path("labours/<str:pk>", labour_view.labour_detail),
+    path("labours/<str:pk>/transactions", labour_view.labour_transactions),
+    path("transactions/<str:tx_id>", labour_view.transaction_detail),
+    path("labours/<str:pk>/attendance", labour_view.labour_attendance),
 
     path("thaka", views.thaka_list),
     path("thaka/<str:pk>", views.thaka_detail),
