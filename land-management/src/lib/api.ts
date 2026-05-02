@@ -81,6 +81,63 @@ function mapActivityToLabour(a: any): any {
   };
 }
 
+function computeFallbackLabourRows(activities: any[]): any[] {
+  const profileRows = (activities || [])
+    .filter((a) => parseLabourNotes(a?.notes))
+    .map(mapActivityToLabour);
+
+  const txRows = (activities || [])
+    .map((a) => {
+      const parsed = parseLabourTxNotes(a?.notes);
+      if (!parsed) return null;
+      return {
+        labourId: parsed.labourId,
+        type: parsed.tx?.type || "salary",
+        amount: Number(parsed.tx?.amount || 0),
+      };
+    })
+    .filter(Boolean) as Array<{ labourId: string; type: string; amount: number }>;
+
+  const attRows = (activities || [])
+    .map((a) => {
+      const parsed = parseLabourAttNotes(a?.notes);
+      if (!parsed) return null;
+      return {
+        labourId: parsed.labourId,
+        status: parsed.attendance?.status || "present",
+      };
+    })
+    .filter(Boolean) as Array<{ labourId: string; status: string }>;
+
+  return profileRows.map((l) => {
+    const labourId = l.id || l._id;
+    const labourTx = txRows.filter((t) => t.labourId === labourId);
+    const paid = labourTx
+      .filter((t) => t.type === "salary")
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const advances = labourTx
+      .filter((t) => t.type === "advance")
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const days = attRows.filter((a) => a.labourId === labourId && a.status === "present").length;
+    const halfDays = attRows.filter((a) => a.labourId === labourId && a.status === "half_day").length;
+
+    const salaryType = l.salary_type || "daily";
+    const baseSalary = Number(l.salary_amount || 0);
+    const totalSalary = salaryType === "daily"
+      ? (days + (halfDays * 0.5)) * baseSalary
+      : baseSalary;
+
+    return {
+      ...l,
+      days_worked: days,
+      total_salary: totalSalary,
+      total_paid: paid,
+      advance_balance: advances,
+      balance: Math.max(0, totalSalary - paid),
+    };
+  });
+}
+
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const t = localStorage.getItem("smartland_token");
@@ -419,9 +476,7 @@ export const api = {
       if (e instanceof Error && e.message.includes("404")) {
         // Fallback to unified activities (activity_type=labor)
         const activities = await fetchJson<any[]>('/activities');
-        return (activities || [])
-          .filter((a) => parseLabourNotes(a?.notes))
-          .map(mapActivityToLabour);
+        return computeFallbackLabourRows(activities || []);
       }
       throw e;
     }
@@ -555,13 +610,52 @@ export const api = {
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
         // Fallback: log transaction as labor activity note
+        const current = await api.getLabourProfile(labourId);
+        const rawAmount = Number(tx?.amount || 0);
+        const safeAmount = Number.isFinite(rawAmount) ? Math.max(0, rawAmount) : 0;
+        const date = tx?.date || new Date().toISOString().split("T")[0];
+
+        // If salary payment exceeds payable balance, split automatically:
+        // remaining payable part as salary + extra as advance.
+        if ((tx?.type || "salary") === "salary") {
+          const balance = Number(current?.balance || 0);
+          const salaryPart = Math.min(safeAmount, Math.max(0, balance));
+          const advancePart = Math.max(0, safeAmount - salaryPart);
+
+          if (salaryPart > 0) {
+            await fetchJson<any>(`/activities`, {
+              method: 'POST',
+              body: JSON.stringify({
+                activity_type: "labor",
+                date,
+                notes: `LABOUR_TX::${labourId}::${JSON.stringify({ ...tx, type: "salary", amount: salaryPart, notes: `${tx?.notes || ""}${tx?.notes ? " " : ""}(auto split)` })}`,
+              }),
+            });
+          }
+
+          if (advancePart > 0) {
+            await fetchJson<any>(`/activities`, {
+              method: 'POST',
+              body: JSON.stringify({
+                activity_type: "labor",
+                date,
+                cost: advancePart,
+                notes: `LABOUR_TX::${labourId}::${JSON.stringify({ ...tx, type: "advance", amount: advancePart, notes: `${tx?.notes || ""}${tx?.notes ? " " : ""}(auto extra as advance)` })}`,
+              }),
+            });
+            return { status: "split", salary: salaryPart, advance: advancePart };
+          }
+
+          return { status: "salary", salary: salaryPart, advance: 0 };
+        }
+
         return fetchJson<any>(`/activities`, {
           method: 'POST',
           body: JSON.stringify({
             activity_type: "labor",
-            date: tx?.date || new Date().toISOString().split("T")[0],
-            cost: tx?.type === "advance" ? Number(tx?.amount || 0) : 0,
-            notes: `LABOUR_TX::${labourId}::${JSON.stringify(tx)}`,
+            date,
+            cost: tx?.type === "advance" ? safeAmount : 0,
+            notes: `LABOUR_TX::${labourId}::${JSON.stringify({ ...tx, amount: safeAmount })}`,
           }),
         });
       }
