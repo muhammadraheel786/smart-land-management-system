@@ -1,0 +1,13 @@
+{
+  "name": "smart-land-management-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix land-management run dev",
+    "build": "npm --prefix land-management run build",
+    "start": "npm --prefix land-management run start",
+    "lint": "npm --prefix land-management run lint"
+  },
+  "dependencies": {
+    "next": "16.1.6"
+  }
+}
