@@ -25,6 +25,9 @@ function LaborDashboard() {
 
     // Modal States
     const [openAddLabour, setOpenAddLabour] = useState(false);
+    const [openTransaction, setOpenTransaction] = useState<{ type: 'salary' | 'advance', open: boolean }>({ type: 'salary', open: false });
+    const [openAttendance, setOpenAttendance] = useState(false);
+    const [openSlip, setOpenSlip] = useState(false);
 
     // Toast
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -40,7 +43,7 @@ function LaborDashboard() {
                 api.getLabours(),
                 api.getLabourDashboard()
             ]);
-            setLabours(lData);
+            setLabours(Array.isArray(lData) ? lData : []);
             setStats(sData);
         } catch (err: any) {
             console.error(err);
@@ -54,19 +57,27 @@ function LaborDashboard() {
         fetchData();
     }, []);
 
-    const handleSelectLabour = (l: any) => {
-        setSelectedLabour(l);
-        setView("profile");
+    const handleSelectLabour = async (l: any) => {
+        setLoading(true);
+        try {
+            const profile = await api.getLabourProfile(l.id || l._id);
+            setSelectedLabour(profile);
+            setView("profile");
+        } catch (err) {
+            showToast('error', 'Failed to load profile');
+        } finally {
+            setLoading(false);
+        }
     };
 
     // --- Search & Filter ---
     const [searchTerm, setSearchTerm] = useState("");
     const filteredLabours = useMemo(() => {
-        return labours.filter(l => l.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        return labours.filter(l => l.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [labours, searchTerm]);
 
     if (loading) {
-        return <div className="flex h-screen items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>;
+        return <div className="flex h-screen items-center justify-center bg-theme text-theme"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>;
     }
 
     return (
@@ -108,27 +119,27 @@ function LaborDashboard() {
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl"><Users className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-theme-muted uppercase">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3>
+                                <h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3>
                             </div>
                             <div>
                                 <p className="text-3xl font-black text-theme">{stats?.total_labour || 0}</p>
-                                <p className="text-xs font-bold text-green-500 mt-1">{stats?.active_labour || 0} Active • {stats?.inactive_labour || 0} Inactive</p>
+                                <p className="text-[10px] font-bold text-green-500 mt-1">{stats?.active_labour || 0} Active • {stats?.inactive_labour || 0} Inactive</p>
                             </div>
                         </div>
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-theme-muted uppercase">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3>
+                                <h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3>
                             </div>
                             <div>
                                 <p className="text-2xl font-black text-theme">Rs {stats?.total_paid_overall?.toLocaleString() || 0}</p>
-                                <p className="text-xs font-bold text-theme-muted mt-1">This Month: Rs {stats?.paid_this_month?.toLocaleString() || 0}</p>
+                                <p className="text-[10px] font-bold text-theme-muted mt-1">This Month: Rs {stats?.paid_this_month?.toLocaleString() || 0}</p>
                             </div>
                         </div>
                         <div className="bg-red-500/10 p-5 rounded-3xl border border-red-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-red-400 uppercase">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3>
+                                <h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3>
                             </div>
                             <div>
                                 <p className="text-3xl font-black text-red-500">Rs {stats?.pending_salary?.toLocaleString() || 0}</p>
@@ -137,7 +148,7 @@ function LaborDashboard() {
                         <div className="bg-orange-500/10 p-5 rounded-3xl border border-orange-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-orange-400 uppercase">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3>
+                                <h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3>
                             </div>
                             <div>
                                 <p className="text-3xl font-black text-orange-500">Rs {stats?.advances_given?.toLocaleString() || 0}</p>
@@ -158,7 +169,7 @@ function LaborDashboard() {
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-theme-track text-xs uppercase tracking-widest text-theme-muted font-black border-b border-theme">
+                                    <tr className="bg-theme-track text-[10px] uppercase tracking-widest text-theme-muted font-black border-b border-theme">
                                         <th className="p-4">{locale === 'ur' ? 'مزدور' : 'Worker'}</th>
                                         <th className="p-4">{locale === 'ur' ? 'کام' : 'Type'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'دن' : 'Days'}</th>
@@ -170,11 +181,11 @@ function LaborDashboard() {
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => (
-                                        <tr key={l.id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group">
+                                        <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group">
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 overflow-hidden border border-theme">
-                                                        {l.photo ? <img src={l.photo} className="w-full h-full object-cover" /> : l.name[0]}
+                                                        {l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p>
@@ -184,9 +195,9 @@ function LaborDashboard() {
                                             </td>
                                             <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
                                             <td className="p-4 text-right text-sm font-bold text-theme-muted">{l.days_worked || 0}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.total_salary.toLocaleString()}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid.toLocaleString()}</td>
-                                            <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance.toLocaleString()}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.total_salary?.toLocaleString() || 0}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid?.toLocaleString() || 0}</td>
+                                            <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-center">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${l.status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-theme-track text-theme-muted border border-theme'}`}>
                                                     {l.status}
@@ -198,8 +209,36 @@ function LaborDashboard() {
                             </table>
                         </div>
 
+                        {/* Mobile View */}
+                        <div className="md:hidden flex flex-col divide-y divide-theme">
+                            {filteredLabours.map(l => (
+                                <div key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="p-4 hover:bg-theme-track cursor-pointer active:bg-theme transition-colors flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-theme-track flex items-center justify-center font-black text-theme-muted uppercase shrink-0 overflow-hidden border border-theme">
+                                            {l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-black text-theme">{l.name}</p>
+                                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${l.status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-theme-track text-theme-muted border border-theme'}`}>
+                                                    {l.status}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-theme-muted mt-0.5">{l.work_type} • {l.days_worked || 0} days</p>
+                                            <p className="text-xs font-bold mt-1">
+                                                <span className="text-green-500">Paid: Rs {l.total_paid?.toLocaleString() || 0}</span>
+                                                {' | '}
+                                                <span className="text-red-500">Bal: Rs {l.balance?.toLocaleString() || 0}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-theme-muted" />
+                                </div>
+                            ))}
+                        </div>
+
                         {filteredLabours.length === 0 && (
-                            <div className="p-12 text-center text-slate-400 font-bold">
+                            <div className="p-12 text-center text-theme-muted font-bold">
                                 {locale === 'ur' ? 'کوئی ریکارڈ نہیں ملا۔' : 'No records found.'}
                             </div>
                         )}
@@ -210,22 +249,118 @@ function LaborDashboard() {
             {/* Profile View */}
             {view === "profile" && selectedLabour && (
                 <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-                    <button onClick={() => { setView("dashboard"); fetchData(); }} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold mb-4 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 w-fit">
+                    <button onClick={() => { setView("dashboard"); fetchData(); }} className="flex items-center gap-2 text-theme-muted hover:text-theme font-bold mb-4 bg-theme-card px-4 py-2 rounded-xl shadow-sm border border-theme w-fit">
                         <ArrowUpRight className="w-5 h-5 rotate-[-135deg]" /> Back to Dashboard
                     </button>
                     
-                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                        <h2 className="text-2xl font-black text-slate-900 mb-6">{selectedLabour.name}</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <p className="text-sm font-bold text-slate-500">Work Type: {selectedLabour.work_type}</p>
-                                <p className="text-sm font-bold text-slate-500">Salary: Rs {selectedLabour.salary_amount} / {selectedLabour.salary_type}</p>
-                                <p className="text-sm font-bold text-slate-500">Phone: {selectedLabour.phone || 'N/A'}</p>
+                    <div className="bg-theme-card rounded-3xl p-6 shadow-sm border border-theme">
+                        <div className="flex flex-col md:flex-row gap-8 items-start">
+                            <div className="w-32 h-32 rounded-3xl bg-theme-track border-2 border-theme flex items-center justify-center text-4xl font-black text-theme-muted uppercase overflow-hidden shadow-xl">
+                                {selectedLabour.photo ? <img src={selectedLabour.photo} className="w-full h-full object-cover" alt="" /> : selectedLabour.name?.[0]}
                             </div>
-                            <div>
-                                <p className="text-sm font-bold text-slate-500">Total Salary: Rs {selectedLabour.total_salary.toLocaleString()}</p>
-                                <p className="text-sm font-bold text-slate-500">Total Paid: Rs {selectedLabour.total_paid.toLocaleString()}</p>
-                                <p className="text-sm font-bold text-slate-500">Balance: Rs {selectedLabour.balance.toLocaleString()}</p>
+                            <div className="flex-1">
+                                <h2 className="text-4xl font-black text-theme tracking-tight mb-2">{selectedLabour.name}</h2>
+                                <div className="flex flex-wrap gap-3">
+                                    <span className="bg-orange-500/10 text-orange-500 border border-orange-500/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                                        <Volume2 className="w-4 h-4" /> {selectedLabour.work_type}
+                                    </span>
+                                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                                        <Banknote className="w-4 h-4" /> Rs {selectedLabour.salary_amount} / {selectedLabour.salary_type}
+                                    </span>
+                                    {selectedLabour.phone && (
+                                        <a href={`tel:${selectedLabour.phone}`} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all">
+                                            <Phone className="w-4 h-4" /> {selectedLabour.phone}
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                            {!isDataEntry && (
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => setOpenAttendance(true)} className="bg-theme-card border-2 border-theme hover:border-orange-500 hover:text-orange-500 p-4 rounded-2xl font-black flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                                        <Clock className="w-5 h-5" /> Mark Present
+                                    </button>
+                                    <button onClick={() => setOpenSlip(true)} className="bg-theme-card border-2 border-theme hover:border-blue-400 hover:text-blue-400 p-4 rounded-2xl font-black flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                                        <FileText className="w-5 h-5" /> Salary Slip
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm">
+                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Earned</p>
+                            <p className="text-2xl font-black text-theme">Rs {selectedLabour.total_salary?.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm">
+                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Paid</p>
+                            <p className="text-2xl font-black text-green-500">Rs {selectedLabour.total_paid?.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm">
+                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Advance Bal</p>
+                            <p className="text-2xl font-black text-orange-500">Rs {selectedLabour.advance_balance?.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-red-500/10 p-6 rounded-3xl border border-red-500/20 shadow-sm">
+                            <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Payable Bal</p>
+                            <p className="text-2xl font-black text-red-500">Rs {selectedLabour.balance?.toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Transaction History */}
+                        <div className="bg-theme-card rounded-3xl border border-theme shadow-sm overflow-hidden flex flex-col">
+                            <div className="p-6 border-b border-theme bg-theme-track flex justify-between items-center">
+                                <h3 className="font-black text-theme uppercase tracking-widest flex items-center gap-2"><ListTodo className="w-5 h-5 text-theme-muted" /> Transactions</h3>
+                                {!isDataEntry && (
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setOpenTransaction({ type: 'salary', open: true })} className="bg-green-500 hover:bg-green-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-lg shadow-green-500/20 flex items-center gap-1"><ArrowDownRight className="w-3 h-3" /> Pay Salary</button>
+                                        <button onClick={() => setOpenTransaction({ type: 'advance', open: true })} className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-lg shadow-orange-500/20 flex items-center gap-1"><ArrowUpRight className="w-3 h-3" /> Give Advance</button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                                {selectedLabour.transactions?.map((t: any) => (
+                                    <div key={t.id || t._id} className="flex items-center justify-between p-4 bg-theme-track rounded-2xl border border-theme group hover:border-theme-muted transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl ${t.type === 'salary' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                                                {t.type === 'salary' ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-theme text-sm uppercase">{t.type}</p>
+                                                <p className="text-[10px] font-bold text-theme-muted">{new Date(t.date).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`font-black ${t.type === 'salary' ? 'text-green-500' : 'text-orange-500'}`}>Rs {t.amount?.toLocaleString()}</p>
+                                            <p className="text-[10px] font-bold text-theme-muted italic">{t.notes || 'No notes'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!selectedLabour.transactions || selectedLabour.transactions.length === 0) && <p className="text-center py-10 text-theme-muted font-bold uppercase tracking-widest text-xs">No transactions yet</p>}
+                            </div>
+                        </div>
+
+                        {/* Attendance History */}
+                        <div className="bg-theme-card rounded-3xl border border-theme shadow-sm overflow-hidden flex flex-col">
+                            <div className="p-6 border-b border-theme bg-theme-track flex justify-between items-center">
+                                <h3 className="font-black text-theme uppercase tracking-widest flex items-center gap-2"><MapPin className="w-5 h-5 text-theme-muted" /> Attendance History</h3>
+                            </div>
+                            <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                                {selectedLabour.attendance?.map((a: any) => (
+                                    <div key={a.id || a._id} className="flex items-center justify-between p-4 bg-theme-track rounded-2xl border border-theme group hover:border-theme-muted transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl ${a.status === 'present' ? 'bg-emerald-500/10 text-emerald-500' : a.status === 'absent' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-400/10 text-yellow-500'}`}>
+                                                <CheckCircle className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-theme text-sm uppercase tracking-wider">{a.status}</p>
+                                                <p className="text-[10px] font-bold text-theme-muted">{new Date(a.date).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!selectedLabour.attendance || selectedLabour.attendance.length === 0) && <p className="text-center py-10 text-theme-muted font-bold uppercase tracking-widest text-xs">No attendance marked</p>}
                             </div>
                         </div>
                     </div>
@@ -234,6 +369,27 @@ function LaborDashboard() {
 
             {/* MODALS */}
             <AddLabourModal open={openAddLabour} onClose={() => setOpenAddLabour(false)} onSave={() => { setOpenAddLabour(false); fetchData(); showToast('success', locale === 'ur' ? 'مزدور شامل کر دیا گیا' : 'Labour Added Successfully'); }} locale={locale} />
+            <AddTransactionModal 
+                open={openTransaction.open} 
+                type={openTransaction.type} 
+                labour={selectedLabour} 
+                onClose={() => setOpenTransaction(prev => ({...prev, open: false}))} 
+                onSave={() => { setOpenTransaction(prev => ({...prev, open: false})); handleSelectLabour(selectedLabour); showToast('success', 'Transaction recorded'); }} 
+                locale={locale} 
+            />
+            <AttendanceModal 
+                open={openAttendance} 
+                labour={selectedLabour} 
+                onClose={() => setOpenAttendance(false)} 
+                onSave={() => { setOpenAttendance(false); handleSelectLabour(selectedLabour); showToast('success', 'Attendance marked'); }} 
+                locale={locale} 
+            />
+            <SlipModal 
+                open={openSlip} 
+                labour={selectedLabour} 
+                onClose={() => setOpenSlip(false)} 
+                locale={locale} 
+            />
         </div>
     );
 }
@@ -294,16 +450,16 @@ function AddLabourModal({ open, onClose, onSave, locale }: any) {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'تنخواہ کی قسم' : 'Salary Type'}</label>
-                            <select value={form.salary_type} onChange={e => setForm({...form, salary_type: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-bold focus:outline-none focus:border-orange-500 appearance-none">
-                                <option value="daily">{locale === 'ur' ? 'روزانہ (Daily)' : 'Daily Wage'}</option>
-                                <option value="monthly">{locale === 'ur' ? 'ماہانہ (Monthly)' : 'Monthly Salary'}</option>
+                            <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'تنخواہ کی قسم' : 'Salary Type'}</label>
+                            <select value={form.salary_type} onChange={e => setForm({...form, salary_type: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl font-bold text-theme focus:outline-none focus:border-orange-500 appearance-none">
+                                <option value="daily" className="bg-theme-card">{locale === 'ur' ? 'روزانہ (Daily)' : 'Daily Wage'}</option>
+                                <option value="monthly" className="bg-theme-card">{locale === 'ur' ? 'ماہانہ (Monthly)' : 'Monthly Salary'}</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-black text-slate-400 uppercase mb-2">{locale === 'ur' ? 'رقم' : 'Base Salary Amount'}</label>
-                        <input required type="number" value={form.salary_amount} onChange={e => setForm({...form, salary_amount: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xl font-black text-orange-600 focus:outline-none focus:border-orange-500" placeholder="Rs" />
+                        <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'رقم' : 'Base Salary Amount'}</label>
+                        <input required type="number" value={form.salary_amount} onChange={e => setForm({...form, salary_amount: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl text-xl font-black text-orange-600 focus:outline-none focus:border-orange-500 placeholder-theme" placeholder="Rs" />
                     </div>
                     <button type="submit" disabled={saving} className="w-full bg-green-500 hover:bg-green-600 text-white p-5 rounded-2xl font-black text-xl shadow-xl shadow-green-500/20 active:scale-95 transition-all mt-4 flex justify-center items-center gap-2">
                         {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle className="w-6 h-6" /> Save Worker</>}
@@ -314,9 +470,208 @@ function AddLabourModal({ open, onClose, onSave, locale }: any) {
     );
 }
 
+function AddTransactionModal({ open, type, labour, onClose, onSave, locale }: any) {
+    if (!open) return null;
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({ amount: '', notes: '', date: new Date().toISOString().split('T')[0] });
+
+    const title = type === 'salary' ? (locale === 'ur' ? 'تنخواہ کی ادائیگی' : 'Pay Salary') : (locale === 'ur' ? 'ایڈوانس کی ادائیگی' : 'Give Advance');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            await api.addTransaction(labour.id || labour._id, { ...form, type });
+            onSave();
+        } catch (err: any) {
+            alert(err.message);
+        }
+        setSaving(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-sm bg-theme-card border border-theme rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-theme-track border-b border-theme p-6 flex justify-between items-center text-theme">
+                    <h2 className="text-xl font-black tracking-tight">{title}</h2>
+                    <button onClick={onClose} className="p-2 bg-theme border border-theme hover:bg-theme-hover rounded-xl transition-colors"><X className="w-5 h-5 text-theme-muted" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'رقم' : 'Amount'}</label>
+                        <input required type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl text-2xl font-black text-theme focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 placeholder-theme" placeholder="0" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'تاریخ' : 'Date'}</label>
+                        <input required type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl font-bold text-theme focus:outline-none focus:border-green-500" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'تفصیل' : 'Notes / Details'}</label>
+                        <textarea rows={2} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-2xl font-bold text-theme focus:outline-none focus:border-green-500 placeholder-theme" placeholder="..." />
+                    </div>
+                    <button type="submit" disabled={saving} className="w-full bg-green-500 hover:bg-green-600 text-white p-5 rounded-2xl font-black text-xl shadow-xl shadow-green-500/20 active:scale-95 transition-all mt-4">
+                        {saving ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'Confirm Transaction'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function AttendanceModal({ open, labour, onClose, onSave, locale }: any) {
+    if (!open) return null;
+    const [saving, setSaving] = useState(false);
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+    const mark = async (status: string) => {
+        setSaving(true);
+        try {
+            await api.markAttendance(labour.id || labour._id, { date, status });
+            onSave();
+        } catch (err: any) {
+            alert(err.message);
+        }
+        setSaving(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-sm bg-theme-card border border-theme rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-theme-track border-b border-theme p-6 flex justify-between items-center text-theme">
+                    <h2 className="text-xl font-black tracking-tight">{locale === 'ur' ? 'حاضری' : 'Attendance'} - {labour?.name}</h2>
+                    <button onClick={onClose} className="p-2 bg-theme border border-theme hover:bg-theme-hover rounded-xl transition-colors"><X className="w-5 h-5 text-theme-muted" /></button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div>
+                        <label className="block text-xs font-black text-theme-muted uppercase mb-2">{locale === 'ur' ? 'تاریخ' : 'Date'}</label>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-theme-track border border-theme p-4 rounded-2xl font-bold text-theme focus:outline-none focus:border-orange-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => mark('present')} disabled={saving} className="bg-emerald-500 hover:bg-emerald-600 text-white p-5 rounded-2xl font-black text-lg shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+                            {locale === 'ur' ? 'حاضر' : 'Present'}
+                        </button>
+                        <button onClick={() => mark('absent')} disabled={saving} className="bg-red-500 hover:bg-red-600 text-white p-5 rounded-2xl font-black text-lg shadow-lg shadow-red-500/20 active:scale-95 transition-all">
+                            {locale === 'ur' ? 'غیر حاضر' : 'Absent'}
+                        </button>
+                        <button onClick={() => mark('half_day')} disabled={saving} className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 p-5 rounded-2xl font-black text-lg shadow-lg shadow-yellow-400/20 active:scale-95 transition-all col-span-2">
+                            {locale === 'ur' ? 'آدھا دن' : 'Half Day'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SlipModal({ open, onClose, labour }: any) {
+    if (!open || !labour) return null;
+
+    const handlePrint = () => {
+        const content = document.getElementById('payment-slip');
+        if (!content) return;
+        
+        const printWindow = window.open('', '_blank', 'width=800,height=900');
+        if (!printWindow) return;
+
+        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Payment Slip - ${labour.name}</title>
+                    ${styles}
+                    <style>
+                        body { background: white !important; color: black !important; padding: 20px !important; }
+                        #payment-slip { border: 2px solid #000 !important; max-width: 800px !important; margin: 0 auto !important; }
+                    </style>
+                </head>
+                <body>
+                    ${content.outerHTML}
+                    <script>
+                        setTimeout(() => { window.print(); window.close(); }, 500);
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-2xl bg-theme-card border border-theme rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between p-6 border-b border-theme bg-theme-track shrink-0">
+                    <h2 className="text-xl font-black text-theme flex items-center gap-2"><FileText className="w-6 h-6 text-theme-muted" /> Salary Slip Preview</h2>
+                    <div className="flex gap-2">
+                        <button onClick={handlePrint} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-orange-500/20"><Printer className="w-4 h-4" /> Print PDF</button>
+                        <button onClick={onClose} className="p-2 hover:bg-theme-track rounded-xl transition-colors"><X className="w-5 h-5 text-theme-muted" /></button>
+                    </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-8 bg-theme">
+                    <div id="payment-slip" className="border-2 border-slate-900 p-8 min-h-[600px] flex flex-col bg-white text-slate-900">
+                        <div className="border-b-2 border-slate-900 pb-6 mb-8 flex justify-between">
+                            <div>
+                                <h1 className="text-3xl font-black uppercase tracking-tighter">Mashori Farm</h1>
+                                <p className="text-sm font-bold text-slate-500">Official Labour Payment Slip</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Date</p>
+                                <p className="text-sm font-black">{new Date().toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-8 mb-8">
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Worker Name</p>
+                                <p className="text-xl font-black uppercase">{labour.name}</p>
+                                <p className="text-xs font-bold text-slate-500 mt-1">{labour.work_type}</p>
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Salary Basis</p>
+                                <p className="text-xl font-black uppercase">{labour.salary_type}</p>
+                                <p className="text-xs font-bold text-slate-500 mt-1">Rs {labour.salary_amount} / {labour.salary_type === 'daily' ? 'Day' : 'Month'}</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-8">
+                            <table className="w-full text-left">
+                                <tbody className="divide-y divide-slate-100">
+                                    <tr>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Total Earned</td>
+                                        <td className="py-4 text-right font-black text-xl">Rs {labour.total_salary?.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Total Paid</td>
+                                        <td className="py-4 text-right font-black text-xl text-green-600">Rs {labour.total_paid?.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Advances Balance</td>
+                                        <td className="py-4 text-right font-black text-xl text-orange-500">Rs {labour.advance_balance?.toLocaleString()}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="mt-auto border-t-2 border-slate-900 pt-6 flex justify-between items-end">
+                            <div className="bg-red-50 text-red-600 px-6 py-4 rounded-2xl border border-red-100">
+                                <p className="text-xs font-black uppercase tracking-widest mb-1">Payable Balance Due</p>
+                                <p className="text-3xl font-black">Rs {labour.balance?.toLocaleString()}</p>
+                            </div>
+                            <div className="w-48 border-t-2 border-slate-400 pt-2 text-center text-xs font-black uppercase text-slate-400">
+                                Manager Signature
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function LaborPage() {
     return (
-        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>}>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center bg-theme"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>}>
             <LaborDashboard />
         </Suspense>
     );
