@@ -8,6 +8,51 @@ import { API_BASE_URL } from "@/config/api";
  */
 const API_BASE = `${API_BASE_URL.replace(/\/$/, "")}/api`;
 
+type LabourMeta = {
+  name?: string;
+  phone?: string;
+  cnic?: string;
+  work_type?: string;
+  salary_type?: string;
+  salary_amount?: number;
+};
+
+function buildLabourNotes(meta: LabourMeta): string {
+  return `LABOUR_META::${JSON.stringify(meta)}`;
+}
+
+function parseLabourNotes(notes?: string): LabourMeta | null {
+  if (!notes || !notes.startsWith("LABOUR_META::")) return null;
+  try {
+    const raw = notes.replace("LABOUR_META::", "");
+    return JSON.parse(raw) as LabourMeta;
+  } catch {
+    return null;
+  }
+}
+
+function mapActivityToLabour(a: any): any {
+  const meta = parseLabourNotes(a?.notes);
+  return {
+    id: a?.id,
+    _id: a?.id,
+    name: meta?.name || "Labour",
+    phone: meta?.phone || "",
+    cnic: meta?.cnic || "",
+    work_type: meta?.work_type || "Helper",
+    salary_type: meta?.salary_type || "daily",
+    salary_amount: Number(meta?.salary_amount || a?.cost || 0),
+    days_worked: 0,
+    total_salary: Number(meta?.salary_amount || a?.cost || 0),
+    total_paid: 0,
+    advance_balance: 0,
+    balance: Number(meta?.salary_amount || a?.cost || 0),
+    status: "Active",
+    transactions: [],
+    attendance: [],
+  };
+}
+
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const t = localStorage.getItem("smartland_token");
@@ -344,7 +389,11 @@ export const api = {
       return await fetchJson<any[]>('/labours');
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        return fetchJson<any[]>('/labour');
+        // Fallback to unified activities (activity_type=labor)
+        const activities = await fetchJson<any[]>('/activities');
+        return (activities || [])
+          .filter((a) => a?.activity_type === "labor")
+          .map(mapActivityToLabour);
       }
       throw e;
     }
@@ -354,7 +403,20 @@ export const api = {
       return await fetchJson<any>('/labours/dashboard');
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        return fetchJson<any>('/labour/dashboard');
+        const labours = await api.getLabours();
+        const total = labours.length;
+        const totalSalary = labours.reduce((s, l) => s + (Number(l.total_salary) || 0), 0);
+        const totalPaid = labours.reduce((s, l) => s + (Number(l.total_paid) || 0), 0);
+        const pending = Math.max(0, totalSalary - totalPaid);
+        return {
+          total_labour: total,
+          active_labour: total,
+          inactive_labour: 0,
+          total_paid_overall: totalPaid,
+          paid_this_month: totalPaid,
+          pending_salary: pending,
+          advances_given: 0,
+        };
       }
       throw e;
     }
@@ -367,10 +429,24 @@ export const api = {
       });
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        return fetchJson<any>('/labour', {
+        // Fallback: store labour as a labor activity record
+        const created = await fetchJson<any>('/activities', {
           method: 'POST',
-          body: JSON.stringify(labour),
+          body: JSON.stringify({
+            activity_type: "labor",
+            date: new Date().toISOString().split("T")[0],
+            cost: Number(labour?.salary_amount || 0),
+            notes: buildLabourNotes({
+              name: labour?.name,
+              phone: labour?.phone,
+              cnic: labour?.cnic,
+              work_type: labour?.work_type,
+              salary_type: labour?.salary_type,
+              salary_amount: Number(labour?.salary_amount || 0),
+            }),
+          }),
         });
+        return mapActivityToLabour(created);
       }
       throw e;
     }
@@ -383,10 +459,9 @@ export const api = {
       return { ...lData, transactions: tData, attendance: aData };
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        const lData = await fetchJson<any>(`/labour/${id}`);
-        const tData = await fetchJson<any[]>(`/labour/${id}/transactions`);
-        const aData = await fetchJson<any[]>(`/labour/${id}/attendance`);
-        return { ...lData, transactions: tData, attendance: aData };
+        const labours = await api.getLabours();
+        const found = labours.find((l) => (l.id || l._id) === id);
+        return { ...(found || { id, _id: id, name: "Labour" }), transactions: [], attendance: [] };
       }
       throw e;
     }
@@ -399,9 +474,15 @@ export const api = {
       });
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        return fetchJson<any>(`/labour/${labourId}/transactions`, {
+        // Fallback: log transaction as labor activity note
+        return fetchJson<any>(`/activities`, {
           method: 'POST',
-          body: JSON.stringify(tx),
+          body: JSON.stringify({
+            activity_type: "labor",
+            date: tx?.date || new Date().toISOString().split("T")[0],
+            cost: tx?.type === "advance" ? Number(tx?.amount || 0) : 0,
+            notes: `LABOUR_TX::${labourId}::${JSON.stringify(tx)}`,
+          }),
         });
       }
       throw e;
@@ -415,9 +496,14 @@ export const api = {
       });
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        return fetchJson<any>(`/labour/${labourId}/attendance`, {
+        // Fallback: log attendance as labor activity note
+        return fetchJson<any>(`/activities`, {
           method: 'POST',
-          body: JSON.stringify(attendance),
+          body: JSON.stringify({
+            activity_type: "labor",
+            date: attendance?.date || new Date().toISOString().split("T")[0],
+            notes: `LABOUR_ATT::${labourId}::${JSON.stringify(attendance)}`,
+          }),
         });
       }
       throw e;
