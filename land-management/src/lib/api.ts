@@ -340,33 +340,87 @@ export const api = {
   
   // Labour Management
   async getLabours() {
-    return fetchJson<any[]>('/labours');
+    try {
+      return await fetchJson<any[]>('/labours');
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        return fetchJson<any[]>('/labour');
+      }
+      throw e;
+    }
   },
   async getLabourDashboard() {
-    return fetchJson<any>('/labours/dashboard');
+    try {
+      return await fetchJson<any>('/labours/dashboard');
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        return fetchJson<any>('/labour/dashboard');
+      }
+      throw e;
+    }
   },
   async addLabour(labour: any) {
-    return fetchJson<any>('/labours', {
-      method: 'POST',
-      body: JSON.stringify(labour),
-    });
+    try {
+      return await fetchJson<any>('/labours', {
+        method: 'POST',
+        body: JSON.stringify(labour),
+      });
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        return fetchJson<any>('/labour', {
+          method: 'POST',
+          body: JSON.stringify(labour),
+        });
+      }
+      throw e;
+    }
   },
   async getLabourProfile(id: string) {
-    const lData = await fetchJson<any>(`/labours/${id}`);
-    const tData = await fetchJson<any[]>(`/labours/${id}/transactions`);
-    const aData = await fetchJson<any[]>(`/labours/${id}/attendance`);
-    return { ...lData, transactions: tData, attendance: aData };
+    try {
+      const lData = await fetchJson<any>(`/labours/${id}`);
+      const tData = await fetchJson<any[]>(`/labours/${id}/transactions`);
+      const aData = await fetchJson<any[]>(`/labours/${id}/attendance`);
+      return { ...lData, transactions: tData, attendance: aData };
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        const lData = await fetchJson<any>(`/labour/${id}`);
+        const tData = await fetchJson<any[]>(`/labour/${id}/transactions`);
+        const aData = await fetchJson<any[]>(`/labour/${id}/attendance`);
+        return { ...lData, transactions: tData, attendance: aData };
+      }
+      throw e;
+    }
   },
   async addTransaction(labourId: string, tx: any) {
-    return fetchJson<any>(`/labours/${labourId}/transactions`, {
-      method: 'POST',
-      body: JSON.stringify(tx),
-    });
+    try {
+      return await fetchJson<any>(`/labours/${labourId}/transactions`, {
+        method: 'POST',
+        body: JSON.stringify(tx),
+      });
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        return fetchJson<any>(`/labour/${labourId}/transactions`, {
+          method: 'POST',
+          body: JSON.stringify(tx),
+        });
+      }
+      throw e;
+    }
   },
   async markAttendance(labourId: string, attendance: any) {
-    return fetchJson<any>(`/labours/${labourId}/attendance`, {
-      method: 'POST',
-      body: JSON.stringify(attendance),
-    });
+    try {
+      return await fetchJson<any>(`/labours/${labourId}/attendance`, {
+        method: 'POST',
+        body: JSON.stringify(attendance),
+      });
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        return fetchJson<any>(`/labour/${labourId}/attendance`, {
+          method: 'POST',
+          body: JSON.stringify(attendance),
+        });
+      }
+      throw e;
+    }
   },
 };
