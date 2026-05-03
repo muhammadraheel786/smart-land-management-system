@@ -199,8 +199,8 @@ export default function MaterialsPage() {
             <Package className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-theme tracking-tight">{t("materialsTitle")}</h1>
-            <p className="text-sm text-theme-muted">{t("materialsSubtitle")}</p>
+            <h1 className="text-2xl font-black text-theme tracking-tight uppercase">{t("materialsTitle")}</h1>
+            <p className="text-xs font-bold text-theme-muted uppercase tracking-widest">{t("materialsSubtitle")}</p>
           </div>
         </div>
 
@@ -285,17 +285,17 @@ export default function MaterialsPage() {
         {/* Inventory List */}
         <div className="lg:col-span-8 space-y-6">
           <div className="grid grid-cols-3 gap-3 md:gap-4">
-            <div className="bg-theme-card border border-theme p-4 md:p-5 rounded-3xl shadow-sm">
-              <p className="text-[9px] md:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">STOCKS</p>
-              <p className="text-xl md:text-3xl font-black text-theme">{materials.length}</p>
+            <div className="bg-theme-card border border-theme p-5 rounded-[2rem] shadow-sm flex flex-col justify-between">
+              <p className="text-[9px] font-black text-theme-muted uppercase tracking-widest mb-2">STOCKS</p>
+              <p className="text-2xl md:text-4xl font-black text-theme">{materials.length}</p>
             </div>
-            <div className="bg-theme-card border border-theme p-4 md:p-5 rounded-3xl shadow-sm">
-              <p className="text-[9px] md:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">ALERTS</p>
-              <p className="text-xl md:text-3xl font-black text-amber-500">{lowStockCount}</p>
+            <div className="bg-theme-card border border-theme p-5 rounded-[2rem] shadow-sm flex flex-col justify-between">
+              <p className="text-[9px] font-black text-theme-muted uppercase tracking-widest mb-2">ALERTS</p>
+              <p className="text-2xl md:text-4xl font-black text-amber-500">{lowStockCount}</p>
             </div>
-            <div className="bg-theme-card border border-theme p-4 md:p-5 rounded-3xl shadow-sm">
-              <p className="text-[9px] md:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">LOGS</p>
-              <p className="text-xl md:text-3xl font-black text-blue-500">{materialTransactions.length}</p>
+            <div className="bg-theme-card border border-theme p-5 rounded-[2rem] shadow-sm flex flex-col justify-between">
+              <p className="text-[9px] font-black text-theme-muted uppercase tracking-widest mb-2">LOGS</p>
+              <p className="text-2xl md:text-4xl font-black text-blue-500">{materialTransactions.length}</p>
             </div>
           </div>
 
@@ -341,20 +341,48 @@ export default function MaterialsPage() {
 
                 {/* Mobile View */}
                 <div className="sm:hidden divide-y divide-theme">
-                  {materials.map(m => (
-                    <div key={m.id} className="p-5 flex justify-between items-center group">
-                      <div>
-                        <p className="font-black text-theme text-base">{m.name}</p>
-                        <p className="text-xs font-bold text-theme-muted">Stock: <span className="text-theme">{m.stock_quantity || 0} {m.unit}</span></p>
+                  {materials.map(m => {
+                    const stock = m.stock_quantity || 0;
+                    return (
+                      <div key={m.id} className="p-6 space-y-4 active:bg-theme-track/50 transition-all">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-black text-theme text-lg uppercase tracking-tight">{m.name}</p>
+                            <span className="text-[9px] font-black text-theme-muted uppercase px-2 py-0.5 rounded-lg bg-theme-track border border-theme inline-block mt-1">
+                              {m.category}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-black text-theme">{stock}</p>
+                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest">{m.unit}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => quickAdjust(m.id, 'out', 1)} 
+                            disabled={stock <= 0}
+                            className="flex-1 h-14 rounded-2xl bg-amber-500/10 text-amber-500 border-2 border-amber-500/20 font-black text-xl shadow-sm active:scale-95 disabled:opacity-20"
+                          >
+                            -
+                          </button>
+                          <button 
+                            onClick={() => quickAdjust(m.id, 'in', 1)} 
+                            className="flex-1 h-14 rounded-2xl bg-green-500/10 text-green-500 border-2 border-green-500/20 font-black text-xl shadow-sm active:scale-95"
+                          >
+                            +
+                          </button>
+                          <button 
+                            onClick={() => openEditModal(m)} 
+                            className="w-14 h-14 rounded-2xl bg-theme-track border-2 border-theme text-theme-muted flex items-center justify-center active:scale-95"
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2.5">
-                        <button onClick={() => quickAdjust(m.id, 'out', 1)} className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 font-black">-</button>
-                        <button onClick={() => quickAdjust(m.id, 'in', 1)} className="w-11 h-11 rounded-xl bg-green-500/10 text-green-500 border border-green-500/30 font-black">+</button>
-                        <button onClick={() => openEditModal(m)} className="w-11 h-11 rounded-xl bg-theme-track border border-theme text-theme-muted flex items-center justify-center"><Edit2 className="w-4 h-4" /></button>
-                      </div>
-                    </div>
-                  ))}
-                  {materials.length === 0 && <div className="p-10 text-center font-bold text-theme-muted italic text-sm">Empty Inventory</div>}
+                    );
+                  })}
+                  {materials.length === 0 && <div className="p-12 text-center font-black text-theme-muted uppercase tracking-widest text-xs">Empty Inventory</div>}
                 </div>
               </div>
             </div>

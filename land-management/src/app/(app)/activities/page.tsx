@@ -61,7 +61,7 @@ function ActivityBadge({ type, meta, labelOverride }: { type: string; meta?: any
     const m = meta ?? defaultMeta;
     const displayLabel = labelOverride || (locale === "ur" ? (m.desc || m.label) : m.label);
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${m.color} ${m.bg} ${m.border}`}>
+        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-sm ${m.color} ${m.bg} ${m.border}`}>
             {m.icon} {displayLabel}
         </span>
     );
@@ -667,55 +667,67 @@ function ActivitiesContent() {
                                     const meta = ACTIVITY_META[act.activity_type];
                                     const customName = extractCustomName(act.notes);
                                     const cleanNotes = customName ? stripCustomName(act.notes) : (act.notes || "");
+                                    
+                                    const dateObj = new Date(act.date);
+                                    const monthYear = dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
                                     return (
-                                        <div key={act.id} className="p-4 space-y-3 active:bg-theme-track/50 transition-colors">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded-xl ${meta?.bg || "bg-theme-track"} border ${meta?.border || "border-theme"}`}>
-                                                        {meta?.icon || <FileText className="w-4 h-4 text-theme-muted" />}
+                                        <div key={act.id} className="p-5 space-y-4 active:bg-theme-track/50 transition-all">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`p-3 rounded-2xl ${meta?.bg || "bg-theme-track"} border ${meta?.border || "border-theme"} shadow-sm`}>
+                                                        {meta?.icon || <FileText className="w-5 h-5 text-theme-muted" />}
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-bold text-theme leading-tight">
+                                                        <h4 className="text-sm font-black text-theme uppercase tracking-tight leading-tight">
                                                             {customName || (locale === "ur" ? (meta?.desc || meta?.label || act.activity_type) : (meta?.label || act.activity_type))}
                                                         </h4>
-                                                        <p className="text-[10px] text-theme-muted mt-0.5">{act.date?.split("T")[0]}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <p className="text-[10px] font-black text-theme-muted uppercase">{act.date?.split("T")[0]}</p>
+                                                            <span className="w-1 h-1 rounded-full bg-theme-muted opacity-30" />
+                                                            <p className="text-[10px] font-bold text-blue-500">{monthYear}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                                    {(act.income ?? 0) > 0 && <p className="text-sm font-bold text-green-400">+Rs {(act.income ?? 0).toLocaleString()}</p>}
-                                                    {(act.cost ?? 0) > 0 && <p className="text-sm font-bold text-red-400">-Rs {(act.cost ?? 0).toLocaleString()}</p>}
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    {(act.income ?? 0) > 0 && <p className="text-base font-black text-emerald-500 tracking-tight">+Rs {(act.income ?? 0).toLocaleString()}</p>}
+                                                    {(act.cost ?? 0) > 0 && <p className="text-base font-black text-rose-500 tracking-tight">-Rs {(act.cost ?? 0).toLocaleString()}</p>}
                                                 </div>
                                             </div>
-                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+
+                                            <div className="flex flex-wrap items-center gap-3">
                                                 {field && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-theme-muted">
-                                                        <MapIcon className="w-3.5 h-3.5 text-green-500/70" />
-                                                        <span className="font-semibold text-theme">{field.name}</span>
+                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-theme-track rounded-lg border border-theme">
+                                                        <MapIcon className="w-3.5 h-3.5 text-emerald-500" />
+                                                        <span className="text-[10px] font-black uppercase text-theme-muted tracking-widest">{field.name}</span>
                                                     </div>
                                                 )}
                                                 {mat && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-theme-muted">
-                                                        <Package className="w-3.5 h-3.5 text-blue-500/70" />
-                                                        <span className="text-theme font-medium">{mat.name} {act.quantity_used ? `× ${act.quantity_used}` : ""}</span>
+                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-theme-track rounded-lg border border-theme">
+                                                        <Package className="w-3.5 h-3.5 text-blue-400" />
+                                                        <span className="text-[10px] font-black uppercase text-theme-muted tracking-widest">{mat.name} {act.quantity_used ? `× ${act.quantity_used}` : ""}</span>
                                                     </div>
                                                 )}
                                                 {!mat && act.quantity_used && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-theme-muted">
-                                                        <BarChart3 className="w-3.5 h-3.5 text-theme-muted" />
-                                                        <span className="text-theme font-medium">{act.quantity_used} units</span>
+                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-theme-track rounded-lg border border-theme">
+                                                        <BarChart3 className="w-3.5 h-3.5 text-orange-400" />
+                                                        <span className="text-[10px] font-black uppercase text-theme-muted tracking-widest">{act.quantity_used} units</span>
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex items-center justify-between pt-1">
+
+                                            <div className="flex items-center justify-between pt-1 gap-4">
                                                 <div className="flex-1">
                                                     {cleanNotes && (
-                                                        <p className="text-[11px] text-theme-muted italic line-clamp-2">
-                                                            "{cleanNotes}"
-                                                        </p>
+                                                        <div className="bg-theme-track/30 p-2.5 rounded-xl border border-theme italic">
+                                                            <p className="text-[11px] text-theme-muted line-clamp-2">
+                                                                "{cleanNotes}"
+                                                            </p>
+                                                        </div>
                                                     )}
                                                 </div>
-                                                <button onClick={() => setDeleteId(act.id)} className="ml-3 p-2.5 rounded-xl text-theme-muted hover:text-red-500 hover:bg-red-500/10 active:bg-theme-track transition-colors">
-                                                    <Trash2 className="w-4 h-4" />
+                                                <button onClick={() => setDeleteId(act.id)} className="p-3 rounded-2xl bg-red-500/5 text-red-500 hover:bg-red-500/10 active:scale-90 transition-all shrink-0">
+                                                    <Trash2 className="w-5 h-5" />
                                                 </button>
                                             </div>
                                         </div>

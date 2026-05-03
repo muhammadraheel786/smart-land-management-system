@@ -131,31 +131,31 @@ export default function ThakaPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <FileText className="w-6 h-6 text-emerald-500" />
+            <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0 shadow-inner">
+                <FileText className="w-7 h-7 text-emerald-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("thakaActiveLeases")}</p>
-                <p className="text-xl font-black text-theme">{activeRecords.length}</p>
+                <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">{t("thakaActiveLeases")}</p>
+                <p className="text-2xl font-black text-theme">{activeRecords.length}</p>
               </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                <FileText className="w-6 h-6 text-amber-500" />
+            <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 shadow-inner">
+                <FileText className="w-7 h-7 text-amber-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("thakaExpired")}</p>
-                <p className="text-xl font-black text-theme">{expiredRecords.length}</p>
+                <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">{t("thakaExpired")}</p>
+                <p className="text-2xl font-black text-theme">{expiredRecords.length}</p>
               </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                <FileText className="w-6 h-6 text-violet-500" />
+            <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center shrink-0 shadow-inner">
+                <FileText className="w-7 h-7 text-violet-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("thakaTotalLeaseIncome")}</p>
-                <p className="text-xl font-black text-violet-500">Rs {totalActiveAmount.toLocaleString()}</p>
+                <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">{t("thakaTotalLeaseIncome")}</p>
+                <p className="text-2xl font-black text-violet-500">Rs {totalActiveAmount.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -212,23 +212,30 @@ export default function ThakaPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-theme-card border border-theme rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-theme mb-4">{t("thakaActiveLeasesTitle")}</h3>
+              <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-lg flex flex-col">
+                <h3 className="text-lg font-black text-theme uppercase tracking-tight mb-6 shrink-0">{t("thakaActiveLeasesTitle")}</h3>
                 {activeRecords.length === 0 ? (
-                  <p className="text-theme-muted">{t("thakaNoActive")}</p>
+                  <p className="text-theme-muted font-bold text-center py-10 italic uppercase text-xs tracking-widest">{t("thakaNoActive")}</p>
                 ) : (
-                  <div className="space-y-3 max-h-[320px] overflow-auto">
+                  <div className="space-y-4 overflow-y-auto pr-1">
                     {activeRecords.map((r) => (
-                      <div key={r.id} className="flex items-start justify-between gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/30">
-                        <div>
-                          <p className="font-medium text-theme">{fields.find((f) => f.id === r.fieldId)?.name ?? r.fieldId} → {r.tenantName}</p>
-                          <p className="text-sm text-theme-muted">{format(new Date(r.startDate), "MMM d, yyyy")} – {format(new Date(r.endDate), "MMM d, yyyy")}</p>
-                          <p className="text-green-400 font-semibold mt-1">Rs {r.amount.toLocaleString()}</p>
-                          {r.tenantContact && <p className="text-xs text-theme-muted mt-1">{r.tenantContact}</p>}
+                      <div key={r.id} className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-green-500/5 border border-green-500/20 group hover:border-green-500/40 transition-all">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-theme text-sm uppercase tracking-tight">{fields.find((f) => f.id === r.fieldId)?.name ?? r.fieldId} → {r.tenantName}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-[10px] font-black text-theme-muted uppercase">{format(new Date(r.startDate), "MMM d")} – {format(new Date(r.endDate), "MMM d, yyyy")}</p>
+                            {r.tenantContact && (
+                              <>
+                                <span className="w-1 h-1 rounded-full bg-theme-muted opacity-30" />
+                                <p className="text-[10px] font-bold text-theme-muted">{r.tenantContact}</p>
+                              </>
+                            )}
+                          </div>
+                          <p className="text-lg font-black text-emerald-500 mt-2 tracking-tight">Rs {r.amount.toLocaleString()}</p>
                         </div>
                         <div className="flex gap-1 shrink-0">
-                          <button type="button" onClick={() => { setEditingId(r.id); setSubmitError(null); setSuccess(false); }} className="p-2 rounded-lg text-theme-muted hover:text-theme hover:bg-white/10" title={t("edit")}><Pencil className="w-4 h-4" /></button>
-                          <button type="button" onClick={() => setDeleteConfirmId(r.id)} className="p-2 rounded-lg text-theme-muted hover:text-red-400 hover:bg-red-500/10" title={t("delete")}><Trash className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => { setEditingId(r.id); setSubmitError(null); setSuccess(false); }} className="p-2 rounded-xl text-theme-muted hover:text-blue-500 hover:bg-blue-500/10 transition-colors" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => setDeleteConfirmId(r.id)} className="p-2 rounded-xl text-theme-muted hover:text-red-500 hover:bg-red-500/10 transition-colors" title={t("delete")}><Trash className="w-4 h-4" /></button>
                         </div>
                       </div>
                     ))}

@@ -135,31 +135,31 @@ function WaterContent() {
       ) : (
         <>
           <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                <RefreshCw className="w-6 h-6 text-blue-500" />
+            <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 shadow-inner">
+                <RefreshCw className="w-7 h-7 text-blue-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("waterTotalSessions")}</p>
-                <p className="text-xl font-black text-theme">{waterRecords.length}</p>
+                <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">{t("waterTotalSessions")}</p>
+                <p className="text-2xl font-black text-theme">{waterRecords.length}</p>
               </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0">
-                <Droplets className="w-6 h-6 text-cyan-500" />
+            <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center shrink-0 shadow-inner">
+                <Droplets className="w-7 h-7 text-cyan-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("waterTotalDuration")}</p>
-                <p className="text-xl font-black text-theme">{totalMinutes} <span className="text-xs font-normal text-theme-muted">min</span></p>
+                <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">{t("waterTotalDuration")}</p>
+                <p className="text-2xl font-black text-theme">{totalMinutes} <span className="text-xs font-bold text-theme-muted uppercase">min</span></p>
               </div>
             </div>
-            <div className="bg-theme-card border border-theme rounded-2xl p-5 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-                <Sparkles className="w-6 h-6 text-indigo-500" />
+            <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center shrink-0 shadow-inner">
+                <Sparkles className="w-7 h-7 text-indigo-500" />
               </div>
               <div>
-                <p className="text-theme-muted text-[10px] font-bold uppercase tracking-wider mb-0.5 truncate">{t("waterHours")}</p>
-                <p className="text-xl font-black text-theme">{(totalMinutes / 60).toFixed(1)} <span className="text-xs font-normal text-theme-muted">hrs</span></p>
+                <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">{t("waterHours")}</p>
+                <p className="text-2xl font-black text-theme">{(totalMinutes / 60).toFixed(1)} <span className="text-xs font-bold text-theme-muted uppercase">hrs</span></p>
               </div>
             </div>
           </div>
@@ -306,11 +306,11 @@ function WaterContent() {
               )}
             </div>
 
-            <div className="bg-theme-card border border-theme rounded-2xl p-6 overflow-auto max-h-[500px]">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-theme">{t("waterRecentRecords")}</h3>
+            <div className="bg-theme-card border border-theme rounded-[2rem] p-6 overflow-hidden flex flex-col shadow-lg">
+              <div className="flex items-center justify-between mb-6 shrink-0">
+                <h3 className="text-lg font-black text-theme uppercase tracking-tight">{t("waterRecentRecords")}</h3>
                 {fields.length > 0 && (
-                  <select value={filterFieldId} onChange={(e) => setFilterFieldId(e.target.value)} className="px-3 py-1.5 rounded-lg bg-theme-track border border-theme text-theme text-sm">
+                  <select value={filterFieldId} onChange={(e) => setFilterFieldId(e.target.value)} className="px-4 py-2 rounded-xl bg-theme-track border border-theme text-theme text-xs font-black">
                     <option value="">{t("waterAllFields")}</option>
                     {fields.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
@@ -319,19 +319,29 @@ function WaterContent() {
                 )}
               </div>
               {waterRecords.length === 0 ? (
-                <p className="text-theme-muted">{t("waterNoRecordsYet")}</p>
+                <p className="text-theme-muted font-bold text-center py-10 italic uppercase text-xs tracking-widest">{t("waterNoRecordsYet")}</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 overflow-y-auto pr-1">
                   {recentRecords.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <div key={r.id} className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-theme-track/50 border border-theme group hover:border-blue-500/30 transition-all">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-theme">{fields.find((f) => f.id === r.fieldId)?.name || t("field")}</p>
-                        <p className="text-sm text-theme-muted">{format(new Date(r.date), "MMM d, yyyy")}{r.notes ? ` • ${r.notes}` : ""}</p>
+                        <p className="font-black text-theme text-sm uppercase tracking-tight">{fields.find((f) => f.id === r.fieldId)?.name || t("field")}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-[10px] font-black text-theme-muted uppercase">{format(new Date(r.date), "MMM d, yyyy")}</p>
+                          {r.notes && (
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-theme-muted opacity-30" />
+                              <p className="text-[10px] font-bold text-theme-muted italic truncate">"{r.notes}"</p>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-blue-400 font-semibold shrink-0">{r.durationMinutes} {t("minutes")}</p>
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-black text-blue-500 tracking-tight">{r.durationMinutes} <span className="text-[10px] uppercase font-black opacity-50">min</span></p>
+                      </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button type="button" onClick={() => { setEditingId(r.id); setSubmitError(null); setSuccess(false); }} className="p-2 rounded-lg text-theme-muted hover:text-theme hover:bg-white/10" title={t("edit")}><Pencil className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setDeleteConfirmId(r.id)} className="p-2 rounded-lg text-theme-muted hover:text-red-400 hover:bg-red-500/10" title={t("delete")}><Trash className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => { setEditingId(r.id); setSubmitError(null); setSuccess(false); }} className="p-2 rounded-xl text-theme-muted hover:text-blue-500 hover:bg-blue-500/10 transition-colors" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setDeleteConfirmId(r.id)} className="p-2 rounded-xl text-theme-muted hover:text-red-500 hover:bg-red-500/10 transition-colors" title={t("delete")}><Trash className="w-4 h-4" /></button>
                       </div>
                     </div>
                   ))}

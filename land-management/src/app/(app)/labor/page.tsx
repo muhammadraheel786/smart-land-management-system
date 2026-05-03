@@ -10,18 +10,55 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
 import { api } from "@/lib/api";
 
+// --- Types ---
+interface Transaction {
+    id?: string;
+    _id?: string;
+    type: 'salary' | 'advance';
+    amount: number;
+    date: string;
+    notes?: string;
+    transaction_id?: string;
+}
+
+interface Attendance {
+    id?: string;
+    _id?: string;
+    status: 'present' | 'absent' | 'half_day';
+    date: string;
+    overtime_hours?: number;
+}
+
+interface Labour {
+    id: string;
+    _id?: string;
+    name: string;
+    phone?: string;
+    cnic?: string;
+    work_type: string;
+    salary_type: 'daily' | 'monthly';
+    salary_amount: number;
+    status: string;
+    total_salary?: number;
+    total_paid?: number;
+    balance?: number;
+    photo?: string;
+    transactions?: Transaction[];
+    attendance?: Attendance[];
+}
+
 function LaborDashboard() {
     const { isDataEntry } = useAuth();
     const { locale } = useLocale();
 
     // Data State
-    const [labours, setLabours] = useState<any[]>([]);
+    const [labours, setLabours] = useState<Labour[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     // View State
     const [view, setView] = useState<"dashboard" | "profile">("dashboard");
-    const [selectedLabour, setSelectedLabour] = useState<any>(null);
+    const [selectedLabour, setSelectedLabour] = useState<Labour | null>(null);
 
     // Modal States
     const [openAddLabour, setOpenAddLabour] = useState(false);
@@ -80,11 +117,11 @@ function LaborDashboard() {
         if (!selectedLabour) return null;
         const monthlySalary = Number(selectedLabour.salary_amount) || 0;
         
-        const totalAdvance = (selectedLabour.transactions || []).reduce((sum: number, t: any) => {
+        const totalAdvance = (selectedLabour.transactions || []).reduce((sum, t) => {
             return t.type === 'advance' ? sum + (Number(t.amount) || 0) : sum;
         }, 0);
         
-        const totalSalaryPaid = (selectedLabour.transactions || []).reduce((sum: number, t: any) => {
+        const totalSalaryPaid = (selectedLabour.transactions || []).reduce((sum, t) => {
             return t.type === 'salary' ? sum + (Number(t.amount) || 0) : sum;
         }, 0);
         
@@ -102,7 +139,7 @@ function LaborDashboard() {
             {/* TOAST */}
             {toast && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200]">
-                    <div className={`px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold text-white text-sm animate-bounce ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+                    <div className={`px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold text-white text-sm animate-bounce ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-50'}`}>
                         {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                         {toast.msg}
                     </div>
@@ -211,8 +248,8 @@ function LaborDashboard() {
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">{l.days_worked || 0}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.total_salary?.toLocaleString() || 0}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">0</td>
+                                            <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.salary_amount?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-center">
@@ -241,7 +278,7 @@ function LaborDashboard() {
                                                     {l.status}
                                                 </span>
                                             </div>
-                                            <p className="text-[10px] font-bold text-theme-muted mt-0.5">{l.work_type} • {l.days_worked || 0} days</p>
+                                            <p className="text-[10px] font-bold text-theme-muted mt-0.5">{l.work_type}</p>
                                             <p className="text-xs font-bold mt-1">
                                                 <span className="text-green-500">Paid: Rs {l.total_paid?.toLocaleString() || 0}</span>
                                                 {' | '}
@@ -294,7 +331,7 @@ function LaborDashboard() {
                                 </div>
                             </div>
                             {!isDataEntry && (
-                                <div className="flex flex-row sm:flex-row lg:flex-col gap-2 w-full lg:w-auto">
+                                <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-full lg:w-auto">
                                     <button onClick={() => setOpenAttendance(true)} className="flex-1 lg:flex-none bg-theme-card border-2 border-theme hover:border-orange-500 hover:text-orange-500 px-4 py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 whitespace-nowrap">
                                         <Clock className="w-4 h-4" /> Mark Present
                                     </button>
@@ -407,7 +444,7 @@ function LaborDashboard() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {a.overtime_hours > 0 && (
+                                            {a.overtime_hours && a.overtime_hours > 0 && (
                                                 <div className="text-right">
                                                     <span className="text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 px-2 py-1 rounded-lg border border-blue-500/20">+{a.overtime_hours} hrs OT</span>
                                                 </div>
@@ -526,7 +563,7 @@ function AddLabourModal({ open, onClose, onSave, locale }: any) {
 }
 
 function AddTransactionModal({ open, type, labour, onClose, onSave, locale }: any) {
-    if (!open) return null;
+    if (!open || !labour) return null;
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({ amount: '', notes: '', date: new Date().toISOString().split('T')[0] });
 
@@ -575,7 +612,7 @@ function AddTransactionModal({ open, type, labour, onClose, onSave, locale }: an
 }
 
 function AttendanceModal({ open, labour, onClose, onSave, locale }: any) {
-    if (!open) return null;
+    if (!open || !labour) return null;
     const [saving, setSaving] = useState(false);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 

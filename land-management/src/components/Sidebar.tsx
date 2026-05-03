@@ -124,7 +124,7 @@ export default function Sidebar() {
                 .filter((item) => {
                   if (!isDataEntry) return true;
                   // Data-entry users: focus on login and operations per Faisal Bhai's request
-                  const allowed = ["/dashboard", "/activities", "/materials", "/water", "/thaka"];
+                  const allowed = ["/dashboard", "/activities", "/materials", "/water", "/thaka", "/labor"];
                   return allowed.includes(item.href);
                 })
                 .map((item) => {
