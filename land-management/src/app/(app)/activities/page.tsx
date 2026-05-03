@@ -148,6 +148,8 @@ function ActivitiesContent() {
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [viewDate, setViewDate] = useState<string>("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
 
     // Form fields
     const [activityType, setActivityType] = useState<Activity["activity_type"]>("expense");
@@ -259,14 +261,29 @@ function ActivitiesContent() {
     }, [materials, activityType]);
 
     // Filtered list ──
-    const filtered = useMemo(() =>
-        filterType === "all" ? activities : activities.filter(a => a.activity_type === filterType),
-        [activities, filterType]
-    );
+    const filtered = useMemo(() => {
+        let list = activities;
+        if (filterType !== "all") {
+            list = list.filter(a => a.activity_type === filterType);
+        }
+        if (viewDate) {
+            list = list.filter(a => a.date?.startsWith(viewDate));
+        }
+        if (searchTerm) {
+            const s = searchTerm.toLowerCase();
+            list = list.filter(a => {
+                const fieldName = fields.find(f => f.id === a.field_id)?.name?.toLowerCase() || "";
+                const matName = materials.find(m => m.id === a.material_id)?.name?.toLowerCase() || "";
+                const note = a.notes?.toLowerCase() || "";
+                return fieldName.includes(s) || matName.includes(s) || note.includes(s);
+            });
+        }
+        return list;
+    }, [activities, filterType, viewDate, searchTerm, fields, materials]);
 
-    // ── Stats ──
-    const totalIncome = useMemo(() => activities.reduce((s, a) => s + (a.income || 0), 0), [activities]);
-    const totalExpense = useMemo(() => activities.reduce((s, a) => s + (a.cost || 0), 0), [activities]);
+    // ── Stats (Reflecting Filtered Data) ──
+    const totalIncome = useMemo(() => filtered.reduce((s, a) => s + (a.income || 0), 0), [filtered]);
+    const totalExpense = useMemo(() => filtered.reduce((s, a) => s + (a.cost || 0), 0), [filtered]);
     const netProfit = totalIncome - totalExpense;
 
     // ── Reset form ──
@@ -493,88 +510,117 @@ function ActivitiesContent() {
                                 label={t("totalInvestment")}
                                 value={`Rs ${totalExpense.toLocaleString()}`}
                                 icon={<ArrowDownRight className="w-5 h-5 text-white" />}
-                                gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
-                                textColor="text-white"
-                            />
-                        </div>
-                        <div className="sm:col-span-2 lg:col-span-1">
-                            <StatCard
-                                label={t("netProfit")}
-                                value={`Rs ${netProfit.toLocaleString()}`}
-                                icon={<DollarSign className="w-5 h-5 text-white" />}
-                                gradient={netProfit >= 0
-                                    ? "bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500/50"
-                                    : "bg-gradient-to-br from-orange-600 to-red-700 border-orange-500/50"}
-                                textColor="text-white"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* ── Activity Log Table ── */}
-                <div className="rounded-2xl border border-theme bg-theme-card shadow-sm overflow-hidden">
-                    {/* Table Header */}
-                    <div className="px-4 sm:px-6 py-4 border-b border-theme space-y-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                            <h2 className="text-base font-bold text-theme flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-theme-muted shrink-0" /> Activity Log
-                                <span className="px-2 py-0.5 rounded-full bg-theme-track border border-theme text-xs text-theme-muted font-medium">{activities.length}</span>
+                          {/* Table Header & Controls */}
+                    <div className="px-4 sm:px-6 py-5 border-b border-theme space-y-4">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                            <h2 className="text-lg font-black text-theme flex items-center gap-2 uppercase tracking-tight">
+                                <FileText className="w-5 h-5 text-green-500" /> Activity Log
+                                <span className="px-2.5 py-0.5 rounded-lg bg-theme-track border border-theme text-xs text-theme-muted font-black">{filtered.length}</span>
                             </h2>
+                            
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => { setViewDate(new Date().toISOString().split("T")[0]); }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all border ${viewDate === new Date().toISOString().split("T")[0] ? "bg-green-500 text-white border-green-400 shadow-lg shadow-green-500/20" : "bg-theme-track text-theme-muted border-theme hover:border-theme-muted"}`}
+                                >
+                                    {locale === "ur" ? "آج" : "TODAY"}
+                                </button>
+                                {(filterType !== "all" || viewDate || searchTerm) && (
+                                    <button
+                                        onClick={() => { setFilterType("all"); setViewDate(""); setSearchTerm(""); }}
+                                        className="px-4 py-2 rounded-xl text-xs font-black bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                                    >
+                                        {locale === "ur" ? "صاف کریں" : "CLEAR"}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Search & View Filters */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {/* Search Box */}
+                            <div className="relative group">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted group-focus-within:text-green-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    placeholder={locale === "ur" ? "تلاش کریں..." : "Search activities, fields..."}
+                                    className="w-full pl-11 pr-4 py-3 text-sm rounded-2xl bg-theme-track border border-theme text-theme focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 focus:outline-none transition-all"
+                                />
+                            </div>
+
+                            {/* View Date Picker */}
+                            <div className="relative group">
+                                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 transition-colors" />
+                                <input
+                                    type="date"
+                                    value={viewDate}
+                                    onChange={e => setViewDate(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 text-sm rounded-2xl bg-theme-track border border-theme text-theme focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 focus:outline-none transition-all font-bold"
+                                />
+                                {!viewDate && <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase pointer-events-none tracking-widest">{locale === "ur" ? "تاریخ" : "By Date"}</span>}
+                            </div>
+
+                            {/* Type Filter */}
+                            <div className="relative">
+                                <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 pointer-events-none shrink-0" />
+                                <select
+                                    value={filterType}
+                                    onChange={e => setFilterType(e.target.value)}
+                                    className="w-full pl-11 pr-10 py-3 text-sm rounded-2xl bg-theme-track border border-theme text-theme appearance-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 focus:outline-none font-bold"
+                                >
+                                    <option value="all">{locale === "ur" ? "تمام کام" : "All Activity Types"}</option>
+                                    {Object.entries(ACTIVITY_META)
+                                        .filter(([k]) => k !== "material_purchase")
+                                        .map(([k, v]) => (
+                                            <option key={k} value={k}>{locale === "ur" ? v.desc : v.label}</option>
+                                        ))}
+                                </select>
+                                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Export Divider */}
+                        <div className="flex items-center gap-4 py-1">
+                            <div className="h-px bg-theme flex-1 border-dashed border-t" />
+                            <span className="text-[9px] font-black text-theme-muted uppercase tracking-[0.2em]">{locale === "ur" ? "ایکسپورٹ" : "Data Export"}</span>
+                            <div className="h-px bg-theme flex-1 border-dashed border-t" />
                         </div>
 
                         {/* Date Range Export Row */}
                         <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-2">
                             <div className="grid grid-cols-2 gap-2 flex-1">
-                                <div className="flex items-center gap-2 bg-theme-track border border-theme rounded-xl px-3 py-2 min-w-0">
-                                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-                                    <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest shrink-0">
+                                <div className="flex items-center gap-2 bg-theme-track/40 border border-theme rounded-xl px-3 py-1.5 min-w-0">
+                                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest shrink-0">
                                         {locale === "ur" ? "سے" : "From:"}
                                     </label>
                                     <input
                                         type="date"
                                         value={exportStartDate}
                                         onChange={e => setExportStartDate(e.target.value)}
-                                        className="flex-1 bg-transparent text-theme text-sm font-bold focus:outline-none min-w-0"
+                                        className="flex-1 bg-transparent text-theme text-xs font-bold focus:outline-none min-w-0"
                                     />
                                 </div>
-                                <div className="flex items-center gap-2 bg-theme-track border border-theme rounded-xl px-3 py-2 min-w-0">
-                                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-                                    <label className="text-[10px] font-black text-theme-muted uppercase tracking-widest shrink-0">
+                                <div className="flex items-center gap-2 bg-theme-track/40 border border-theme rounded-xl px-3 py-1.5 min-w-0">
+                                    <label className="text-[9px] font-black text-theme-muted uppercase tracking-widest shrink-0">
                                         {locale === "ur" ? "تک" : "To:"}
                                     </label>
                                     <input
                                         type="date"
                                         value={exportEndDate}
                                         onChange={e => setExportEndDate(e.target.value)}
-                                        className="flex-1 bg-transparent text-theme text-sm font-bold focus:outline-none min-w-0"
+                                        className="flex-1 bg-transparent text-theme text-xs font-bold focus:outline-none min-w-0"
                                     />
                                 </div>
                             </div>
                             <button
                                 onClick={exportToExcel}
-                                className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-5 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all w-full xl:w-auto shrink-0 whitespace-nowrap"
+                                className="flex items-center justify-center gap-2 bg-theme-track border border-theme text-theme hover:bg-theme-muted/10 px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all w-full xl:w-auto shrink-0 whitespace-nowrap active:scale-95"
                             >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-3.5 h-3.5" />
                                 {locale === "ur" ? "ڈاؤن لوڈ Excel" : "Download Excel"}
                             </button>
-                        </div>
-
-                        {/* Filter */}
-                        <div className="relative w-full min-w-0">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none shrink-0" />
-                            <select
-                                value={filterType}
-                                onChange={e => setFilterType(e.target.value)}
-                                className="w-full min-w-0 pl-10 pr-10 py-3 text-sm rounded-xl bg-theme-track border border-theme text-theme appearance-none focus:ring-2 focus:ring-green-500 focus:outline-none"
-                            >
-                                <option value="all">{locale === "ur" ? "تمام ریکارڈ" : "All Types"}</option>
-                                {Object.entries(ACTIVITY_META)
-                                    .filter(([k]) => k !== "material_purchase")
-                                    .map(([k, v]) => (
-                                        <option key={k} value={k}>{locale === "ur" ? v.desc : v.label}</option>
-                                    ))}
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
                         </div>
                     </div>
 
