@@ -306,37 +306,37 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
-                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Salary</p>
-                            <p className="text-2xl font-black text-theme">Rs {profileStats?.monthlySalary.toLocaleString()}</p>
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <div className="bg-theme-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
+                            <p className="text-[9px] sm:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Salary</p>
+                            <p className="text-lg sm:text-2xl font-black text-theme">Rs {profileStats?.monthlySalary.toLocaleString()}</p>
                         </div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
-                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Advance Taken</p>
-                            <p className="text-2xl font-black text-orange-500">Rs {profileStats?.totalAdvance.toLocaleString()}</p>
+                        <div className="bg-theme-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
+                            <p className="text-[9px] sm:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Advance Taken</p>
+                            <p className="text-lg sm:text-2xl font-black text-orange-500">Rs {profileStats?.totalAdvance.toLocaleString()}</p>
                         </div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
-                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Salary Paid</p>
-                            <p className="text-2xl font-black text-green-500">Rs {profileStats?.totalSalaryPaid.toLocaleString()}</p>
+                        <div className="bg-theme-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
+                            <p className="text-[9px] sm:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Salary Paid</p>
+                            <p className="text-lg sm:text-2xl font-black text-green-500">Rs {profileStats?.totalSalaryPaid.toLocaleString()}</p>
                         </div>
-                        <div className={`p-6 rounded-3xl border shadow-sm hover:shadow-md transition-shadow ${
+                        <div className={`p-4 sm:p-6 rounded-2xl sm:rounded-3xl border shadow-sm hover:shadow-md transition-shadow ${
                             profileStats?.balance && profileStats.balance < 0 ? 'bg-red-500/10 border-red-500/30' : 
                             profileStats?.balance && profileStats.balance > 0 ? 'bg-green-500/10 border-green-500/30' : 
                             'bg-theme-card border-theme'
                         }`}>
-                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                            <p className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 ${
                                 profileStats?.balance && profileStats.balance < 0 ? 'text-red-500' : 
                                 profileStats?.balance && profileStats.balance > 0 ? 'text-green-600' : 
                                 'text-theme-muted'
                             }`}>Balance</p>
-                            <p className={`text-2xl font-black ${
+                            <p className={`text-lg sm:text-2xl font-black ${
                                 profileStats?.balance && profileStats.balance < 0 ? 'text-red-600' : 
                                 profileStats?.balance && profileStats.balance > 0 ? 'text-green-500' : 
                                 'text-theme'
                             }`}>
                                 Rs {Math.abs(profileStats?.balance || 0).toLocaleString()}
-                                {profileStats?.balance && profileStats.balance < 0 && <span className="text-xs font-bold ml-2 opacity-80">(Overpaid)</span>}
+                                {profileStats?.balance && profileStats.balance < 0 && <span className="text-[8px] sm:text-xs font-bold ml-1 sm:ml-2 opacity-80">(Overpaid)</span>}
                             </p>
                         </div>
                     </div>
@@ -344,12 +344,12 @@ function LaborDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Transaction History */}
                         <div className="bg-theme-card rounded-3xl border border-theme shadow-sm overflow-hidden flex flex-col">
-                            <div className="p-6 border-b border-theme bg-theme-track flex justify-between items-center">
-                                <h3 className="font-black text-theme uppercase tracking-widest flex items-center gap-2"><ListTodo className="w-5 h-5 text-theme-muted" /> Transactions</h3>
+                            <div className="p-4 sm:p-6 border-b border-theme bg-theme-track flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                                <h3 className="font-black text-theme text-sm sm:text-base uppercase tracking-widest flex items-center gap-2"><ListTodo className="w-5 h-5 text-theme-muted" /> Transactions</h3>
                                 {!isDataEntry && (
-                                    <div className="flex gap-2">
-                                        <button onClick={() => setOpenTransaction({ type: 'salary', open: true })} className="bg-green-500 hover:bg-green-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-lg shadow-green-500/20 flex items-center gap-1"><ArrowDownRight className="w-3 h-3" /> Pay Salary</button>
-                                        <button onClick={() => setOpenTransaction({ type: 'advance', open: true })} className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-lg shadow-orange-500/20 flex items-center gap-1"><ArrowUpRight className="w-3 h-3" /> Give Advance</button>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <button onClick={() => setOpenTransaction({ type: 'salary', open: true })} className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-green-500/20 flex items-center justify-center gap-1.5"><ArrowDownRight className="w-3.5 h-3.5" /> Pay Salary</button>
+                                        <button onClick={() => setOpenTransaction({ type: 'advance', open: true })} className="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black px-3 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-500/20 flex items-center justify-center gap-1.5"><ArrowUpRight className="w-3.5 h-3.5" /> Give Advance</button>
                                     </div>
                                 )}
                             </div>
@@ -385,8 +385,8 @@ function LaborDashboard() {
 
                         {/* Attendance History */}
                         <div className="bg-theme-card rounded-3xl border border-theme shadow-sm overflow-hidden flex flex-col">
-                            <div className="p-6 border-b border-theme bg-theme-track flex justify-between items-center">
-                                <h3 className="font-black text-theme uppercase tracking-widest flex items-center gap-2"><MapPin className="w-5 h-5 text-theme-muted" /> Attendance History</h3>
+                            <div className="p-4 sm:p-6 border-b border-theme bg-theme-track flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                                <h3 className="font-black text-theme text-sm sm:text-base uppercase tracking-widest flex items-center gap-2"><MapPin className="w-5 h-5 text-theme-muted" /> Attendance History</h3>
                             </div>
                             <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
                                 {selectedLabour.attendance?.map((a: any) => {
