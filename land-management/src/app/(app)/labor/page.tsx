@@ -620,13 +620,18 @@ function AttendanceModal({ open, labour, onClose, onSave, locale }: any) {
 function SlipModal({ open, onClose, labour }: any) {
     if (!open || !labour) return null;
 
+    // Recalculate stats based on client rules
+    const monthlySalary = Number(labour.salary_amount) || 0;
+    const totalAdvance = (labour.transactions || []).reduce((sum: number, t: any) => t.type === 'advance' ? sum + (Number(t.amount) || 0) : sum, 0);
+    const totalSalaryPaid = (labour.transactions || []).reduce((sum: number, t: any) => t.type === 'salary' ? sum + (Number(t.amount) || 0) : sum, 0);
+    const balance = monthlySalary - (totalAdvance + totalSalaryPaid);
+    const currentMonthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
     const handlePrint = () => {
         const content = document.getElementById('payment-slip');
         if (!content) return;
-        
         const printWindow = window.open('', '_blank', 'width=800,height=900');
         if (!printWindow) return;
-
         const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(s => s.outerHTML).join('');
         printWindow.document.write(`
             <html>
@@ -668,8 +673,9 @@ function SlipModal({ open, onClose, labour }: any) {
                                 <p className="text-sm font-bold text-slate-500">Official Labour Payment Slip</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Date</p>
-                                <p className="text-sm font-black">{new Date().toLocaleDateString()}</p>
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Month</p>
+                                <p className="text-sm font-black text-blue-600">{currentMonthYear}</p>
+                                <p className="text-[10px] text-slate-400 mt-1">Generated: {new Date().toLocaleDateString()}</p>
                             </div>
                         </div>
                         
@@ -690,25 +696,25 @@ function SlipModal({ open, onClose, labour }: any) {
                             <table className="w-full text-left">
                                 <tbody className="divide-y divide-slate-100">
                                     <tr>
-                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Total Earned</td>
-                                        <td className="py-4 text-right font-black text-xl">Rs {labour.total_salary?.toLocaleString()}</td>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Total Salary</td>
+                                        <td className="py-4 text-right font-black text-xl">Rs {monthlySalary.toLocaleString()}</td>
                                     </tr>
                                     <tr>
-                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Total Paid</td>
-                                        <td className="py-4 text-right font-black text-xl text-green-600">Rs {labour.total_paid?.toLocaleString()}</td>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Advance Taken</td>
+                                        <td className="py-4 text-right font-black text-xl text-orange-500">Rs {totalAdvance.toLocaleString()}</td>
                                     </tr>
                                     <tr>
-                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Advances Balance</td>
-                                        <td className="py-4 text-right font-black text-xl text-orange-500">Rs {labour.advance_balance?.toLocaleString()}</td>
+                                        <td className="py-4 font-black text-slate-500 uppercase text-xs tracking-widest">Salary Paid</td>
+                                        <td className="py-4 text-right font-black text-xl text-green-600">Rs {totalSalaryPaid.toLocaleString()}</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
                         <div className="mt-auto border-t-2 border-slate-900 pt-6 flex justify-between items-end">
-                            <div className="bg-red-50 text-red-600 px-6 py-4 rounded-2xl border border-red-100">
-                                <p className="text-xs font-black uppercase tracking-widest mb-1">Payable Balance Due</p>
-                                <p className="text-3xl font-black">Rs {labour.balance?.toLocaleString()}</p>
+                            <div className={`${balance < 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} px-6 py-4 rounded-2xl border ${balance < 0 ? 'border-red-100' : 'border-emerald-100'}`}>
+                                <p className="text-xs font-black uppercase tracking-widest mb-1">Final Balance</p>
+                                <p className="text-3xl font-black">Rs {Math.abs(balance).toLocaleString()} {balance < 0 ? '(Negative)' : ''}</p>
                             </div>
                             <div className="w-48 border-t-2 border-slate-400 pt-2 text-center text-xs font-black uppercase text-slate-400">
                                 Manager Signature
