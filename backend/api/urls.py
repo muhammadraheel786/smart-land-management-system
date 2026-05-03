@@ -9,6 +9,7 @@ urlpatterns = [
     # 308 redirects and 404s (canonical form: /api/...).
     # Sync marker: keep Render backend in step with main branch.
     path("auth/login", login_view),
+    path("debug/echo", lambda r: __import__('django.http', fromlist=['JsonResponse']).JsonResponse({'path': r.path, 'method': r.method})),
     path("dashboard", views.dashboard),
     path("fields", views.fields_list),
     path("fields/<str:pk>", views.fields_detail),
