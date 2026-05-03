@@ -270,33 +270,35 @@ function LaborDashboard() {
                     </button>
                     
                     <div className="bg-theme-card rounded-3xl p-6 shadow-sm border border-theme">
-                        <div className="flex flex-col md:flex-row gap-8 items-start">
-                            <div className="w-32 h-32 rounded-3xl bg-theme-track border-2 border-theme flex items-center justify-center text-4xl font-black text-theme-muted uppercase overflow-hidden shadow-xl">
-                                {selectedLabour.photo ? <img src={selectedLabour.photo} className="w-full h-full object-cover" alt="" /> : selectedLabour.name?.[0]}
-                            </div>
-                            <div className="flex-1">
-                                <h2 className="text-4xl font-black text-theme tracking-tight mb-2">{selectedLabour.name}</h2>
-                                <div className="flex flex-wrap gap-3">
-                                    <span className="bg-orange-500/10 text-orange-500 border border-orange-500/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                                        <Volume2 className="w-4 h-4" /> {selectedLabour.work_type}
-                                    </span>
-                                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                                        <Banknote className="w-4 h-4" /> Rs {selectedLabour.salary_amount} / {selectedLabour.salary_type}
-                                    </span>
-                                    {selectedLabour.phone && (
-                                        <a href={`tel:${selectedLabour.phone}`} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all">
-                                            <Phone className="w-4 h-4" /> {selectedLabour.phone}
-                                        </a>
-                                    )}
+                        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 flex-1 w-full">
+                                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-theme-track border-2 border-theme flex items-center justify-center text-4xl font-black text-theme-muted uppercase shrink-0 overflow-hidden shadow-xl">
+                                    {selectedLabour.photo ? <img src={selectedLabour.photo} className="w-full h-full object-cover" alt="" /> : selectedLabour.name?.[0]}
+                                </div>
+                                <div className="space-y-3">
+                                    <h2 className="text-3xl sm:text-4xl font-black text-theme tracking-tight">{selectedLabour.name}</h2>
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="bg-orange-500/10 text-orange-500 border border-orange-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                                            <Volume2 className="w-3.5 h-3.5" /> {selectedLabour.work_type}
+                                        </span>
+                                        <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                                            <Banknote className="w-3.5 h-3.5" /> Rs {selectedLabour.salary_amount} / {selectedLabour.salary_type}
+                                        </span>
+                                        {selectedLabour.phone && (
+                                            <a href={`tel:${selectedLabour.phone}`} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all">
+                                                <Phone className="w-3.5 h-3.5" /> {selectedLabour.phone}
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             {!isDataEntry && (
-                                <div className="flex flex-wrap gap-2">
-                                    <button onClick={() => setOpenAttendance(true)} className="bg-theme-card border-2 border-theme hover:border-orange-500 hover:text-orange-500 p-4 rounded-2xl font-black flex items-center gap-2 shadow-sm transition-all active:scale-95">
-                                        <Clock className="w-5 h-5" /> Mark Present
+                                <div className="flex flex-row sm:flex-row lg:flex-col gap-2 w-full lg:w-auto">
+                                    <button onClick={() => setOpenAttendance(true)} className="flex-1 lg:flex-none bg-theme-card border-2 border-theme hover:border-orange-500 hover:text-orange-500 px-4 py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 whitespace-nowrap">
+                                        <Clock className="w-4 h-4" /> Mark Present
                                     </button>
-                                    <button onClick={() => setOpenSlip(true)} className="bg-theme-card border-2 border-theme hover:border-blue-400 hover:text-blue-400 p-4 rounded-2xl font-black flex items-center gap-2 shadow-sm transition-all active:scale-95">
-                                        <FileText className="w-5 h-5" /> Salary Slip
+                                    <button onClick={() => setOpenSlip(true)} className="flex-1 lg:flex-none bg-theme-card border-2 border-theme hover:border-blue-400 hover:text-blue-400 px-4 py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 whitespace-nowrap">
+                                        <FileText className="w-4 h-4" /> Salary Slip
                                     </button>
                                 </div>
                             )}
