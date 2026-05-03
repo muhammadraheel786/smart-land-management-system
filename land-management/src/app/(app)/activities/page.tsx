@@ -510,7 +510,27 @@ function ActivitiesContent() {
                                 label={t("totalInvestment")}
                                 value={`Rs ${totalExpense.toLocaleString()}`}
                                 icon={<ArrowDownRight className="w-5 h-5 text-white" />}
-                          {/* Table Header & Controls */}
+                                gradient="bg-gradient-to-br from-rose-600 to-red-700 border-rose-500/50"
+                                textColor="text-white"
+                            />
+                        </div>
+                        <div className="sm:col-span-2 lg:col-span-1">
+                            <StatCard
+                                label={t("netProfit")}
+                                value={`Rs ${netProfit.toLocaleString()}`}
+                                icon={<DollarSign className="w-5 h-5 text-white" />}
+                                gradient={netProfit >= 0
+                                    ? "bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500/50"
+                                    : "bg-gradient-to-br from-orange-600 to-red-700 border-orange-500/50"}
+                                textColor="text-white"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Activity Log Table ── */}
+                <div className="rounded-2xl border border-theme bg-theme-card shadow-sm overflow-hidden">
+                    {/* Table Header & Controls */}
                     <div className="px-4 sm:px-6 py-5 border-b border-theme space-y-4">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                             <h2 className="text-lg font-black text-theme flex items-center gap-2 uppercase tracking-tight">
