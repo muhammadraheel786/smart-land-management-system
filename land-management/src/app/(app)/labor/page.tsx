@@ -71,6 +71,7 @@ function LaborDashboard() {
     };
 
     // --- Search & Filter ---
+    const [searchTerm, setSearchTerm] = useState("");
     const filteredLabours = useMemo(() => {
         return labours.filter(l => l.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [labours, searchTerm]);
