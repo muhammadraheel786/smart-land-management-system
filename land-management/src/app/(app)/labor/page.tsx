@@ -71,10 +71,26 @@ function LaborDashboard() {
     };
 
     // --- Search & Filter ---
-    const [searchTerm, setSearchTerm] = useState("");
     const filteredLabours = useMemo(() => {
         return labours.filter(l => l.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [labours, searchTerm]);
+
+    const profileStats = useMemo(() => {
+        if (!selectedLabour) return null;
+        const monthlySalary = Number(selectedLabour.salary_amount) || 0;
+        
+        const totalAdvance = (selectedLabour.transactions || []).reduce((sum: number, t: any) => {
+            return t.type === 'advance' ? sum + (Number(t.amount) || 0) : sum;
+        }, 0);
+        
+        const totalSalaryPaid = (selectedLabour.transactions || []).reduce((sum: number, t: any) => {
+            return t.type === 'salary' ? sum + (Number(t.amount) || 0) : sum;
+        }, 0);
+        
+        const balance = monthlySalary - (totalAdvance + totalSalaryPaid);
+        
+        return { monthlySalary, totalAdvance, totalSalaryPaid, balance };
+    }, [selectedLabour]);
 
     if (loading) {
         return <div className="flex h-screen items-center justify-center bg-theme text-theme"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>;
@@ -289,21 +305,36 @@ function LaborDashboard() {
 
                     {/* Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm">
-                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Earned</p>
-                            <p className="text-2xl font-black text-theme">Rs {selectedLabour.total_salary?.toLocaleString()}</p>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
+                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Salary</p>
+                            <p className="text-2xl font-black text-theme">Rs {profileStats?.monthlySalary.toLocaleString()}</p>
                         </div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm">
-                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Paid</p>
-                            <p className="text-2xl font-black text-green-500">Rs {selectedLabour.total_paid?.toLocaleString()}</p>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
+                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Advance Taken</p>
+                            <p className="text-2xl font-black text-orange-500">Rs {profileStats?.totalAdvance.toLocaleString()}</p>
                         </div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm">
-                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Advance Bal</p>
-                            <p className="text-2xl font-black text-orange-500">Rs {selectedLabour.advance_balance?.toLocaleString()}</p>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
+                            <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Salary Paid</p>
+                            <p className="text-2xl font-black text-green-500">Rs {profileStats?.totalSalaryPaid.toLocaleString()}</p>
                         </div>
-                        <div className="bg-red-500/10 p-6 rounded-3xl border border-red-500/20 shadow-sm">
-                            <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Payable Bal</p>
-                            <p className="text-2xl font-black text-red-500">Rs {selectedLabour.balance?.toLocaleString()}</p>
+                        <div className={`p-6 rounded-3xl border shadow-sm hover:shadow-md transition-shadow ${
+                            profileStats?.balance && profileStats.balance < 0 ? 'bg-red-500/10 border-red-500/30' : 
+                            profileStats?.balance && profileStats.balance > 0 ? 'bg-green-500/10 border-green-500/30' : 
+                            'bg-theme-card border-theme'
+                        }`}>
+                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                                profileStats?.balance && profileStats.balance < 0 ? 'text-red-500' : 
+                                profileStats?.balance && profileStats.balance > 0 ? 'text-green-600' : 
+                                'text-theme-muted'
+                            }`}>Balance</p>
+                            <p className={`text-2xl font-black ${
+                                profileStats?.balance && profileStats.balance < 0 ? 'text-red-600' : 
+                                profileStats?.balance && profileStats.balance > 0 ? 'text-green-500' : 
+                                'text-theme'
+                            }`}>
+                                Rs {Math.abs(profileStats?.balance || 0).toLocaleString()}
+                                {profileStats?.balance && profileStats.balance < 0 && <span className="text-xs font-bold ml-2 opacity-80">(Overpaid)</span>}
+                            </p>
                         </div>
                     </div>
 
@@ -320,23 +351,31 @@ function LaborDashboard() {
                                 )}
                             </div>
                             <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
-                                {selectedLabour.transactions?.map((t: any) => (
-                                    <div key={t.id || t._id} className="flex items-center justify-between p-4 bg-theme-track rounded-2xl border border-theme group hover:border-theme-muted transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-3 rounded-xl ${t.type === 'salary' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                                                {t.type === 'salary' ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                                {selectedLabour.transactions?.map((t: any) => {
+                                    const dateObj = new Date(t.date);
+                                    const monthYear = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                                    return (
+                                        <div key={t.id || t._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-theme-track rounded-2xl border border-theme group hover:border-theme-muted hover:shadow-md transition-all gap-4">
+                                            <div className="flex items-start sm:items-center gap-4">
+                                                <div className={`p-3 rounded-xl shrink-0 ${t.type === 'salary' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                                                    {t.type === 'salary' ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-theme text-sm uppercase tracking-wider">{t.type}</p>
+                                                    <p className="text-xs font-bold text-blue-500">{monthYear}</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[10px] font-bold text-theme-muted bg-theme-card px-2 py-0.5 rounded-md border border-theme">{dateObj.toLocaleDateString()}</span>
+                                                        {t.transaction_id && <span className="text-[10px] font-mono text-theme-muted bg-theme-card px-2 py-0.5 rounded-md border border-theme">ID: {t.transaction_id}</span>}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-black text-theme text-sm uppercase">{t.type}</p>
-                                                <p className="text-[10px] font-bold text-theme-muted">{new Date(t.date).toLocaleDateString()}</p>
+                                            <div className="sm:text-right flex flex-col sm:items-end ml-14 sm:ml-0">
+                                                <p className={`font-black text-lg ${t.type === 'salary' ? 'text-green-500' : 'text-orange-500'}`}>Rs {t.amount?.toLocaleString()}</p>
+                                                {t.notes && <p className="text-[11px] font-bold text-theme-muted italic mt-1 line-clamp-2 max-w-[200px]">{t.notes}</p>}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={`font-black ${t.type === 'salary' ? 'text-green-500' : 'text-orange-500'}`}>Rs {t.amount?.toLocaleString()}</p>
-                                            <p className="text-[10px] font-bold text-theme-muted italic">{t.notes || 'No notes'}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {(!selectedLabour.transactions || selectedLabour.transactions.length === 0) && <p className="text-center py-10 text-theme-muted font-bold uppercase tracking-widest text-xs">No transactions yet</p>}
                             </div>
                         </div>
@@ -347,19 +386,32 @@ function LaborDashboard() {
                                 <h3 className="font-black text-theme uppercase tracking-widest flex items-center gap-2"><MapPin className="w-5 h-5 text-theme-muted" /> Attendance History</h3>
                             </div>
                             <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
-                                {selectedLabour.attendance?.map((a: any) => (
-                                    <div key={a.id || a._id} className="flex items-center justify-between p-4 bg-theme-track rounded-2xl border border-theme group hover:border-theme-muted transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-3 rounded-xl ${a.status === 'present' ? 'bg-emerald-500/10 text-emerald-500' : a.status === 'absent' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-400/10 text-yellow-500'}`}>
-                                                <CheckCircle className="w-5 h-5" />
+                                {selectedLabour.attendance?.map((a: any) => {
+                                    const dateObj = new Date(a.date);
+                                    const monthYear = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                                    return (
+                                        <div key={a.id || a._id} className="flex items-center justify-between p-4 bg-theme-track rounded-2xl border border-theme group hover:border-theme-muted hover:shadow-md transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`p-3 rounded-xl shrink-0 ${a.status === 'present' ? 'bg-emerald-500/10 text-emerald-500' : a.status === 'absent' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-400/10 text-yellow-500'}`}>
+                                                    <CheckCircle className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-theme text-sm uppercase tracking-wider">{a.status}</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[10px] font-bold text-blue-500">{monthYear}</span>
+                                                        <span className="text-theme-muted text-[10px]">•</span>
+                                                        <span className="text-[10px] font-bold text-theme-muted">{dateObj.toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-black text-theme text-sm uppercase tracking-wider">{a.status}</p>
-                                                <p className="text-[10px] font-bold text-theme-muted">{new Date(a.date).toLocaleDateString()}</p>
-                                            </div>
+                                            {a.overtime_hours > 0 && (
+                                                <div className="text-right">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-500 px-2 py-1 rounded-lg border border-blue-500/20">+{a.overtime_hours} hrs OT</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {(!selectedLabour.attendance || selectedLabour.attendance.length === 0) && <p className="text-center py-10 text-theme-muted font-bold uppercase tracking-widest text-xs">No attendance marked</p>}
                             </div>
                         </div>
