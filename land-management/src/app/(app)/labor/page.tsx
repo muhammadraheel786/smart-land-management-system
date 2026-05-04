@@ -133,13 +133,13 @@ function LaborDashboard() {
     }, [viewStartDate, viewEndDate, searchTerm]);
 
     const getDaysInRange = (labour: Labour, startStr: string, endStr: string) => {
-        if (!startStr || !endStr) return labour.days_worked ?? 0;
-        const start = new Date(startStr);
-        const end = new Date(endStr);
+        if (!startStr && !endStr) return labour.days_worked ?? 0;
+        const start = startStr ? new Date(startStr) : null;
+        const end = endStr ? new Date(endStr) : null;
         let count = 0;
         (labour.attendance || []).forEach((a: Attendance) => {
             const d = new Date(a.date);
-            if (d >= start && d <= end) {
+            if ((!start || d >= start) && (!end || d <= end)) {
                 if (a.status === 'present') count += 1;
                 else if (a.status === 'half_day') count += 0.5;
             }
@@ -153,16 +153,16 @@ function LaborDashboard() {
             const matchesName = l.name?.toLowerCase().includes(searchTerm.toLowerCase());
             if (!matchesName) return false;
             
-            if (viewStartDate && viewEndDate) {
-                const start = new Date(viewStartDate);
-                const end = new Date(viewEndDate);
+            if (viewStartDate || viewEndDate) {
+                const start = viewStartDate ? new Date(viewStartDate) : null;
+                const end = viewEndDate ? new Date(viewEndDate) : null;
                 const hasAttendanceInRange = (l.attendance || []).some((a: Attendance) => {
                     const d = new Date(a.date);
-                    return d >= start && d <= end;
+                    return (!start || d >= start) && (!end || d <= end);
                 });
                 const hasTransactionsInRange = (l.transactions || []).some((t: Transaction) => {
                     const d = new Date(t.date);
-                    return d >= start && d <= end;
+                    return (!start || d >= start) && (!end || d <= end);
                 });
                 return hasAttendanceInRange || hasTransactionsInRange;
             }
@@ -186,9 +186,11 @@ function LaborDashboard() {
             const start = viewStartDate ? new Date(viewStartDate) : null;
             const end = viewEndDate ? new Date(viewEndDate) : null;
             const filterByDate = (dateStr: string): boolean => {
-                if (!start || !end) return true;
+                if (!start && !end) return true;
                 const d = new Date(dateStr);
-                return d >= start && d <= end;
+                if (start && d < start) return false;
+                if (end && d > end) return false;
+                return true;
             };
 
             const periodPaid = (l.transactions || []).filter((t: Transaction) => t.type === 'salary' && filterByDate(t.date)).reduce((sum: number, t: Transaction) => sum + (Number(t.amount) || 0), 0);
@@ -219,9 +221,11 @@ function LaborDashboard() {
         const start = viewStartDate ? new Date(viewStartDate) : null;
         const end = viewEndDate ? new Date(viewEndDate) : null;
         const filterByDate = (dateStr: string): boolean => {
-            if (!start || !end) return true;
+            if (!start && !end) return true;
             const d = new Date(dateStr);
-            return d >= start && d <= end;
+            if (start && d < start) return false;
+            if (end && d > end) return false;
+            return true;
         };
 
         const totalAdvance = (selectedLabour.transactions || []).filter((t: Transaction) => t.type === 'advance' && filterByDate(t.date)).reduce((sum: number, t: Transaction) => sum + (Number(t.amount) || 0), 0);
@@ -330,15 +334,15 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-theme-track/30 p-4 md:p-6 rounded-[2rem] border border-theme border-dashed grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-                        <div className="flex items-center gap-4">
+                    <div className="bg-theme-track/30 p-4 md:p-6 rounded-[2rem] border border-theme border-dashed flex flex-col xl:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-4 w-full xl:w-auto">
                             <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl shrink-0"><FileText className="w-6 h-6" /></div>
                             <div>
                                 <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest leading-none mb-1">Detailed Report</p>
                                 <p className="text-sm font-bold text-theme">Excel Export for any period</p>
                             </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto ml-auto">
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 sm:flex-none w-full">
                                 <div className="flex items-center gap-2 bg-theme-card border border-theme rounded-xl px-3 py-2">
                                     <span className="text-[9px] font-black text-theme-muted uppercase shrink-0">From:</span>
@@ -349,7 +353,7 @@ function LaborDashboard() {
                                     <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} className="bg-transparent text-base md:text-xs font-bold text-theme focus:outline-none w-full" />
                                 </div>
                             </div>
-                            <button onClick={handleExport} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 w-full sm:w-auto">
+                            <button onClick={handleExport} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 w-full sm:w-auto shrink-0">
                                 <Download className="w-4 h-4" /> Export
                             </button>
                         </div>
