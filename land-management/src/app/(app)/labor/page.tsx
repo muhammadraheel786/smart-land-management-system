@@ -138,30 +138,56 @@ function LaborDashboard() {
         return count;
     };
 
-    // --- Search & Filter ---
-    const filteredLabours = useMemo(() => {
-        if (!isFilterActive) return [];
-        return labours.filter(l => {
-            const matchesName = l.name?.toLowerCase().includes(searchTerm.toLowerCase());
-            if (!matchesName) return false;
-            
-            // If date range is applied, only show workers who have ANY record (attendance or transaction) in that range
-            if (viewStartDate && viewEndDate) {
-                const start = new Date(viewStartDate);
-                const end = new Date(viewEndDate);
-                const hasAttendanceInRange = (l.attendance || []).some((a: any) => {
-                    const d = new Date(a.date);
-                    return d >= start && d <= end;
-                });
-                const hasTransactionsInRange = (l.transactions || []).some((t: any) => {
-                    const d = new Date(t.date);
-                    return d >= start && d <= end;
-                });
-                return hasAttendanceInRange || hasTransactionsInRange;
-            }
-            return true;
-        });
     }, [labours, searchTerm, viewStartDate, viewEndDate, isFilterActive]);
+
+    // --- Dynamic Stats for Top Cards ---
+    const dynamicStats = useMemo(() => {
+        const list = filteredLabours;
+        if (!isFilterActive || list.length === 0) return stats; // Fallback to overall stats if no filter
+        
+        let totalPaid = 0;
+        let totalSalary = 0;
+        let advances = 0;
+
+        list.forEach(l => {
+            const start = viewStartDate ? new Date(viewStartDate) : null;
+            const end = viewEndDate ? new Date(viewEndDate) : null;
+            
+            const filterByDate = (dateStr: string) => {
+                if (!start || !end) return true;
+                const d = new Date(dateStr);
+                return d >= start && d <= end;
+            };
+
+            const days = (l.attendance || []).reduce((count, a: any) => {
+                if (filterByDate(a.date)) {
+                    if (a.status === 'present') return count + 1;
+                    if (a.status === 'half_day') return count + 0.5;
+                }
+                return count;
+            }, 0);
+
+            const baseRate = Number(l.salary_amount) || 0;
+            const periodSalary = l.salary_type === 'daily' ? days * baseRate : baseRate;
+            
+            const periodPaid = (l.transactions || []).filter((t: any) => t.type === 'salary' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            const periodAdvance = (l.transactions || []).filter((t: any) => t.type === 'advance' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+            totalSalary += periodSalary;
+            totalPaid += periodPaid;
+            advances += periodAdvance;
+        });
+
+        return {
+            total_labour: list.length,
+            active_labour: list.filter(l => l.status === 'Active').length,
+            inactive_labour: list.filter(l => l.status !== 'Active').length,
+            total_paid_overall: totalPaid,
+            paid_this_month: totalPaid, // Showing period paid here
+            pending_salary: Math.max(0, totalSalary - totalPaid),
+            advances_given: advances,
+        };
+    }, [filteredLabours, stats, isFilterActive, viewStartDate, viewEndDate]);
 
         const profileStats = useMemo(() => {
             if (!selectedLabour) return null;
@@ -371,36 +397,36 @@ function LaborDashboard() {
                                 <h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-theme">{stats?.total_labour || 0}</p>
-                                <p className="text-[10px] font-bold text-green-500 mt-1">{stats?.active_labour || 0} Active • {stats?.inactive_labour || 0} Inactive</p>
+                                <p className="text-3xl font-black text-theme">{dynamicStats?.total_labour || 0}</p>
+                                <p className="text-[10px] font-bold text-green-500 mt-1">{dynamicStats?.active_labour || 0} Active • {dynamicStats?.inactive_labour || 0} Inactive</p>
                             </div>
                         </div>
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3>
+                                <h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{isFilterActive ? 'Period Paid' : (locale === 'ur' ? 'ادائیگی' : 'Total Paid')}</h3>
                             </div>
                             <div>
-                                <p className="text-2xl font-black text-theme">Rs {stats?.total_paid_overall?.toLocaleString() || 0}</p>
-                                <p className="text-[10px] font-bold text-theme-muted mt-1">This Month: Rs {stats?.paid_this_month?.toLocaleString() || 0}</p>
+                                <p className="text-2xl font-black text-theme">Rs {dynamicStats?.total_paid_overall?.toLocaleString() || 0}</p>
+                                <p className="text-[10px] font-bold text-theme-muted mt-1">{isFilterActive ? 'Range Total' : `This Month: Rs ${dynamicStats?.paid_this_month?.toLocaleString() || 0}`}</p>
                             </div>
                         </div>
                         <div className="bg-red-500/10 p-5 rounded-3xl border border-red-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3>
+                                <h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{isFilterActive ? 'Period Payable' : (locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary')}</h3>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-red-500">Rs {stats?.pending_salary?.toLocaleString() || 0}</p>
+                                <p className="text-3xl font-black text-red-500">Rs {dynamicStats?.pending_salary?.toLocaleString() || 0}</p>
                             </div>
                         </div>
                         <div className="bg-orange-500/10 p-5 rounded-3xl border border-orange-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div>
-                                <h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3>
+                                <h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{isFilterActive ? 'Period Advance' : (locale === 'ur' ? 'ایڈوانس' : 'Advances Given')}</h3>
                             </div>
                             <div>
-                                <p className="text-3xl font-black text-orange-500">Rs {stats?.advances_given?.toLocaleString() || 0}</p>
+                                <p className="text-3xl font-black text-orange-500">Rs {dynamicStats?.advances_given?.toLocaleString() || 0}</p>
                             </div>
                         </div>
                     </div>
@@ -452,31 +478,35 @@ function LaborDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-theme">
-                                    {filteredLabours.map(l => (
-                                        <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group">
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 overflow-hidden border border-theme">
-                                                        {l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}
+                                    {filteredLabours.map(l => {
+                                        const periodDays = getDaysInRange(l);
+                                        const periodSalary = l.salary_type === 'daily' ? (periodDays * (l.salary_amount || 0)) : (l.salary_amount || 0);
+                                        return (
+                                            <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group">
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 overflow-hidden border border-theme">
+                                                            {l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p>
+                                                            <p className="text-[10px] font-bold text-theme-muted uppercase">{l.phone || 'No Phone'}</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p>
-                                                        <p className="text-[10px] font-bold text-theme-muted uppercase">{l.phone || 'No Phone'}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">{getDaysInRange(l)}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.salary_amount?.toLocaleString() || 0}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid?.toLocaleString() || 0}</td>
-                                            <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance?.toLocaleString() || 0}</td>
-                                            <td className="p-4 text-center">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${l.status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-theme-track text-theme-muted border border-theme'}`}>
-                                                    {l.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
+                                                <td className="p-4 text-right text-sm font-bold text-theme-muted">{periodDays}</td>
+                                                <td className="p-4 text-right text-sm font-bold text-theme">Rs {periodSalary.toLocaleString()}</td>
+                                                <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid?.toLocaleString() || 0}</td>
+                                                <td className="p-4 text-right text-sm font-black text-red-500">Rs {(periodSalary - (l.total_paid || 0)).toLocaleString()}</td>
+                                                <td className="p-4 text-center">
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${l.status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-theme-track text-theme-muted border border-theme'}`}>
+                                                        {l.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
