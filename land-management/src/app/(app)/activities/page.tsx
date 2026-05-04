@@ -260,8 +260,14 @@ function ActivitiesContent() {
         return materials;
     }, [materials, activityType]);
 
+    // Check if any filter is active
+    const isFilterActive = useMemo(() => {
+        return filterType !== "all" || !!viewDate || !!searchTerm;
+    }, [filterType, viewDate, searchTerm]);
+
     // Filtered list ──
     const filtered = useMemo(() => {
+        if (!isFilterActive) return [];
         let list = activities;
         if (filterType !== "all") {
             list = list.filter(a => a.activity_type === filterType);
@@ -279,7 +285,7 @@ function ActivitiesContent() {
             });
         }
         return list;
-    }, [activities, filterType, viewDate, searchTerm, fields, materials]);
+    }, [activities, filterType, viewDate, searchTerm, fields, materials, isFilterActive]);
 
     // ── Stats (Reflecting Filtered Data) ──
     const totalIncome = useMemo(() => filtered.reduce((s, a) => s + (a.income || 0), 0), [filtered]);
@@ -493,9 +499,9 @@ function ActivitiesContent() {
                     </div>
                 </div>
 
-                {/* Stats: hidden for Data Entry users */}
-                {!isDataEntry && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Stats: hidden for Data Entry users, and only shown when filter is active */}
+                {!isDataEntry && isFilterActive && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                         <div>
                             <StatCard
                                 label={t("totalIncome")}
@@ -644,7 +650,38 @@ function ActivitiesContent() {
                         </div>
                     </div>
 
-                    {filtered.length === 0 ? (
+                    {!isFilterActive ? (
+                        <div className="flex flex-col items-center justify-center py-24 text-center gap-6 animate-in fade-in zoom-in-95 duration-500">
+                            <div className="relative">
+                                <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-blue-500/10 to-indigo-600/10 border border-blue-500/20 flex items-center justify-center">
+                                    <Filter className="w-10 h-10 text-blue-500 animate-pulse" />
+                                </div>
+                                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center shadow-lg border-2 border-theme-card">
+                                    <Info className="w-4 h-4 text-white" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-theme uppercase tracking-tight">Select a Filter</h3>
+                                <p className="text-theme-muted max-w-sm mx-auto text-sm leading-relaxed">
+                                    {locale === "ur" ? "ڈیٹا دیکھنے کے لیے براہ کرم کوئی تاریخ یا کام منتخب کریں۔" : "Please select a date, activity type, or search to view the records."}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setViewDate(new Date().toISOString().split("T")[0])}
+                                    className="px-6 py-3 rounded-2xl bg-theme-track border border-theme text-theme font-black text-xs uppercase tracking-widest hover:border-blue-500/50 transition-all active:scale-95 shadow-sm"
+                                >
+                                    {locale === "ur" ? "آج کا ڈیٹا" : "Show Today"}
+                                </button>
+                                <button 
+                                    onClick={() => setFilterType("irrigation")}
+                                    className="px-6 py-3 rounded-2xl bg-theme-track border border-theme text-theme font-black text-xs uppercase tracking-widest hover:border-green-500/50 transition-all active:scale-95 shadow-sm"
+                                >
+                                    {locale === "ur" ? "پانی کا ریکارڈ" : "Irrigation Only"}
+                                </button>
+                            </div>
+                        </div>
+                    ) : filtered.length === 0 ? (
                         <EmptyState onAdd={() => { resetForm(); setOpen(true); }} />
                     ) : (
                         <>
