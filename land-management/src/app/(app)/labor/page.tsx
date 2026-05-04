@@ -60,6 +60,8 @@ function LaborDashboard() {
 
     // View State
     const [view, setView] = useState<"dashboard" | "profile">("dashboard");
+    const [viewStartDate, setViewStartDate] = useState<string>("");
+    const [viewEndDate, setViewEndDate] = useState<string>("");
     const [selectedLabour, setSelectedLabour] = useState<Labour | null>(null);
 
     // Modal States
@@ -112,25 +114,56 @@ function LaborDashboard() {
     // --- Search & Filter ---
     const [searchTerm, setSearchTerm] = useState("");
     const filteredLabours = useMemo(() => {
-        return labours.filter(l => l.name?.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [labours, searchTerm]);
+        return labours.filter(l => {
+            const matchesName = l.name?.toLowerCase().includes(searchTerm.toLowerCase());
+            if (!matchesName) return false;
+            if (viewStartDate && viewEndDate) {
+                const start = new Date(viewStartDate);
+                const end = new Date(viewEndDate);
+                const hasAttendanceInRange = (l.attendance || []).some((a: any) => {
+                    const d = new Date(a.date);
+                    return d >= start && d <= end;
+                });
+                const hasTransactionsInRange = (l.transactions || []).some((t: any) => {
+                    const d = new Date(t.date);
+                    return d >= start && d <= end;
+                });
+                return hasAttendanceInRange || hasTransactionsInRange;
+            }
+            return true;
+        });
+    }, [labours, searchTerm, viewStartDate, viewEndDate]);
+    // Helper to compute days worked within selected date range
+    const getDaysInRange = (labour: Labour) => {
+        if (!viewStartDate || !viewEndDate) return labour.days_worked ?? 0;
+        const start = new Date(viewStartDate);
+        const end = new Date(viewEndDate);
+        let count = 0;
+        (labour.attendance || []).forEach((a: any) => {
+            const d = new Date(a.date);
+            if (d >= start && d <= end) {
+                if (a.status === 'present') count += 1;
+                else if (a.status === 'half_day') count += 0.5;
+            }
+        });
+        return count;
+    };
 
     const profileStats = useMemo(() => {
         if (!selectedLabour) return null;
+        const start = viewStartDate ? new Date(viewStartDate) : null;
+        const end = viewEndDate ? new Date(viewEndDate) : null;
+        const filterByDate = (dateStr: string) => {
+            if (!start || !end) return true;
+            const d = new Date(dateStr);
+            return d >= start && d <= end;
+        };
         const monthlySalary = Number(selectedLabour.salary_amount) || 0;
-        
-        const totalAdvance = (selectedLabour.transactions || []).reduce((sum, t) => {
-            return t.type === 'advance' ? sum + (Number(t.amount) || 0) : sum;
-        }, 0);
-        
-        const totalSalaryPaid = (selectedLabour.transactions || []).reduce((sum, t) => {
-            return t.type === 'salary' ? sum + (Number(t.amount) || 0) : sum;
-        }, 0);
-        
+        const totalAdvance = (selectedLabour.transactions || []).filter((t: any) => t.type === 'advance' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const totalSalaryPaid = (selectedLabour.transactions || []).filter((t: any) => t.type === 'salary' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         const balance = monthlySalary - (totalAdvance + totalSalaryPaid);
-        
         return { monthlySalary, totalAdvance, totalSalaryPaid, balance };
-    }, [selectedLabour]);
+    }, [selectedLabour, viewStartDate, viewEndDate]);
 
     const handleExport = () => {
         const data = filteredLabours.map(l => ({
@@ -185,6 +218,9 @@ function LaborDashboard() {
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                            <input type="date" value={viewStartDate} onChange={e => setViewStartDate(e.target.value)} className="px-3 py-2 bg-theme-card border border-theme rounded" placeholder="From"/>
+                            <input type="date" value={viewEndDate} onChange={e => setViewEndDate(e.target.value)} className="px-3 py-2 bg-theme-card border border-theme rounded" placeholder="To"/>
+                            <button onClick={() => { setViewStartDate(""); setViewEndDate(""); }} className="px-3 py-2 bg-gray-200 text-gray-800 rounded">Clear</button>
                             {!isDataEntry && (
                                 <button onClick={() => setOpenAddLabour(true)} className="flex-1 md:flex-none bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95">
                                     <Plus className="w-5 h-5" /> {locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}
@@ -276,7 +312,7 @@ function LaborDashboard() {
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">{l.days_worked || 0}</td>
+                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">{getDaysInRange(l)}</td>
                                             <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.salary_amount?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance?.toLocaleString() || 0}</td>
