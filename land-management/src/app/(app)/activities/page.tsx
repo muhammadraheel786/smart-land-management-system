@@ -148,7 +148,8 @@ function ActivitiesContent() {
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
-    const [viewDate, setViewDate] = useState<string>("");
+    const [viewStartDate, setViewStartDate] = useState<string>("");
+    const [viewEndDate, setViewEndDate] = useState<string>("");
     const [searchTerm, setSearchTerm] = useState<string>("");
 
     // Form fields
@@ -262,8 +263,8 @@ function ActivitiesContent() {
 
     // Check if any filter is active
     const isFilterActive = useMemo(() => {
-        return filterType !== "all" || !!viewDate || !!searchTerm;
-    }, [filterType, viewDate, searchTerm]);
+        return filterType !== "all" || !!viewStartDate || !!viewEndDate || !!searchTerm;
+    }, [filterType, viewStartDate, viewEndDate, searchTerm]);
 
     // Filtered list ──
     const filtered = useMemo(() => {
@@ -272,8 +273,11 @@ function ActivitiesContent() {
         if (filterType !== "all") {
             list = list.filter(a => a.activity_type === filterType);
         }
-        if (viewDate) {
-            list = list.filter(a => a.date?.startsWith(viewDate));
+        if (viewStartDate) {
+            list = list.filter(a => a.date && a.date >= viewStartDate);
+        }
+        if (viewEndDate) {
+            list = list.filter(a => a.date && a.date <= viewEndDate);
         }
         if (searchTerm) {
             const s = searchTerm.toLowerCase();
@@ -285,7 +289,7 @@ function ActivitiesContent() {
             });
         }
         return list;
-    }, [activities, filterType, viewDate, searchTerm, fields, materials, isFilterActive]);
+    }, [activities, filterType, viewStartDate, viewEndDate, searchTerm, fields, materials, isFilterActive]);
 
     // ── Stats (Reflecting Filtered Data) ──
     const totalIncome = useMemo(() => filtered.reduce((s, a) => s + (a.income || 0), 0), [filtered]);
@@ -546,14 +550,18 @@ function ActivitiesContent() {
                             
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => { setViewDate(new Date().toISOString().split("T")[0]); }}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all border ${viewDate === new Date().toISOString().split("T")[0] ? "bg-green-500 text-white border-green-400 shadow-lg shadow-green-500/20" : "bg-theme-track text-theme-muted border-theme hover:border-theme-muted"}`}
+                                    onClick={() => { 
+                                        const today = new Date().toISOString().split("T")[0];
+                                        setViewStartDate(today);
+                                        setViewEndDate(today);
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all border ${viewStartDate === new Date().toISOString().split("T")[0] && viewEndDate === new Date().toISOString().split("T")[0] ? "bg-green-500 text-white border-green-400 shadow-lg shadow-green-500/20" : "bg-theme-track text-theme-muted border-theme hover:border-theme-muted"}`}
                                 >
                                     {locale === "ur" ? "آج" : "TODAY"}
                                 </button>
-                                {(filterType !== "all" || viewDate || searchTerm) && (
+                                {(filterType !== "all" || viewStartDate || viewEndDate || searchTerm) && (
                                     <button
-                                        onClick={() => { setFilterType("all"); setViewDate(""); setSearchTerm(""); }}
+                                        onClick={() => { setFilterType("all"); setViewStartDate(""); setViewEndDate(""); setSearchTerm(""); }}
                                         className="px-4 py-2 rounded-xl text-xs font-black bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
                                     >
                                         {locale === "ur" ? "صاف کریں" : "CLEAR"}
@@ -563,7 +571,7 @@ function ActivitiesContent() {
                         </div>
 
                         {/* Search & View Filters */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             {/* Search Box */}
                             <div className="relative group">
                                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted group-focus-within:text-green-500 transition-colors" />
@@ -571,36 +579,47 @@ function ActivitiesContent() {
                                     type="text"
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                    placeholder={locale === "ur" ? "تلاش کریں..." : "Search activities, fields..."}
+                                    placeholder={locale === "ur" ? "تلاش کریں..." : "Search..."}
                                     className="w-full pl-11 pr-4 py-3 text-sm rounded-2xl bg-theme-track border border-theme text-theme focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 focus:outline-none transition-all"
                                 />
                             </div>
 
-                            {/* View Date Picker */}
+                            {/* View Start Date Picker */}
                             <div className="relative group">
-                                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 transition-colors" />
+                                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 transition-colors" />
                                 <input
                                     type="date"
-                                    value={viewDate}
-                                    onChange={e => setViewDate(e.target.value)}
+                                    value={viewStartDate}
+                                    onChange={e => setViewStartDate(e.target.value)}
                                     className="w-full pl-11 pr-4 py-3 text-sm rounded-2xl bg-theme-track border border-theme text-theme focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 focus:outline-none transition-all font-bold"
                                 />
-                                {!viewDate && <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase pointer-events-none tracking-widest">{locale === "ur" ? "تاریخ" : "By Date"}</span>}
+                                {!viewStartDate && <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase pointer-events-none tracking-widest">{locale === "ur" ? "سے" : "From"}</span>}
+                            </div>
+
+                            {/* View End Date Picker */}
+                            <div className="relative group">
+                                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-500 transition-colors" />
+                                <input
+                                    type="date"
+                                    value={viewEndDate}
+                                    onChange={e => setViewEndDate(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 text-sm rounded-2xl bg-theme-track border border-theme text-theme focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 focus:outline-none transition-all font-bold"
+                                />
+                                {!viewEndDate && <span className="absolute right-10 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase pointer-events-none tracking-widest">{locale === "ur" ? "تک" : "To"}</span>}
                             </div>
 
                             {/* Type Filter */}
                             <div className="relative">
-                                <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 pointer-events-none shrink-0" />
+                                <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 pointer-events-none shrink-0" />
                                 <select
                                     value={filterType}
                                     onChange={e => setFilterType(e.target.value)}
                                     className="w-full pl-11 pr-10 py-3 text-sm rounded-2xl bg-theme-track border border-theme text-theme appearance-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 focus:outline-none font-bold"
                                 >
-                                    <option value="all">{locale === "ur" ? "تمام کام" : "All Activity Types"}</option>
+                                    <option value="all">{locale === "ur" ? "تمام کام" : "All Types"}</option>
                                     {Object.entries(ACTIVITY_META)
-                                        .filter(([k]) => k !== "material_purchase")
-                                        .map(([k, v]) => (
-                                            <option key={k} value={k}>{locale === "ur" ? v.desc : v.label}</option>
+                                        .map(([key, m]) => (
+                                            <option key={key} value={key}>{locale === "ur" ? (m.desc || m.label) : m.label}</option>
                                         ))}
                                 </select>
                                 <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
@@ -668,7 +687,11 @@ function ActivitiesContent() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <button 
-                                    onClick={() => setViewDate(new Date().toISOString().split("T")[0])}
+                                    onClick={() => {
+                                        const today = new Date().toISOString().split("T")[0];
+                                        setViewStartDate(today);
+                                        setViewEndDate(today);
+                                    }}
                                     className="px-6 py-3 rounded-2xl bg-theme-track border border-theme text-theme font-black text-xs uppercase tracking-widest hover:border-blue-500/50 transition-all active:scale-95 shadow-sm"
                                 >
                                     {locale === "ur" ? "آج کا ڈیٹا" : "Show Today"}

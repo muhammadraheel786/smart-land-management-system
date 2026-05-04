@@ -4,8 +4,9 @@ import React, { useState, useEffect, useMemo, Suspense } from "react";
 import {
     Users, Plus, Loader2, Search, MapPin, CheckCircle,
     AlertCircle, X, FileText, Printer, Phone, Volume2, Clock, Banknote, ListTodo,
-    ArrowUpRight, ArrowDownRight, ChevronRight
+    ArrowUpRight, ArrowDownRight, ChevronRight, Download
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
 import { api } from "@/lib/api";
@@ -42,6 +43,7 @@ interface Labour {
     total_salary?: number;
     total_paid?: number;
     balance?: number;
+    days_worked?: number;
     photo?: string;
     transactions?: Transaction[];
     attendance?: Attendance[];
@@ -130,6 +132,27 @@ function LaborDashboard() {
         return { monthlySalary, totalAdvance, totalSalaryPaid, balance };
     }, [selectedLabour]);
 
+    const handleExport = () => {
+        const data = filteredLabours.map(l => ({
+            "Worker Name": l.name,
+            "Phone": l.phone || "N/A",
+            "CNIC": l.cnic || "N/A",
+            "Work Type": l.work_type,
+            "Salary Type": l.salary_type,
+            "Base Rate": l.salary_amount,
+            "Days Worked": l.days_worked || 0,
+            "Total Salary": l.total_salary || l.salary_amount,
+            "Total Paid": l.total_paid || 0,
+            "Remaining Balance": l.balance || 0,
+            "Status": l.status
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "LabourRecords");
+        XLSX.writeFile(wb, `Labour_Data_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     if (loading) {
         return <div className="flex h-screen items-center justify-center bg-theme text-theme"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>;
     }
@@ -161,11 +184,16 @@ function LaborDashboard() {
                                 </p>
                             </div>
                         </div>
-                        {!isDataEntry && (
-                            <button onClick={() => setOpenAddLabour(true)} className="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 text-lg">
-                                <Plus className="w-6 h-6" /> {locale === 'ur' ? 'نیا مزدور شامل کریں' : 'Add Labour'}
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                            {!isDataEntry && (
+                                <button onClick={() => setOpenAddLabour(true)} className="flex-1 md:flex-none bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95">
+                                    <Plus className="w-5 h-5" /> {locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}
+                                </button>
+                            )}
+                            <button onClick={handleExport} className="flex-1 md:flex-none bg-blue-500 hover:bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition-all active:scale-95">
+                                <Download className="w-5 h-5" /> {locale === 'ur' ? 'ایکسل رپورٹ' : 'Export Excel'}
                             </button>
-                        )}
+                        </div>
                     </div>
 
                     {/* Stats Cards */}
@@ -248,7 +276,7 @@ function LaborDashboard() {
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
-                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">0</td>
+                                            <td className="p-4 text-right text-sm font-bold text-theme-muted">{l.days_worked || 0}</td>
                                             <td className="p-4 text-right text-sm font-bold text-theme">Rs {l.salary_amount?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-right text-sm font-bold text-green-500">Rs {l.total_paid?.toLocaleString() || 0}</td>
                                             <td className="p-4 text-right text-sm font-black text-red-500">Rs {l.balance?.toLocaleString() || 0}</td>
