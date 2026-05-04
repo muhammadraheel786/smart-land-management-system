@@ -70,6 +70,10 @@ function LaborDashboard() {
     const [openAttendance, setOpenAttendance] = useState(false);
     const [openSlip, setOpenSlip] = useState(false);
 
+    // Export Range (Separate from View Range if needed, or linked)
+    const [exportStartDate, setExportStartDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const [exportEndDate, setExportEndDate] = useState<string>(new Date().toISOString().split("T")[0]);
+
     // Toast
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
@@ -111,12 +115,37 @@ function LaborDashboard() {
         }
     };
 
+    // Check if any filter is active
+    const isFilterActive = useMemo(() => {
+        return !!viewStartDate || !!viewEndDate || !!searchTerm;
+    }, [viewStartDate, viewEndDate, searchTerm]);
+
+    // Helper to compute days worked within selected date range
+    const getDaysInRange = (labour: Labour) => {
+        const startStr = viewStartDate;
+        const endStr = viewEndDate;
+        if (!startStr || !endStr) return labour.days_worked ?? 0;
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        let count = 0;
+        (labour.attendance || []).forEach((a: any) => {
+            const d = new Date(a.date);
+            if (d >= start && d <= end) {
+                if (a.status === 'present') count += 1;
+                else if (a.status === 'half_day') count += 0.5;
+            }
+        });
+        return count;
+    };
+
     // --- Search & Filter ---
-    const [searchTerm, setSearchTerm] = useState("");
     const filteredLabours = useMemo(() => {
+        if (!isFilterActive) return [];
         return labours.filter(l => {
             const matchesName = l.name?.toLowerCase().includes(searchTerm.toLowerCase());
             if (!matchesName) return false;
+            
+            // If date range is applied, only show workers who have ANY record (attendance or transaction) in that range
             if (viewStartDate && viewEndDate) {
                 const start = new Date(viewStartDate);
                 const end = new Date(viewEndDate);
@@ -132,58 +161,92 @@ function LaborDashboard() {
             }
             return true;
         });
-    }, [labours, searchTerm, viewStartDate, viewEndDate]);
-    // Helper to compute days worked within selected date range
-    const getDaysInRange = (labour: Labour) => {
-        if (!viewStartDate || !viewEndDate) return labour.days_worked ?? 0;
-        const start = new Date(viewStartDate);
-        const end = new Date(viewEndDate);
-        let count = 0;
-        (labour.attendance || []).forEach((a: any) => {
-            const d = new Date(a.date);
-            if (d >= start && d <= end) {
-                if (a.status === 'present') count += 1;
-                else if (a.status === 'half_day') count += 0.5;
-            }
-        });
-        return count;
-    };
+    }, [labours, searchTerm, viewStartDate, viewEndDate, isFilterActive]);
 
-    const profileStats = useMemo(() => {
-        if (!selectedLabour) return null;
-        const start = viewStartDate ? new Date(viewStartDate) : null;
-        const end = viewEndDate ? new Date(viewEndDate) : null;
-        const filterByDate = (dateStr: string) => {
-            if (!start || !end) return true;
-            const d = new Date(dateStr);
-            return d >= start && d <= end;
-        };
-        const monthlySalary = Number(selectedLabour.salary_amount) || 0;
-        const totalAdvance = (selectedLabour.transactions || []).filter((t: any) => t.type === 'advance' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const totalSalaryPaid = (selectedLabour.transactions || []).filter((t: any) => t.type === 'salary' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const balance = monthlySalary - (totalAdvance + totalSalaryPaid);
-        return { monthlySalary, totalAdvance, totalSalaryPaid, balance };
-    }, [selectedLabour, viewStartDate, viewEndDate]);
+        const profileStats = useMemo(() => {
+            if (!selectedLabour) return null;
+            const start = viewStartDate ? new Date(viewStartDate) : null;
+            const end = viewEndDate ? new Date(viewEndDate) : null;
+            const filterByDate = (dateStr: string) => {
+                if (!start || !end) return true;
+                const d = new Date(dateStr);
+                return d >= start && d <= end;
+            };
+
+            const days = (selectedLabour.attendance || []).reduce((count, a: any) => {
+                if (filterByDate(a.date)) {
+                    if (a.status === 'present') return count + 1;
+                    if (a.status === 'half_day') return count + 0.5;
+                }
+                return count;
+            }, 0);
+
+            const baseRate = Number(selectedLabour.salary_amount) || 0;
+            const totalSalary = selectedLabour.salary_type === 'daily' ? days * baseRate : baseRate;
+            
+            const totalAdvance = (selectedLabour.transactions || []).filter((t: any) => t.type === 'advance' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            const totalSalaryPaid = (selectedLabour.transactions || []).filter((t: any) => t.type === 'salary' && filterByDate(t.date)).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            const balance = totalSalary - (totalAdvance + totalSalaryPaid);
+
+            return { totalSalary, totalAdvance, totalSalaryPaid, balance, days };
+        }, [selectedLabour, viewStartDate, viewEndDate]);
 
     const handleExport = () => {
-        const data = filteredLabours.map(l => ({
-            "Worker Name": l.name,
-            "Phone": l.phone || "N/A",
-            "CNIC": l.cnic || "N/A",
-            "Work Type": l.work_type,
-            "Salary Type": l.salary_type,
-            "Base Rate": l.salary_amount,
-            "Days Worked": l.days_worked || 0,
-            "Total Salary": l.total_salary || l.salary_amount,
-            "Total Paid": l.total_paid || 0,
-            "Remaining Balance": l.balance || 0,
-            "Status": l.status
-        }));
+        const start = exportStartDate;
+        const end = exportEndDate;
+        if (!start || !end) return;
+
+        const rangeStart = new Date(start);
+        const rangeEnd = new Date(end);
+
+        // For export, we want ALL labours but with stats calculated for the SELECTED EXPORT RANGE
+        const data = labours.map(l => {
+            const days = (l.attendance || []).reduce((count, a: any) => {
+                const d = new Date(a.date);
+                if (d >= rangeStart && d <= rangeEnd) {
+                    if (a.status === 'present') return count + 1;
+                    if (a.status === 'half_day') return count + 0.5;
+                }
+                return count;
+            }, 0);
+
+            const txs = (l.transactions || []).filter((t: any) => {
+                const d = new Date(t.date);
+                return d >= rangeStart && d <= rangeEnd;
+            });
+
+            const paid = txs.filter((t: any) => t.type === 'salary').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            const advances = txs.filter((t: any) => t.type === 'advance').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            
+            const baseRate = Number(l.salary_amount) || 0;
+            const totalSalary = l.salary_type === 'daily' ? days * baseRate : baseRate;
+            const balance = totalSalary - (paid + advances);
+
+            return {
+                "Worker Name": l.name,
+                "Phone": l.phone || "N/A",
+                "Work Type": l.work_type,
+                "Period": `${start} to ${end}`,
+                "Days Worked": days,
+                "Salary Rate": baseRate,
+                "Period Salary": totalSalary,
+                "Paid (Salary)": paid,
+                "Paid (Advance)": advances,
+                "Current Balance": balance,
+                "Status": l.status
+            };
+        });
+
+        if (data.length === 0) {
+            showToast('error', 'No data to export');
+            return;
+        }
 
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "LabourRecords");
-        XLSX.writeFile(wb, `Labour_Data_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(wb, `Labour_Report_${start}_to_${end}.xlsx`);
+        showToast('success', 'Excel Report Downloaded');
     };
 
     if (loading) {
@@ -217,17 +280,85 @@ function LaborDashboard() {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                            <input type="date" value={viewStartDate} onChange={e => setViewStartDate(e.target.value)} className="px-3 py-2 bg-theme-card border border-theme rounded" placeholder="From"/>
-                            <input type="date" value={viewEndDate} onChange={e => setViewEndDate(e.target.value)} className="px-3 py-2 bg-theme-card border border-theme rounded" placeholder="To"/>
-                            <button onClick={() => { setViewStartDate(""); setViewEndDate(""); }} className="px-3 py-2 bg-gray-200 text-gray-800 rounded">Clear</button>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                            <div className="flex bg-theme-track p-1 rounded-2xl border border-theme">
+                                <button
+                                    onClick={() => {
+                                        const today = new Date().toISOString().split("T")[0];
+                                        setViewStartDate(today);
+                                        setViewEndDate(today);
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${viewStartDate === new Date().toISOString().split("T")[0] && viewEndDate === new Date().toISOString().split("T")[0] ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" : "text-theme-muted hover:text-theme"}`}
+                                >TODAY</button>
+                                {isFilterActive && (
+                                    <button
+                                        onClick={() => { setViewStartDate(""); setViewEndDate(""); setSearchTerm(""); }}
+                                        className="px-4 py-2 rounded-xl text-xs font-black text-rose-500 hover:bg-rose-500/10 transition-all"
+                                    >CLEAR</button>
+                                )}
+                            </div>
                             {!isDataEntry && (
-                                <button onClick={() => setOpenAddLabour(true)} className="flex-1 md:flex-none bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95">
+                                <button onClick={() => setOpenAddLabour(true)} className="bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95">
                                     <Plus className="w-5 h-5" /> {locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}
                                 </button>
                             )}
-                            <button onClick={handleExport} className="flex-1 md:flex-none bg-blue-500 hover:bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition-all active:scale-95">
-                                <Download className="w-5 h-5" /> {locale === 'ur' ? 'ایکسل رپورٹ' : 'Export Excel'}
+                        </div>
+                    </div>
+
+                    {/* Premium Filters Bar */}
+                    <div className="bg-theme-card p-4 rounded-3xl border border-theme shadow-sm grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted group-focus-within:text-orange-500 transition-colors" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder={locale === 'ur' ? 'مزدور تلاش کریں...' : 'Search worker name...'}
+                                className="w-full pl-12 pr-4 py-3 bg-theme-track border border-theme rounded-2xl text-sm font-bold text-theme placeholder-theme focus:outline-none focus:border-orange-500 transition-all"
+                            />
+                        </div>
+                        <div className="relative group">
+                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
+                            <input
+                                type="date"
+                                value={viewStartDate}
+                                onChange={e => setViewStartDate(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 bg-theme-track border border-theme rounded-2xl text-sm font-bold text-theme focus:outline-none focus:border-orange-500 transition-all"
+                            />
+                            {!viewStartDate && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase tracking-widest pointer-events-none">From</span>}
+                        </div>
+                        <div className="relative group">
+                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
+                            <input
+                                type="date"
+                                value={viewEndDate}
+                                onChange={e => setViewEndDate(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 bg-theme-track border border-theme rounded-2xl text-sm font-bold text-theme focus:outline-none focus:border-orange-500 transition-all"
+                            />
+                            {!viewEndDate && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase tracking-widest pointer-events-none">To</span>}
+                        </div>
+                    </div>
+
+                    {/* Export Actions Bar */}
+                    <div className="bg-theme-track/30 p-4 rounded-3xl border border-theme border-dashed flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl"><FileText className="w-5 h-5" /></div>
+                            <div>
+                                <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest leading-none mb-1">Detailed Report</p>
+                                <p className="text-xs font-bold text-theme">Excel Export for any period</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <div className="flex items-center gap-2 bg-theme-card border border-theme rounded-xl px-3 py-1.5 flex-1 md:flex-none">
+                                <span className="text-[9px] font-black text-theme-muted uppercase">From:</span>
+                                <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} className="bg-transparent text-[11px] font-bold text-theme focus:outline-none" />
+                            </div>
+                            <div className="flex items-center gap-2 bg-theme-card border border-theme rounded-xl px-3 py-1.5 flex-1 md:flex-none">
+                                <span className="text-[9px] font-black text-theme-muted uppercase">To:</span>
+                                <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} className="bg-transparent text-[11px] font-bold text-theme focus:outline-none" />
+                            </div>
+                            <button onClick={handleExport} className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
+                                <Download className="w-4 h-4" /> Export
                             </button>
                         </div>
                     </div>
@@ -276,14 +407,37 @@ function LaborDashboard() {
 
                     {/* Workers List */}
                     <div className="bg-theme-card rounded-3xl shadow-sm border border-theme overflow-hidden">
-                        <div className="p-4 border-b border-theme flex flex-col md:flex-row items-center gap-4 bg-theme-track">
-                            <div className="relative flex-1 w-full">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
-                                <input type="text" placeholder={locale === 'ur' ? 'مزدور کا نام تلاش کریں...' : 'Search labour name...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-theme-card border border-theme rounded-2xl text-sm font-bold text-theme placeholder-theme focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10" />
+                        {!isFilterActive ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-center gap-6">
+                                <div className="w-20 h-20 rounded-[2rem] bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                                    <Filter className="w-10 h-10 text-orange-500" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black text-theme uppercase tracking-tight">Period Selection</h3>
+                                    <p className="text-theme-muted max-w-sm mx-auto text-sm">
+                                        {locale === 'ur' ? 'ریکارڈ دیکھنے کے لیے براہ کرم کوئی تاریخ منتخب کریں یا نام تلاش کریں۔' : 'Please select a date range or search to view the worker list.'}
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        const today = new Date().toISOString().split("T")[0];
+                                        setViewStartDate(today);
+                                        setViewEndDate(today);
+                                    }}
+                                    className="px-6 py-3 rounded-2xl bg-orange-500 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
+                                >
+                                    View Today's Labour
+                                </button>
                             </div>
-                        </div>
-
-                        {/* Desktop View */}
+                        ) : (
+                            <>
+                                <div className="p-4 border-b border-theme flex items-center justify-between bg-theme-track">
+                                    <h2 className="text-sm font-black text-theme uppercase tracking-widest flex items-center gap-2">
+                                        <Users className="w-4 h-4 text-orange-500" /> Worker Records
+                                        <span className="px-2 py-0.5 rounded-lg bg-theme-card border border-theme text-[10px] text-theme-muted font-black">{filteredLabours.length}</span>
+                                    </h2>
+                                </div>
+                                {/* Desktop View */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
@@ -410,8 +564,12 @@ function LaborDashboard() {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <div className="bg-theme-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
-                            <p className="text-[9px] sm:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Total Salary</p>
-                            <p className="text-lg sm:text-2xl font-black text-theme">Rs {profileStats?.monthlySalary.toLocaleString()}</p>
+                            <p className="text-[9px] sm:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Period Days</p>
+                            <p className="text-lg sm:text-2xl font-black text-blue-500">{profileStats?.days} <span className="text-xs opacity-50">Days</span></p>
+                        </div>
+                        <div className="bg-theme-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
+                            <p className="text-[9px] sm:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Period Salary</p>
+                            <p className="text-lg sm:text-2xl font-black text-theme">Rs {profileStats?.totalSalary.toLocaleString()}</p>
                         </div>
                         <div className="bg-theme-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-theme shadow-sm hover:shadow-md transition-shadow">
                             <p className="text-[9px] sm:text-[10px] font-black text-theme-muted uppercase tracking-widest mb-1">Advance Taken</p>
