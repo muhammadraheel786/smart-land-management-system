@@ -138,6 +138,29 @@ function LaborDashboard() {
         return count;
     };
 
+    // --- Search & Filter ---
+    const filteredLabours = useMemo(() => {
+        if (!isFilterActive) return [];
+        return labours.filter(l => {
+            const matchesName = l.name?.toLowerCase().includes(searchTerm.toLowerCase());
+            if (!matchesName) return false;
+            
+            // If date range is applied, only show workers who have ANY record (attendance or transaction) in that range
+            if (viewStartDate && viewEndDate) {
+                const start = new Date(viewStartDate);
+                const end = new Date(viewEndDate);
+                const hasAttendanceInRange = (l.attendance || []).some((a: any) => {
+                    const d = new Date(a.date);
+                    return d >= start && d <= end;
+                });
+                const hasTransactionsInRange = (l.transactions || []).some((t: any) => {
+                    const d = new Date(t.date);
+                    return d >= start && d <= end;
+                });
+                return hasAttendanceInRange || hasTransactionsInRange;
+            }
+            return true;
+        });
     }, [labours, searchTerm, viewStartDate, viewEndDate, isFilterActive]);
 
     // --- Dynamic Stats for Top Cards ---
