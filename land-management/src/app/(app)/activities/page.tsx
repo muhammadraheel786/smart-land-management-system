@@ -274,10 +274,18 @@ function ActivitiesContent() {
             list = list.filter(a => a.activity_type === filterType);
         }
         if (viewStartDate) {
-            list = list.filter(a => a.date && a.date >= viewStartDate);
+            list = list.filter(a => {
+                if (!a.date) return false;
+                const actDate = a.date.split("T")[0];
+                return actDate >= viewStartDate;
+            });
         }
         if (viewEndDate) {
-            list = list.filter(a => a.date && a.date <= viewEndDate);
+            list = list.filter(a => {
+                if (!a.date) return false;
+                const actDate = a.date.split("T")[0];
+                return actDate <= viewEndDate;
+            });
         }
         if (searchTerm) {
             const s = searchTerm.toLowerCase();
