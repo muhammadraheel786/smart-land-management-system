@@ -4,8 +4,9 @@ import React, { useState, useEffect, useMemo, Suspense } from "react";
 import {
     Users, Plus, Loader2, CheckCircle,
     AlertCircle, X, Printer, Banknote,
-    ArrowUpRight
+    ArrowUpRight, Download, FileText
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
 import { api } from "@/lib/api";
@@ -185,6 +186,29 @@ function LaborDashboard() {
         return { totalSalary: st.salary, totalAdvance: st.advance, totalSalaryPaid: st.paid, balance: st.balance, days: st.days };
     }, [selectedLabour]);
 
+    const handleExport = () => {
+        const data = labours.map(l => {
+            const st = getPeriodStats(l, "", "");
+            return {
+                "Worker Name": l.name,
+                "Work Type": l.work_type,
+                "Days Worked": st.days,
+                "Salary Rate": Number(l.salary_amount) || 0,
+                "Total Salary": st.salary,
+                "Paid": st.paid,
+                "Advance": st.advance,
+                "Balance": st.balance,
+                "Status": l.status
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "LabourRecords");
+        XLSX.writeFile(wb, `Labour_Full_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast('success', 'Excel Report Downloaded');
+    };
+
     if (loading) {
         return <div className="flex h-screen items-center justify-center bg-theme text-theme"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>;
     }
@@ -217,6 +241,21 @@ function LaborDashboard() {
                                 <Plus className="w-5 h-5" /> {locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}
                             </button>
                         )}
+                    </div>
+
+                    <div className="bg-theme-track/30 p-4 md:p-6 rounded-[2rem] border border-theme border-dashed flex flex-wrap items-center justify-between gap-6">
+                        <div className="flex items-center gap-4 min-w-[200px]">
+                            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl shrink-0"><FileText className="w-6 h-6" /></div>
+                            <div>
+                                <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest leading-none mb-1">Detailed Report</p>
+                                <p className="text-sm font-bold text-theme">Excel Export for all records</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-1 justify-end">
+                            <button onClick={handleExport} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 w-full sm:w-auto shrink-0">
+                                <Download className="w-4 h-4" /> Export All Data
+                            </button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
