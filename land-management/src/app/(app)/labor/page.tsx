@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Users, Plus, Loader2, CheckCircle,
     AlertCircle, X, Printer, Banknote,
@@ -547,10 +547,4 @@ function SlipModal({ open, onClose, labour }: { open: boolean, onClose: () => vo
     );
 }
 
-export default function LaborPage() {
-    return (
-        <Suspense fallback={<div className="flex h-screen items-center justify-center bg-theme"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>}>
-            <LaborDashboard />
-        </Suspense>
-    );
-}
+export default LaborDashboard;
