@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
     Users, Plus, Loader2, CheckCircle,
     AlertCircle, X, Printer, Banknote,
-    ArrowUpRight, Download, FileText
+    ArrowUpRight, Download, FileText,
+    Phone, Calendar
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
@@ -357,6 +358,18 @@ function LaborDashboard() {
                                     <div className="flex flex-wrap gap-3">
                                         <span className="bg-orange-500/10 text-orange-500 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase border border-orange-500/20">{selectedLabour.work_type}</span>
                                         <span className="bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase border border-blue-500/20">Rs {selectedLabour.salary_amount} / {selectedLabour.salary_type}</span>
+                                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase border ${selectedLabour.status === 'Active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>{selectedLabour.status}</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-theme-muted">
+                                            <Phone className="w-3.5 h-3.5 text-theme-muted" /> {selectedLabour.phone || '—'}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-bold text-theme-muted">
+                                            <FileText className="w-3.5 h-3.5 text-theme-muted" /> {selectedLabour.cnic || '—'}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-bold text-theme-muted">
+                                            <Calendar className="w-3.5 h-3.5 text-theme-muted" /> {selectedLabour.salary_start_date ? new Date(selectedLabour.salary_start_date).toLocaleDateString() : '—'}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
