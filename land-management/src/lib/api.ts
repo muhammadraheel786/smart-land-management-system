@@ -15,6 +15,7 @@ type LabourMeta = {
   work_type?: string;
   salary_type?: string;
   salary_amount?: number;
+  salary_start_date?: string;
 };
 
 function buildLabourNotes(meta: LabourMeta): string {
@@ -70,6 +71,7 @@ function mapActivityToLabour(a: any): any {
     work_type: meta?.work_type || "Helper",
     salary_type: meta?.salary_type || "daily",
     salary_amount: Number(meta?.salary_amount || a?.cost || 0),
+    salary_start_date: meta?.salary_start_date || a?.date || new Date().toISOString().split("T")[0],
     days_worked: 0,
     total_salary: Number(meta?.salary_amount || a?.cost || 0),
     total_paid: 0,
@@ -123,9 +125,18 @@ function computeFallbackLabourRows(activities: any[]): any[] {
 
     const salaryType = l.salary_type || "daily";
     const baseSalary = Number(l.salary_amount || 0);
-    const totalSalary = salaryType === "daily"
-      ? (days + (halfDays * 0.5)) * baseSalary
-      : baseSalary;
+    let totalSalary = 0;
+    
+    if (salaryType === "daily") {
+      totalSalary = (days + (halfDays * 0.5)) * baseSalary;
+    } else {
+      const startDate = l.salary_start_date ? new Date(l.salary_start_date) : new Date();
+      const today = new Date();
+      let months = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+      if (today.getDate() >= startDate.getDate()) months++;
+      months = Math.max(1, months);
+      totalSalary = months * baseSalary;
+    }
 
     return {
       ...l,
@@ -133,7 +144,7 @@ function computeFallbackLabourRows(activities: any[]): any[] {
       total_salary: totalSalary,
       total_paid: paid,
       advance_balance: advances,
-      balance: Math.max(0, totalSalary - paid),
+      balance: totalSalary - paid - advances,
     };
   });
 }
@@ -528,7 +539,7 @@ export const api = {
           method: 'POST',
           body: JSON.stringify({
             activity_type: "labor",
-            date: new Date().toISOString().split("T")[0],
+            date: labour?.salary_start_date || new Date().toISOString().split("T")[0],
             cost: Number(labour?.salary_amount || 0),
             notes: buildLabourNotes({
               name: labour?.name,
@@ -537,6 +548,7 @@ export const api = {
               work_type: labour?.work_type,
               salary_type: labour?.salary_type,
               salary_amount: Number(labour?.salary_amount || 0),
+              salary_start_date: labour?.salary_start_date,
             }),
           }),
         });
@@ -588,12 +600,25 @@ export const api = {
         const advances = txData
           .filter((t: any) => t.type === "advance")
           .reduce((s: number, t: any) => s + (Number(t.amount) || 0), 0);
-        const totalSalary = Number(found.total_salary || found.salary_amount || 0);
+        
+        let totalSalary = Number(found.salary_amount || 0);
+        if (found.salary_type === "monthly") {
+          const startDate = found.salary_start_date ? new Date(found.salary_start_date) : new Date();
+          const today = new Date();
+          let months = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+          if (today.getDate() >= startDate.getDate()) months++;
+          months = Math.max(1, months);
+          totalSalary = months * Number(found.salary_amount || 0);
+        } else {
+           totalSalary = Number(found.total_salary || 0);
+        }
+
         return {
           ...found,
+          total_salary: totalSalary,
           total_paid: totalPaid,
           advance_balance: advances,
-          balance: Math.max(0, totalSalary - totalPaid),
+          balance: totalSalary - totalPaid - advances,
           transactions: txData,
           attendance: attData,
         };
@@ -619,8 +644,8 @@ export const api = {
         // remaining payable part as salary + extra as advance.
         if ((tx?.type || "salary") === "salary") {
           const balance = Number(current?.balance || 0);
-          const salaryPart = Math.min(safeAmount, Math.max(0, balance));
-          const advancePart = Math.max(0, safeAmount - salaryPart);
+          const salaryPart = balance > 0 ? Math.min(safeAmount, balance) : 0;
+          const advancePart = safeAmount - salaryPart;
 
           if (salaryPart > 0) {
             await fetchJson<any>(`/activities`, {

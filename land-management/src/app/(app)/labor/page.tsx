@@ -39,6 +39,7 @@ interface Labour {
     work_type: string;
     salary_type: 'daily' | 'monthly';
     salary_amount: number;
+    salary_start_date?: string;
     status: string;
     total_salary?: number;
     total_paid?: number;
@@ -132,43 +133,66 @@ function LaborDashboard() {
         return !!viewStartDate || !!viewEndDate || !!searchTerm;
     }, [viewStartDate, viewEndDate, searchTerm]);
 
-    const getDaysInRange = (labour: Labour, startStr: string, endStr: string) => {
-        if (!startStr && !endStr) return labour.days_worked ?? 0;
+    const getPeriodStats = (labour: Labour, startStr: string, endStr: string) => {
+        const baseRate = Number(labour.salary_amount) || 0;
+        
+        if (!startStr && !endStr) {
+            return {
+                days: labour.days_worked ?? 0,
+                salary: Number(labour.total_salary) || 0,
+                paid: Number(labour.total_paid) || 0,
+                advance: Number(labour.balance) < 0 ? Math.abs(Number(labour.balance)) : 0, // Fallback approx
+                balance: Number(labour.balance) || 0
+            };
+        }
+
         const start = startStr ? new Date(startStr) : null;
         const end = endStr ? new Date(endStr) : null;
-        let count = 0;
+        
+        let days = 0;
         (labour.attendance || []).forEach((a: Attendance) => {
             const d = new Date(a.date);
             if ((!start || d >= start) && (!end || d <= end)) {
-                if (a.status === 'present') count += 1;
-                else if (a.status === 'half_day') count += 0.5;
+                if (a.status === 'present') days += 1;
+                else if (a.status === 'half_day') days += 0.5;
             }
         });
-        return count;
+
+        let salary = 0;
+        if (labour.salary_type === 'daily') {
+            salary = days * baseRate;
+        } else {
+            const s = start || (labour.salary_start_date ? new Date(labour.salary_start_date) : new Date());
+            const e = end || new Date();
+            let months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+            if (e.getDate() >= s.getDate()) months++;
+            months = Math.max(0, months);
+            if (months === 0 && e >= s) months = 1;
+            salary = months * baseRate;
+        }
+
+        const filterByDate = (dateStr: string): boolean => {
+            if (!start && !end) return true;
+            const d = new Date(dateStr);
+            if (start && d < start) return false;
+            if (end && d > end) return false;
+            return true;
+        };
+
+        const txs = (labour.transactions || []).filter(t => filterByDate(t.date));
+        const paid = txs.filter(t => t.type === 'salary').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const advance = txs.filter(t => t.type === 'advance').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const balance = salary - paid - advance;
+
+        return { days, salary, paid, advance, balance };
     };
 
     const filteredLabours = useMemo(() => {
-        if (!isFilterActive) return labours; 
         return labours.filter(l => {
             const matchesName = l.name?.toLowerCase().includes(searchTerm.toLowerCase());
-            if (!matchesName) return false;
-            
-            if (viewStartDate || viewEndDate) {
-                const start = viewStartDate ? new Date(viewStartDate) : null;
-                const end = viewEndDate ? new Date(viewEndDate) : null;
-                const hasAttendanceInRange = (l.attendance || []).some((a: Attendance) => {
-                    const d = new Date(a.date);
-                    return (!start || d >= start) && (!end || d <= end);
-                });
-                const hasTransactionsInRange = (l.transactions || []).some((t: Transaction) => {
-                    const d = new Date(t.date);
-                    return (!start || d >= start) && (!end || d <= end);
-                });
-                return hasAttendanceInRange || hasTransactionsInRange;
-            }
-            return true;
+            return matchesName;
         });
-    }, [labours, searchTerm, viewStartDate, viewEndDate, isFilterActive]);
+    }, [labours, searchTerm]);
 
     const dynamicStats = useMemo(() => {
         const list = filteredLabours;
@@ -179,26 +203,10 @@ function LaborDashboard() {
         let advances = 0;
 
         list.forEach(l => {
-            const days = getDaysInRange(l, viewStartDate, viewEndDate);
-            const baseRate = Number(l.salary_amount) || 0;
-            const periodSalary = l.salary_type === 'daily' ? days * baseRate : baseRate;
-            
-            const start = viewStartDate ? new Date(viewStartDate) : null;
-            const end = viewEndDate ? new Date(viewEndDate) : null;
-            const filterByDate = (dateStr: string): boolean => {
-                if (!start && !end) return true;
-                const d = new Date(dateStr);
-                if (start && d < start) return false;
-                if (end && d > end) return false;
-                return true;
-            };
-
-            const periodPaid = (l.transactions || []).filter((t: Transaction) => t.type === 'salary' && filterByDate(t.date)).reduce((sum: number, t: Transaction) => sum + (Number(t.amount) || 0), 0);
-            const periodAdvance = (l.transactions || []).filter((t: Transaction) => t.type === 'advance' && filterByDate(t.date)).reduce((sum: number, t: Transaction) => sum + (Number(t.amount) || 0), 0);
-
-            totalSalary += periodSalary;
-            totalPaid += periodPaid;
-            advances += periodAdvance;
+            const st = getPeriodStats(l, viewStartDate, viewEndDate);
+            totalSalary += st.salary;
+            totalPaid += st.paid;
+            advances += st.advance;
         });
 
         return {
@@ -214,25 +222,8 @@ function LaborDashboard() {
 
     const profileStats = useMemo(() => {
         if (!selectedLabour) return null;
-        const days = getDaysInRange(selectedLabour, viewStartDate, viewEndDate);
-        const baseRate = Number(selectedLabour.salary_amount) || 0;
-        const totalSalary = selectedLabour.salary_type === 'daily' ? days * baseRate : baseRate;
-        
-        const start = viewStartDate ? new Date(viewStartDate) : null;
-        const end = viewEndDate ? new Date(viewEndDate) : null;
-        const filterByDate = (dateStr: string): boolean => {
-            if (!start && !end) return true;
-            const d = new Date(dateStr);
-            if (start && d < start) return false;
-            if (end && d > end) return false;
-            return true;
-        };
-
-        const totalAdvance = (selectedLabour.transactions || []).filter((t: Transaction) => t.type === 'advance' && filterByDate(t.date)).reduce((sum: number, t: Transaction) => sum + (Number(t.amount) || 0), 0);
-        const totalSalaryPaid = (selectedLabour.transactions || []).filter((t: Transaction) => t.type === 'salary' && filterByDate(t.date)).reduce((sum: number, t: Transaction) => sum + (Number(t.amount) || 0), 0);
-        const balance = totalSalary - (totalAdvance + totalSalaryPaid);
-
-        return { totalSalary, totalAdvance, totalSalaryPaid, balance, days };
+        const st = getPeriodStats(selectedLabour, viewStartDate, viewEndDate);
+        return { totalSalary: st.salary, totalAdvance: st.advance, totalSalaryPaid: st.paid, balance: st.balance, days: st.days };
     }, [selectedLabour, viewStartDate, viewEndDate]);
 
     const handleExport = () => {
@@ -241,31 +232,17 @@ function LaborDashboard() {
         if (!start || !end) return;
 
         const data = labours.map(l => {
-            const days = getDaysInRange(l, start, end);
-            const baseRate = Number(l.salary_amount) || 0;
-            const totalSalary = l.salary_type === 'daily' ? days * baseRate : baseRate;
-            
-            const rangeStart = new Date(start);
-            const rangeEnd = new Date(end);
-            const txs = (l.transactions || []).filter((t: Transaction) => {
-                const d = new Date(t.date);
-                return d >= rangeStart && d <= rangeEnd;
-            });
-
-            const paid = txs.filter((t: Transaction) => t.type === 'salary').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-            const advances = txs.filter((t: Transaction) => t.type === 'advance').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-            const balance = totalSalary - (paid + advances);
-
+            const st = getPeriodStats(l, start, end);
             return {
                 "Worker Name": l.name,
                 "Work Type": l.work_type,
                 "Period": `${start} to ${end}`,
-                "Days Worked": days,
-                "Salary Rate": baseRate,
-                "Period Salary": totalSalary,
-                "Paid": paid,
-                "Advance": advances,
-                "Balance": balance,
+                "Days Worked": st.days,
+                "Salary Rate": Number(l.salary_amount) || 0,
+                "Period Salary": st.salary,
+                "Paid": st.paid,
+                "Advance": st.advance,
+                "Balance": st.balance,
                 "Status": l.status
             };
         });
@@ -334,16 +311,16 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-theme-track/30 p-4 md:p-6 rounded-[2rem] border border-theme border-dashed flex flex-col xl:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-4 w-full xl:w-auto">
+                    <div className="bg-theme-track/30 p-4 md:p-6 rounded-[2rem] border border-theme border-dashed flex flex-wrap items-center justify-between gap-6">
+                        <div className="flex items-center gap-4 min-w-[200px]">
                             <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl shrink-0"><FileText className="w-6 h-6" /></div>
                             <div>
                                 <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest leading-none mb-1">Detailed Report</p>
                                 <p className="text-sm font-bold text-theme">Excel Export for any period</p>
                             </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 sm:flex-none w-full">
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-1 justify-end">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
                                 <div className="flex items-center gap-2 bg-theme-card border border-theme rounded-xl px-3 py-2">
                                     <span className="text-[9px] font-black text-theme-muted uppercase shrink-0">From:</span>
                                     <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} className="bg-transparent text-base md:text-xs font-bold text-theme focus:outline-none w-full" />
@@ -397,18 +374,15 @@ function LaborDashboard() {
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => {
-                                        const d = getDaysInRange(l, viewStartDate, viewEndDate);
-                                        const r = Number(l.salary_amount) || 0;
-                                        const s = l.salary_type === 'daily' ? d * r : r;
-                                        const p = (l.total_paid || 0);
+                                        const st = getPeriodStats(l, viewStartDate, viewEndDate);
                                         return (
                                             <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group text-theme">
                                                 <td className="p-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 border border-theme overflow-hidden">{l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}</div><div><p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p><p className="text-[10px] font-bold text-theme-muted">{l.phone}</p></div></div></td>
                                                 <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
-                                                <td className="p-4 text-right text-sm font-bold text-theme-muted">{d}</td>
-                                                <td className="p-4 text-right text-sm font-bold text-theme">Rs {s.toLocaleString()}</td>
-                                                <td className="p-4 text-right text-sm font-bold text-green-500">Rs {p.toLocaleString()}</td>
-                                                <td className="p-4 text-right text-sm font-black text-red-500">Rs {(s - p).toLocaleString()}</td>
+                                                <td className="p-4 text-right text-sm font-bold text-theme-muted">{st.days}</td>
+                                                <td className="p-4 text-right text-sm font-bold text-theme">Rs {st.salary.toLocaleString()}</td>
+                                                <td className="p-4 text-right text-sm font-bold text-green-500">Rs {st.paid.toLocaleString()}</td>
+                                                <td className="p-4 text-right text-sm font-black text-red-500">Rs {st.balance.toLocaleString()}</td>
                                                 <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${l.status === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-theme-track text-theme-muted'}`}>{l.status}</span></td>
                                             </tr>
                                         );
@@ -418,11 +392,7 @@ function LaborDashboard() {
                         </div>
                         <div className="md:hidden flex flex-col divide-y divide-theme">
                             {filteredLabours.map(l => {
-                                const d = getDaysInRange(l, viewStartDate, viewEndDate);
-                                const r = Number(l.salary_amount) || 0;
-                                const s = l.salary_type === 'daily' ? d * r : r;
-                                const p = (l.total_paid || 0);
-                                const bal = s - p;
+                                const st = getPeriodStats(l, viewStartDate, viewEndDate);
                                 return (
                                     <div key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="p-4 hover:bg-theme-track active:bg-theme-track transition-colors flex flex-col gap-4 text-theme">
                                         <div className="flex items-center justify-between">
@@ -433,9 +403,9 @@ function LaborDashboard() {
                                             <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter ${l.status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-theme-track text-theme-muted'}`}>{l.status}</div>
                                         </div>
                                         <div className="grid grid-cols-3 gap-2 text-center">
-                                            <div className="bg-theme-track/50 p-2 rounded-xl"><p className="text-[8px] font-black text-theme-muted uppercase mb-1">Days</p><p className="text-xs font-black">{d}</p></div>
-                                            <div className="bg-theme-track/50 p-2 rounded-xl"><p className="text-[8px] font-black text-theme-muted uppercase mb-1">Salary</p><p className="text-xs font-black">Rs {s}</p></div>
-                                            <div className={`${bal > 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'} p-2 rounded-xl`}><p className="text-[8px] font-black opacity-60 uppercase mb-1">Bal</p><p className="text-xs font-black">Rs {bal}</p></div>
+                                            <div className="bg-theme-track/50 p-2 rounded-xl"><p className="text-[8px] font-black text-theme-muted uppercase mb-1">Days</p><p className="text-xs font-black">{st.days}</p></div>
+                                            <div className="bg-theme-track/50 p-2 rounded-xl"><p className="text-[8px] font-black text-theme-muted uppercase mb-1">Salary</p><p className="text-xs font-black">Rs {st.salary.toLocaleString()}</p></div>
+                                            <div className={`${st.balance < 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} p-2 rounded-xl`}><p className="text-[8px] font-black opacity-60 uppercase mb-1">Bal</p><p className="text-xs font-black">Rs {Math.abs(st.balance).toLocaleString()} {st.balance < 0 ? '(Adv)' : ''}</p></div>
                                         </div>
                                     </div>
                                 );
@@ -521,24 +491,31 @@ function LaborDashboard() {
 function AddLabourModal({ open, onClose, onSave, locale }: { open: boolean, onClose: () => void, onSave: () => void, locale: string }) {
     if (!open) return null;
     const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState({ name: '', phone: '', cnic: '', work_type: 'Helper', salary_type: 'daily' as 'daily' | 'monthly', salary_amount: '' });
+    const [form, setForm] = useState({ name: '', phone: '', cnic: '', work_type: 'Helper', salary_type: 'daily' as 'daily' | 'monthly', salary_amount: '', salary_start_date: new Date().toISOString().split('T')[0] });
     const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); setSaving(true); try { await api.addLabour(form); onSave(); } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Error saving labour'); } setSaving(false); };
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-lg bg-theme-card border border-theme rounded-3xl shadow-2xl p-4 md:p-8 text-theme mx-2">
+            <div className="relative z-10 w-full max-w-lg bg-theme-card border border-theme rounded-3xl shadow-2xl p-4 md:p-8 text-theme mx-2 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-black">{locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}</h2><button onClick={onClose}><X /></button></div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input required placeholder="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                     <div className="grid grid-cols-2 gap-4">
                         <input placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
-                        <select value={form.work_type} onChange={e => setForm({...form, work_type: e.target.value})} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option>Helper</option><option>Mason</option><option>Driver</option></select>
+                        <input placeholder="CNIC" value={form.cnic} onChange={e => setForm({...form, cnic: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
+                        <select value={form.work_type} onChange={e => setForm({...form, work_type: e.target.value})} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option>Helper</option><option>Mason</option><option>Driver</option></select>
                         <select value={form.salary_type} onChange={e => setForm({...form, salary_type: e.target.value as 'daily' | 'monthly'})} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option value="daily">Daily</option><option value="monthly">Monthly</option></select>
-                        <input required type="number" placeholder="Amount" value={form.salary_amount} onChange={e => setForm({...form, salary_amount: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                     </div>
-                    <button disabled={saving} className="w-full bg-green-500 text-white p-5 rounded-xl font-black uppercase">{saving ? 'Saving...' : 'Save Worker'}</button>
+                    <div className="grid grid-cols-2 gap-4">
+                        <input required type="number" placeholder="Amount" value={form.salary_amount} onChange={e => setForm({...form, salary_amount: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                        <div className="relative flex flex-col justify-center">
+                            <span className="absolute -top-2 left-3 bg-theme-card px-1 text-[10px] font-bold text-theme-muted">Start Date</span>
+                            <input required type="date" value={form.salary_start_date} onChange={e => setForm({...form, salary_start_date: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                        </div>
+                    </div>
+                    <button disabled={saving} className="w-full bg-green-500 text-white p-5 rounded-xl font-black uppercase mt-2">{saving ? 'Saving...' : 'Save Worker'}</button>
                 </form>
             </div>
         </div>
@@ -623,7 +600,7 @@ function SlipModal({ open, onClose, labour }: { open: boolean, onClose: () => vo
                     </div>
                     <div className="flex justify-between items-center py-5 mt-2 bg-slate-50 px-4 rounded-xl">
                         <span className="text-sm font-black uppercase text-slate-900 tracking-wider">Net Balance</span>
-                        <span className="font-black text-slate-900 text-2xl">Rs {balance.toLocaleString()}</span>
+                        <span className={`font-black text-2xl ${balance < 0 ? 'text-green-600' : 'text-red-600'}`}>Rs {Math.abs(balance).toLocaleString()} {balance < 0 ? '(Advance)' : ''}</span>
                     </div>
                 </div>
 
