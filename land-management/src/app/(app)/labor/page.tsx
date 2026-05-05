@@ -275,7 +275,7 @@ function LaborDashboard() {
                         </div>
                         <div className="md:hidden flex flex-col divide-y divide-theme">
                             {filteredLabours.map(l => {
-                                const st = getPeriodStats(l, viewStartDate, viewEndDate);
+                                const st = getPeriodStats(l, "", "");
                                 return (
                                     <div key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="p-4 hover:bg-theme-track active:bg-theme-track transition-colors flex flex-col gap-4 text-theme">
                                         <div className="flex items-center justify-between">
