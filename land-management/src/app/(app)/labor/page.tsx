@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import {
-    Users, Plus, Loader2, Search, MapPin, CheckCircle,
-    AlertCircle, X, FileText, Printer, Phone, Volume2, Clock, Banknote, ListTodo,
-    ArrowUpRight, ArrowDownRight, ChevronRight, Download, Calendar, Filter
+    Users, Plus, Loader2, CheckCircle,
+    AlertCircle, X, Printer, Banknote,
+    ArrowUpRight
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
 import { api } from "@/lib/api";
@@ -71,9 +70,6 @@ function LaborDashboard() {
 
     // View State
     const [view, setView] = useState<"dashboard" | "profile">("dashboard");
-    const [viewStartDate, setViewStartDate] = useState<string>("");
-    const [viewEndDate, setViewEndDate] = useState<string>("");
-    const [searchTerm, setSearchTerm] = useState<string>("");
     const [selectedLabour, setSelectedLabour] = useState<Labour | null>(null);
 
     // Modal States
@@ -81,10 +77,6 @@ function LaborDashboard() {
     const [openTransaction, setOpenTransaction] = useState<{ type: 'salary' | 'advance', open: boolean }>({ type: 'salary', open: false });
     const [openAttendance, setOpenAttendance] = useState(false);
     const [openSlip, setOpenSlip] = useState(false);
-
-    // Export Range
-    const [exportStartDate, setExportStartDate] = useState<string>(new Date().toISOString().split("T")[0]);
-    const [exportEndDate, setExportEndDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
     // Toast
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -128,10 +120,6 @@ function LaborDashboard() {
             setLoading(false);
         }
     };
-
-    const isFilterActive = useMemo(() => {
-        return !!viewStartDate || !!viewEndDate || !!searchTerm;
-    }, [viewStartDate, viewEndDate, searchTerm]);
 
     const getPeriodStats = (labour: Labour, startStr: string, endStr: string) => {
         const baseRate = Number(labour.salary_amount) || 0;
@@ -187,72 +175,15 @@ function LaborDashboard() {
         return { days, salary, paid, advance, balance };
     };
 
-    const filteredLabours = useMemo(() => {
-        return labours.filter(l => {
-            const matchesName = l.name?.toLowerCase().includes(searchTerm.toLowerCase());
-            return matchesName;
-        });
-    }, [labours, searchTerm]);
+    const filteredLabours = labours;
 
-    const dynamicStats = useMemo(() => {
-        const list = filteredLabours;
-        if (!isFilterActive) return stats;
-        
-        let totalPaid = 0;
-        let totalSalary = 0;
-        let advances = 0;
-
-        list.forEach(l => {
-            const st = getPeriodStats(l, viewStartDate, viewEndDate);
-            totalSalary += st.salary;
-            totalPaid += st.paid;
-            advances += st.advance;
-        });
-
-        return {
-            total_labour: list.length,
-            active_labour: list.filter(l => l.status === 'Active').length,
-            inactive_labour: list.filter(l => l.status !== 'Active').length,
-            total_paid_overall: totalPaid,
-            paid_this_month: totalPaid,
-            pending_salary: Math.max(0, totalSalary - (totalPaid + advances)),
-            advances_given: advances,
-        };
-    }, [filteredLabours, stats, isFilterActive, viewStartDate, viewEndDate]);
+    const dynamicStats = stats;
 
     const profileStats = useMemo(() => {
         if (!selectedLabour) return null;
-        const st = getPeriodStats(selectedLabour, viewStartDate, viewEndDate);
+        const st = getPeriodStats(selectedLabour, "", "");
         return { totalSalary: st.salary, totalAdvance: st.advance, totalSalaryPaid: st.paid, balance: st.balance, days: st.days };
-    }, [selectedLabour, viewStartDate, viewEndDate]);
-
-    const handleExport = () => {
-        const start = exportStartDate;
-        const end = exportEndDate;
-        if (!start || !end) return;
-
-        const data = labours.map(l => {
-            const st = getPeriodStats(l, start, end);
-            return {
-                "Worker Name": l.name,
-                "Work Type": l.work_type,
-                "Period": `${start} to ${end}`,
-                "Days Worked": st.days,
-                "Salary Rate": Number(l.salary_amount) || 0,
-                "Period Salary": st.salary,
-                "Paid": st.paid,
-                "Advance": st.advance,
-                "Balance": st.balance,
-                "Status": l.status
-            };
-        });
-
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "LabourRecords");
-        XLSX.writeFile(wb, `Labour_Report_${start}_to_${end}.xlsx`);
-        showToast('success', 'Excel Report Downloaded');
-    };
+    }, [selectedLabour]);
 
     if (loading) {
         return <div className="flex h-screen items-center justify-center bg-theme text-theme"><Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>;
@@ -281,59 +212,11 @@ function LaborDashboard() {
                                 <p className="text-theme-muted font-medium text-xs md:text-sm">{locale === 'ur' ? 'مزدوروں کا مکمل حساب کتاب' : 'Complete worker tracking'}</p>
                             </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                            <div className="flex bg-theme-track p-1 rounded-2xl border border-theme w-full sm:w-auto overflow-x-auto">
-                                <button onClick={() => { const today = new Date().toISOString().split("T")[0]; setViewStartDate(today); setViewEndDate(today); }} className={`px-4 py-2 rounded-xl text-[10px] md:text-xs font-black transition-all flex-1 sm:flex-none whitespace-nowrap ${viewStartDate === new Date().toISOString().split("T")[0] ? "bg-orange-500 text-white shadow-lg" : "text-theme-muted hover:text-theme"}`}>TODAY</button>
-                                {isFilterActive && <button onClick={() => { setViewStartDate(""); setViewEndDate(""); setSearchTerm(""); }} className="px-4 py-2 rounded-xl text-[10px] md:text-xs font-black text-rose-500 hover:bg-rose-500/10 transition-all flex-1 sm:flex-none">CLEAR</button>}
-                            </div>
-                            {!isDataEntry && (
-                                <button onClick={() => setOpenAddLabour(true)} className="bg-green-500 hover:bg-green-600 text-white px-5 py-3 md:px-6 md:py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 text-sm">
-                                    <Plus className="w-5 h-5" /> {locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="bg-theme-card p-4 rounded-3xl border border-theme shadow-sm grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted group-focus-within:text-orange-500 transition-colors" />
-                            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder={locale === 'ur' ? 'مزدور تلاش کریں...' : 'Search worker name...'} className="w-full pl-12 pr-4 py-3 bg-theme-track border border-theme rounded-2xl text-base md:text-sm font-bold text-theme focus:outline-none focus:border-orange-500 transition-all" />
-                        </div>
-                        <div className="relative group">
-                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
-                            <input type="date" value={viewStartDate} onChange={e => setViewStartDate(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-theme-track border border-theme rounded-2xl text-base md:text-sm font-bold text-theme focus:outline-none focus:border-orange-500 transition-all" />
-                            {!viewStartDate && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase tracking-widest pointer-events-none">From</span>}
-                        </div>
-                        <div className="relative group">
-                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500" />
-                            <input type="date" value={viewEndDate} onChange={e => setViewEndDate(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-theme-track border border-theme rounded-2xl text-base md:text-sm font-bold text-theme focus:outline-none focus:border-orange-500 transition-all" />
-                            {!viewEndDate && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-theme-muted uppercase tracking-widest pointer-events-none">To</span>}
-                        </div>
-                    </div>
-
-                    <div className="bg-theme-track/30 p-4 md:p-6 rounded-[2rem] border border-theme border-dashed flex flex-wrap items-center justify-between gap-6">
-                        <div className="flex items-center gap-4 min-w-[200px]">
-                            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl shrink-0"><FileText className="w-6 h-6" /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-theme-muted uppercase tracking-widest leading-none mb-1">Detailed Report</p>
-                                <p className="text-sm font-bold text-theme">Excel Export for any period</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-1 justify-end">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
-                                <div className="flex items-center gap-2 bg-theme-card border border-theme rounded-xl px-3 py-2">
-                                    <span className="text-[9px] font-black text-theme-muted uppercase shrink-0">From:</span>
-                                    <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} className="bg-transparent text-base md:text-xs font-bold text-theme focus:outline-none w-full" />
-                                </div>
-                                <div className="flex items-center gap-2 bg-theme-card border border-theme rounded-xl px-3 py-2">
-                                    <span className="text-[9px] font-black text-theme-muted uppercase shrink-0">To:</span>
-                                    <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} className="bg-transparent text-base md:text-xs font-bold text-theme focus:outline-none w-full" />
-                                </div>
-                            </div>
-                            <button onClick={handleExport} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 w-full sm:w-auto shrink-0">
-                                <Download className="w-4 h-4" /> Export
+                        {!isDataEntry && (
+                            <button onClick={() => setOpenAddLabour(true)} className="bg-green-500 hover:bg-green-600 text-white px-5 py-3 md:px-6 md:py-4 rounded-2xl font-black shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 text-sm">
+                                <Plus className="w-5 h-5" /> {locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}
                             </button>
-                        </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -342,15 +225,15 @@ function LaborDashboard() {
                             <div><p className="text-3xl font-black text-theme">{dynamicStats?.total_labour || 0}</p><p className="text-[10px] font-bold text-green-500 mt-1">{dynamicStats?.active_labour || 0} Active • {dynamicStats?.inactive_labour || 0} Inactive</p></div>
                         </div>
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{isFilterActive ? 'Period Paid' : (locale === 'ur' ? 'ادائیگی' : 'Total Paid')}</h3></div>
-                            <div><p className="text-2xl font-black text-theme">Rs {dynamicStats?.total_paid_overall?.toLocaleString() || 0}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{isFilterActive ? 'Range Total' : `This Month: Rs ${dynamicStats?.paid_this_month?.toLocaleString() || 0}`}</p></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3></div>
+                            <div><p className="text-2xl font-black text-theme">Rs {dynamicStats?.total_paid_overall?.toLocaleString() || 0}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{`This Month: Rs ${dynamicStats?.paid_this_month?.toLocaleString() || 0}`}</p></div>
                         </div>
                         <div className="bg-red-500/10 p-5 rounded-3xl border border-red-500/20 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div><h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{isFilterActive ? 'Period Payable' : (locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary')}</h3></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div><h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3></div>
                             <div><p className="text-3xl font-black text-red-500">Rs {dynamicStats?.pending_salary?.toLocaleString() || 0}</p></div>
                         </div>
                         <div className="bg-orange-500/10 p-5 rounded-3xl border border-orange-500/20 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div><h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{isFilterActive ? 'Period Advance' : (locale === 'ur' ? 'ایڈوانس' : 'Advances Given')}</h3></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div><h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3></div>
                             <div><p className="text-3xl font-black text-orange-500">Rs {dynamicStats?.advances_given?.toLocaleString() || 0}</p></div>
                         </div>
                     </div>
@@ -374,7 +257,7 @@ function LaborDashboard() {
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => {
-                                        const st = getPeriodStats(l, viewStartDate, viewEndDate);
+                                        const st = getPeriodStats(l, "", "");
                                         return (
                                             <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group text-theme">
                                                 <td className="p-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 border border-theme overflow-hidden">{l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}</div><div><p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p><p className="text-[10px] font-bold text-theme-muted">{l.phone}</p></div></div></td>
@@ -448,10 +331,10 @@ function LaborDashboard() {
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Period Days</p><p className="text-2xl font-black text-blue-500">{profileStats?.days} Days</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Period Salary</p><p className="text-2xl font-black text-theme">Rs {profileStats?.totalSalary.toLocaleString()}</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Advance Taken</p><p className="text-2xl font-black text-orange-500">Rs {profileStats?.totalAdvance.toLocaleString()}</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Salary Paid</p><p className="text-2xl font-black text-green-500">Rs {profileStats?.totalSalaryPaid.toLocaleString()}</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Days</p><p className="text-2xl font-black text-blue-500">{profileStats?.days} Days</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Salary</p><p className="text-2xl font-black text-theme">Rs {profileStats?.totalSalary.toLocaleString()}</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Advance</p><p className="text-2xl font-black text-orange-500">Rs {profileStats?.totalAdvance.toLocaleString()}</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Paid</p><p className="text-2xl font-black text-green-500">Rs {profileStats?.totalSalaryPaid.toLocaleString()}</p></div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
