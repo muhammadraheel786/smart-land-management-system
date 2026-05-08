@@ -80,6 +80,12 @@ function LaborDashboard() {
     const [openAttendance, setOpenAttendance] = useState(false);
     const [openSlip, setOpenSlip] = useState(false);
 
+    // Month-Year Filter for Profile View
+    const [selectedMonthYear, setSelectedMonthYear] = useState<string>(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    });
+
     // Toast
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
@@ -123,58 +129,45 @@ function LaborDashboard() {
         }
     };
 
-    const getPeriodStats = (labour: Labour, startStr: string, endStr: string) => {
+    const getPeriodStats = (labour: Labour, monthYear: string) => {
         const baseRate = Number(labour.salary_amount) || 0;
-        
-        if (!startStr && !endStr) {
-            return {
-                days: labour.days_worked ?? 0,
-                salary: Number(labour.total_salary) || 0,
-                paid: Number(labour.total_paid) || 0,
-                advance: Number(labour.balance) < 0 ? Math.abs(Number(labour.balance)) : 0, // Fallback approx
-                balance: Number(labour.balance) || 0
-            };
-        }
+        const isAllTime = !monthYear;
+        const [filterYear, filterMonth] = isAllTime ? [0, 0] : monthYear.split('-').map(Number);
 
-        const start = startStr ? new Date(startStr) : null;
-        const end = endStr ? new Date(endStr) : null;
-        
+        const inMonth = (dateStr: string) => {
+            if (isAllTime) return true;
+            const d = new Date(dateStr);
+            return d.getFullYear() === filterYear && d.getMonth() + 1 === filterMonth;
+        };
+
+        const monthAttendance = (labour.attendance || []).filter(a => inMonth(a.date));
         let days = 0;
-        (labour.attendance || []).forEach((a: Attendance) => {
-            const d = new Date(a.date);
-            if ((!start || d >= start) && (!end || d <= end)) {
-                if (a.status === 'present') days += 1;
-                else if (a.status === 'half_day') days += 0.5;
-            }
+        monthAttendance.forEach((a: Attendance) => {
+            if (a.status === 'present') days += 1;
+            else if (a.status === 'half_day') days += 0.5;
         });
 
         let salary = 0;
         if (labour.salary_type === 'daily') {
             salary = days * baseRate;
         } else {
-            const s = start || (labour.salary_start_date ? new Date(labour.salary_start_date) : new Date());
-            const e = end || new Date();
-            let months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
-            if (e.getDate() >= s.getDate()) months++;
-            months = Math.max(0, months);
-            if (months === 0 && e >= s) months = 1;
-            salary = months * baseRate;
+            if (isAllTime) {
+                // All-time: use stored total_salary or calculate from stored days
+                salary = Number(labour.total_salary) || baseRate;
+            } else {
+                salary = baseRate; // Monthly: full month salary
+            }
         }
 
-        const filterByDate = (dateStr: string): boolean => {
-            if (!start && !end) return true;
-            const d = new Date(dateStr);
-            if (start && d < start) return false;
-            if (end && d > end) return false;
-            return true;
-        };
+        const monthTxs = (labour.transactions || []).filter(t => inMonth(t.date));
+        const paid = monthTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-        const txs = (labour.transactions || []).filter(t => filterByDate(t.date));
-        const paid = txs.filter(t => t.type === 'salary').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const advance = txs.filter(t => t.type === 'advance').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const balance = salary - paid - advance;
+        // Auto-advance: if paid exceeds salary, excess is advance
+        const advance = paid > salary ? paid - salary : 0;
+        const effectivePaid = paid > salary ? salary : paid;
+        const balance = salary - effectivePaid;
 
-        return { days, salary, paid, advance, balance };
+        return { days, salary, paid, advance, balance, monthAttendance, monthTxs };
     };
 
     const filteredLabours = labours;
@@ -183,9 +176,9 @@ function LaborDashboard() {
 
     const profileStats = useMemo(() => {
         if (!selectedLabour) return null;
-        const st = getPeriodStats(selectedLabour, "", "");
-        return { totalSalary: st.salary, totalAdvance: st.advance, totalSalaryPaid: st.paid, balance: st.balance, days: st.days };
-    }, [selectedLabour]);
+        const st = getPeriodStats(selectedLabour, selectedMonthYear);
+        return { totalSalary: st.salary, totalPaid: st.paid, advance: st.advance, balance: st.balance, days: st.days, monthAttendance: st.monthAttendance, monthTxs: st.monthTxs };
+    }, [selectedLabour, selectedMonthYear]);
 
     const handleExport = () => {
         const data = labours.map(l => {
@@ -382,18 +375,35 @@ function LaborDashboard() {
                         </div>
                     </div>
 
+                    {/* Month-Year Filter */}
+                    <div className="bg-theme-card p-4 rounded-3xl border border-theme shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <Calendar className="w-5 h-5 text-orange-500" />
+                            <label className="text-xs font-black text-theme-muted uppercase">{locale === 'ur' ? 'مہینہ/سال' : 'Month / Year'}</label>
+                            <input
+                                type="month"
+                                value={selectedMonthYear}
+                                onChange={e => setSelectedMonthYear(e.target.value)}
+                                className="flex-1 bg-theme-track border border-theme p-3 rounded-xl text-theme font-bold focus:outline-none focus:border-orange-500"
+                            />
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Days</p><p className="text-2xl font-black text-blue-500">{profileStats?.days} Days</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Salary</p><p className="text-2xl font-black text-theme">Rs {profileStats?.totalSalary.toLocaleString()}</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Advance</p><p className="text-2xl font-black text-orange-500">Rs {profileStats?.totalAdvance.toLocaleString()}</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">Total Paid</p><p className="text-2xl font-black text-green-500">Rs {profileStats?.totalSalaryPaid.toLocaleString()}</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'کل تنخواہ' : 'Total Salary'}</p><p className="text-2xl font-black text-theme">Rs {profileStats?.totalSalary.toLocaleString()}</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'کل ادائیگی' : 'Total Paid'}</p><p className="text-2xl font-black text-green-500">Rs {profileStats?.totalPaid.toLocaleString()}</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</p><p className="text-2xl font-black text-orange-500">Rs {profileStats?.advance.toLocaleString()}</p></div>
+                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'باقی' : 'Balance'}</p><p className="text-2xl font-black text-blue-500">Rs {profileStats?.balance.toLocaleString()}</p></div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-theme-card rounded-3xl border border-theme shadow-sm overflow-hidden h-fit">
-                            <div className="p-6 border-b border-theme bg-theme-track flex justify-between items-center"><h3 className="font-black text-theme text-sm uppercase tracking-widest flex items-center gap-2">Transactions</h3>{!isDataEntry && <div className="flex gap-2"><button onClick={() => setOpenTransaction({ type: 'salary', open: true })} className="bg-green-500 text-white text-[10px] font-black px-3 py-2 rounded-xl transition-all shadow-lg shadow-green-500/20">Pay Salary</button><button onClick={() => setOpenTransaction({ type: 'advance', open: true })} className="bg-orange-500 text-white text-[10px] font-black px-3 py-2 rounded-xl transition-all shadow-lg shadow-orange-500/20">Give Advance</button></div>}</div>
+                            <div className="p-6 border-b border-theme bg-theme-track flex justify-between items-center"><h3 className="font-black text-theme text-sm uppercase tracking-widest flex items-center gap-2">Transactions</h3>{!isDataEntry && <button onClick={() => setOpenTransaction({ type: 'salary', open: true })} className="bg-green-500 text-white text-[10px] font-black px-3 py-2 rounded-xl transition-all shadow-lg shadow-green-500/20">Pay Salary</button>}</div>
                             <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
-                                {selectedLabour.transactions?.map((t: Transaction) => (
+                                {profileStats?.monthTxs?.length === 0 && (
+                                    <div className="p-4 text-center text-theme-muted text-xs font-bold">{locale === 'ur' ? 'اس مہینے کوئی لین دین نہیں' : 'No transactions this month'}</div>
+                                )}
+                                {profileStats?.monthTxs?.map((t: Transaction) => (
                                     <div key={t.id || t._id} className="flex justify-between p-4 bg-theme-track rounded-2xl border border-theme text-theme text-sm">
                                         <div><p className="font-black uppercase">{t.type}</p><p className="text-[10px] font-bold text-theme-muted">{new Date(t.date).toLocaleDateString()}</p></div>
                                         <p className={`font-black ${t.type === 'salary' ? 'text-green-500' : 'text-orange-500'}`}>Rs {t.amount?.toLocaleString()}</p>
@@ -404,7 +414,10 @@ function LaborDashboard() {
                         <div className="bg-theme-card rounded-3xl border border-theme shadow-sm overflow-hidden h-fit">
                             <div className="p-6 border-b border-theme bg-theme-track"><h3 className="font-black text-theme text-sm uppercase tracking-widest">Attendance History</h3></div>
                             <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
-                                {selectedLabour.attendance?.map((a: Attendance) => (
+                                {profileStats?.monthAttendance?.length === 0 && (
+                                    <div className="p-4 text-center text-theme-muted text-xs font-bold">{locale === 'ur' ? 'اس مہینے کوئی حاضری نہیں' : 'No attendance this month'}</div>
+                                )}
+                                {profileStats?.monthAttendance?.map((a: Attendance) => (
                                     <div key={a.id || a._id} className="flex justify-between p-4 bg-theme-track rounded-2xl border border-theme text-theme text-sm">
                                         <div><p className="font-black uppercase">{a.status}</p><p className="text-[10px] font-bold text-theme-muted">{new Date(a.date).toLocaleDateString()}</p></div>
                                     </div>
