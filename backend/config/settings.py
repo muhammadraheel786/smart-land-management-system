@@ -126,7 +126,7 @@ REST_FRAMEWORK = {
 }
 
 # APIs must NEVER redirect; return JSON only (401/404, not login redirects).
-APPEND_SLASH = False
+APPEND_SLASH = True
 SECURE_SSL_REDIRECT = False
 LOGIN_URL = None  # No HTML login page; API returns 401 JSON
 LOGOUT_REDIRECT_URL = None
