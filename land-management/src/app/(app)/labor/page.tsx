@@ -182,7 +182,7 @@ function LaborDashboard() {
 
     const handleExport = () => {
         const data = labours.map(l => {
-            const st = getPeriodStats(l, "", "");
+            const st = getPeriodStats(l, "");
             return {
                 "Worker Name": l.name,
                 "Work Type": l.work_type,
@@ -290,7 +290,7 @@ function LaborDashboard() {
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => {
-                                        const st = getPeriodStats(l, "", "");
+                                        const st = getPeriodStats(l, "");
                                         return (
                                             <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group text-theme">
                                                 <td className="p-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 border border-theme overflow-hidden">{l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}</div><div><p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p><p className="text-[10px] font-bold text-theme-muted">{l.phone}</p></div></div></td>
@@ -308,7 +308,7 @@ function LaborDashboard() {
                         </div>
                         <div className="md:hidden flex flex-col divide-y divide-theme">
                             {filteredLabours.map(l => {
-                                const st = getPeriodStats(l, "", "");
+                                const st = getPeriodStats(l, "");
                                 return (
                                     <div key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="p-4 hover:bg-theme-track active:bg-theme-track transition-colors flex flex-col gap-4 text-theme">
                                         <div className="flex items-center justify-between">
