@@ -92,6 +92,47 @@ function LaborDashboard() {
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     });
 
+    const getPeriodStats = (labour: Labour, monthYear: string) => {
+        const baseRate = Number(labour.salary_amount) || 0;
+        const isAllTime = !monthYear;
+        const [filterYear, filterMonth] = isAllTime ? [0, 0] : monthYear.split('-').map(Number);
+
+        const inMonth = (dateStr: string) => {
+            if (isAllTime) return true;
+            const d = new Date(dateStr);
+            return d.getFullYear() === filterYear && d.getMonth() + 1 === filterMonth;
+        };
+
+        const monthAttendance = (labour.attendance || []).filter(a => inMonth(a.date));
+        let days = 0;
+        monthAttendance.forEach((a: Attendance) => {
+            if (a.status === 'present') days += 1;
+            else if (a.status === 'half_day') days += 0.5;
+        });
+
+        let salary = 0;
+        if (labour.salary_type === 'daily') {
+            salary = days * baseRate;
+        } else {
+            if (isAllTime) {
+                // All-time: use stored total_salary or calculate from stored days
+                salary = Number(labour.total_salary) || baseRate;
+            } else {
+                salary = baseRate; // Monthly: full month salary
+            }
+        }
+
+        const monthTxs = (labour.transactions || []).filter(t => inMonth(t.date));
+        const paid = monthTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+        // Auto-advance: if paid exceeds salary, excess is advance
+        const advance = paid > salary ? paid - salary : 0;
+        const effectivePaid = paid > salary ? salary : paid;
+        const balance = salary - effectivePaid;
+
+        return { days, salary, paid, advance, balance, monthAttendance, monthTxs };
+    };
+
     const dashboardMonthStats = useMemo(() => {
         let totalPaid = 0, totalBalance = 0, totalAdvance = 0;
         labours.forEach(l => {
@@ -144,47 +185,6 @@ function LaborDashboard() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const getPeriodStats = (labour: Labour, monthYear: string) => {
-        const baseRate = Number(labour.salary_amount) || 0;
-        const isAllTime = !monthYear;
-        const [filterYear, filterMonth] = isAllTime ? [0, 0] : monthYear.split('-').map(Number);
-
-        const inMonth = (dateStr: string) => {
-            if (isAllTime) return true;
-            const d = new Date(dateStr);
-            return d.getFullYear() === filterYear && d.getMonth() + 1 === filterMonth;
-        };
-
-        const monthAttendance = (labour.attendance || []).filter(a => inMonth(a.date));
-        let days = 0;
-        monthAttendance.forEach((a: Attendance) => {
-            if (a.status === 'present') days += 1;
-            else if (a.status === 'half_day') days += 0.5;
-        });
-
-        let salary = 0;
-        if (labour.salary_type === 'daily') {
-            salary = days * baseRate;
-        } else {
-            if (isAllTime) {
-                // All-time: use stored total_salary or calculate from stored days
-                salary = Number(labour.total_salary) || baseRate;
-            } else {
-                salary = baseRate; // Monthly: full month salary
-            }
-        }
-
-        const monthTxs = (labour.transactions || []).filter(t => inMonth(t.date));
-        const paid = monthTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-
-        // Auto-advance: if paid exceeds salary, excess is advance
-        const advance = paid > salary ? paid - salary : 0;
-        const effectivePaid = paid > salary ? salary : paid;
-        const balance = salary - effectivePaid;
-
-        return { days, salary, paid, advance, balance, monthAttendance, monthTxs };
     };
 
     const filteredLabours = labours;
