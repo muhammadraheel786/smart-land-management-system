@@ -115,10 +115,15 @@ function LaborDashboard() {
             salary = days * baseRate;
         } else {
             if (isAllTime) {
-                // All-time: use stored total_salary or calculate from stored days
-                salary = Number(labour.total_salary) || baseRate;
+                // Calculate months from start date to today
+                const startDate = labour.salary_start_date ? new Date(labour.salary_start_date) : new Date();
+                const today = new Date();
+                let months = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+                if (today.getDate() >= startDate.getDate()) months++;
+                months = Math.max(1, months);
+                salary = months * baseRate;
             } else {
-                salary = baseRate; // Monthly: full month salary
+                salary = baseRate; // Monthly: specific month salary
             }
         }
 
@@ -133,16 +138,16 @@ function LaborDashboard() {
         return { days, salary, paid, advance, balance, monthAttendance, monthTxs };
     };
 
-    const dashboardMonthStats = useMemo(() => {
+    const allTimeStats = useMemo(() => {
         let totalPaid = 0, totalBalance = 0, totalAdvance = 0;
         labours.forEach(l => {
-            const st = getPeriodStats(l, dashboardMonthYear);
+            const st = getPeriodStats(l, ""); // Empty string for all-time
             totalPaid += st.paid;
             totalBalance += st.balance;
             totalAdvance += st.advance;
         });
         return { totalPaid, totalBalance, totalAdvance };
-    }, [labours, dashboardMonthYear]);
+    }, [labours]);
 
     // Toast
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -269,21 +274,7 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-                    {/* Month Filter */}
-                    <div className="bg-theme-card p-4 rounded-3xl border border-theme shadow-sm">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                            <div className="flex items-center gap-2">
-                                <Calendar className="w-5 h-5 text-orange-500" />
-                                <label className="text-xs font-black text-theme-muted uppercase">{locale === 'ur' ? 'مہینہ/سال' : 'Month / Year'}</label>
-                            </div>
-                            <input
-                                type="month"
-                                value={dashboardMonthYear}
-                                onChange={e => setDashboardMonthYear(e.target.value)}
-                                className="flex-1 sm:flex-none bg-theme-track border border-theme p-3 rounded-xl text-theme font-bold focus:outline-none focus:border-orange-500 w-full sm:w-auto"
-                            />
-                        </div>
-                    </div>
+
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
@@ -292,15 +283,15 @@ function LaborDashboard() {
                         </div>
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
                             <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Salary Paid'}</h3></div>
-                            <div><p className="text-2xl font-black text-theme">Rs {dashboardMonthStats.totalPaid.toLocaleString()}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{locale === 'ur' ? 'اس مہینے' : 'This Month'}</p></div>
+                            <div><p className="text-2xl font-black text-theme">Rs {allTimeStats.totalPaid.toLocaleString()}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{locale === 'ur' ? 'کل ادائیگی' : 'Total Paid'}</p></div>
                         </div>
                         <div className="bg-red-500/10 p-5 rounded-3xl border border-red-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div><h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{locale === 'ur' ? 'باقی' : 'Balance'}</h3></div>
-                            <div><p className="text-3xl font-black text-red-500">Rs {dashboardMonthStats.totalBalance.toLocaleString()}</p></div>
+                            <div><p className="text-3xl font-black text-red-500">Rs {allTimeStats.totalBalance.toLocaleString()}</p></div>
                         </div>
                         <div className="bg-orange-500/10 p-5 rounded-3xl border border-orange-500/20 shadow-sm flex flex-col justify-between">
                             <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div><h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</h3></div>
-                            <div><p className="text-3xl font-black text-orange-500">Rs {dashboardMonthStats.totalAdvance.toLocaleString()}</p></div>
+                            <div><p className="text-3xl font-black text-orange-500">Rs {allTimeStats.totalAdvance.toLocaleString()}</p></div>
                         </div>
                     </div>
 
@@ -322,7 +313,7 @@ function LaborDashboard() {
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => {
-                                        const st = getPeriodStats(l, dashboardMonthYear);
+                                        const st = getPeriodStats(l, ""); // All-time records in table
                                         return (
                                             <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group text-theme">
                                                 <td className="p-4">
