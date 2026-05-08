@@ -1,0 +1,465 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { format } from "date-fns";
+import { BookOpen, Plus, Trash2, Pencil } from "lucide-react";
+import { useLandStore } from "@/lib/store";
+import { useLocale } from "@/contexts/LocaleContext";
+import type { DailyActivityType, MaterialUsed } from "@/types";
+
+const ACTIVITIES: { value: DailyActivityType; labelKey: string }[] = [
+  { value: "ploughing", labelKey: "dbPloughing" },
+  { value: "sowing", labelKey: "dbSowing" },
+  { value: "irrigation", labelKey: "dbIrrigation" },
+  { value: "spraying", labelKey: "dbSpraying" },
+  { value: "fertilizing", labelKey: "dbFertilizing" },
+  { value: "weeding", labelKey: "dbWeeding" },
+  { value: "harvesting", labelKey: "dbHarvesting" },
+  { value: "other", labelKey: "dbOther" },
+];
+
+export default function DataBankPage() {
+  const { t } = useLocale();
+  const {
+    fields,
+    materials,
+    dailyRegister,
+    fetchAll,
+    fetchMaterials,
+    fetchDailyRegister,
+    addDailyRegisterEntry,
+    updateDailyRegisterEntry,
+    deleteDailyRegisterEntry,
+    error,
+  } = useLandStore();
+
+  const searchParams = useSearchParams();
+  const fieldFromUrl = searchParams.get("field") ?? "";
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [fieldId, setFieldId] = useState("");
+  const [activity, setActivity] = useState<DailyActivityType>("other");
+  const [laborCost, setLaborCost] = useState("");
+  const [waterMinutes, setWaterMinutes] = useState("");
+  const [notes, setNotes] = useState("");
+  const [materialRows, setMaterialRows] = useState<{ materialId: string; quantity: string }[]>([{ materialId: "", quantity: "" }]);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [filterFieldId, setFilterFieldId] = useState<string>("");
+  const [otherActivityText, setOtherActivityText] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAll();
+    fetchMaterials();
+  }, [fetchAll, fetchMaterials]);
+
+  useEffect(() => {
+    fetchDailyRegister({ date: selectedDate });
+  }, [selectedDate, fetchDailyRegister]);
+
+  useEffect(() => {
+    if (fieldFromUrl && fields.some((f) => f.id === fieldFromUrl)) setFieldId(fieldFromUrl);
+  }, [fieldFromUrl, fields]);
+
+  const addMaterialRow = () => setMaterialRows((r) => [...r, { materialId: "", quantity: "" }]);
+  const removeMaterialRow = (i: number) => setMaterialRows((r) => r.filter((_, idx) => idx !== i));
+  const updateMaterialRow = (i: number, key: "materialId" | "quantity", value: string) => {
+    setMaterialRows((r) => r.map((row, idx) => (idx === i ? { ...row, [key]: value } : row)));
+  };
+
+  const handleSaveEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+    setSuccess(false);
+    if (!fieldId) {
+      setSubmitError(t("dbFieldRequired"));
+      return;
+    }
+    if (activity === "other" && !otherActivityText.trim()) {
+      setSubmitError(t("dbOtherActivityRequired"));
+      return;
+    }
+    const materialsUsed: MaterialUsed[] = materialRows
+      .filter((r) => r.materialId && r.quantity && Number(r.quantity) > 0)
+      .map((r) => ({ materialId: r.materialId, quantity: Number(r.quantity) }));
+    const combinedNotes = activity === "other" && otherActivityText.trim()
+      ? [t("dbOther") + ": " + otherActivityText.trim(), notes.trim()].filter(Boolean).join(" | ")
+      : notes.trim() || undefined;
+    setSaving(true);
+    try {
+      if (editingId) {
+        await updateDailyRegisterEntry(editingId, {
+          date: selectedDate,
+          fieldId,
+          activity,
+          materialsUsed,
+          laborCost: laborCost ? Number(laborCost) : undefined,
+          waterMinutes: waterMinutes ? Number(waterMinutes) : undefined,
+          notes: combinedNotes,
+        });
+        setEditingId(null);
+        setLaborCost("");
+        setWaterMinutes("");
+        setNotes("");
+        setOtherActivityText("");
+        setMaterialRows([{ materialId: "", quantity: "" }]);
+        fetchDailyRegister({ date: selectedDate });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+        return;
+      }
+      const ok = await addDailyRegisterEntry({
+        date: selectedDate,
+        fieldId,
+        activity,
+        materialsUsed,
+        laborCost: laborCost ? Number(laborCost) : undefined,
+        waterMinutes: waterMinutes ? Number(waterMinutes) : undefined,
+        notes: combinedNotes,
+      });
+      if (ok) {
+        setLaborCost("");
+        setWaterMinutes("");
+        setNotes("");
+        setOtherActivityText("");
+        setMaterialRows([{ materialId: "", quantity: "" }]);
+        fetchDailyRegister({ date: selectedDate });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setSubmitError(t("dbSaveFailed"));
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const entriesForDate = useMemo(() => {
+    let list = dailyRegister.filter((e) => e.date === selectedDate);
+    if (filterFieldId) list = list.filter((e) => e.fieldId === filterFieldId);
+    return list;
+  }, [dailyRegister, selectedDate, filterFieldId]);
+
+  const daySummary = useMemo(() => {
+    const list = dailyRegister.filter((e) => e.date === selectedDate);
+    const totalLabor = list.reduce((a, e) => a + (e.laborCost ?? 0), 0);
+    const totalWater = list.reduce((a, e) => a + (e.waterMinutes ?? 0), 0);
+    return { totalLabor, totalWater, count: list.length };
+  }, [dailyRegister, selectedDate]);
+
+  const cultivableFields = useMemo(() => {
+    const seen = new Set<string>();
+    return fields.filter((f) => f.status !== "not_usable" && f.id && !seen.has(f.id) && seen.add(f.id));
+  }, [fields]);
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme tracking-tight">{t("dataBank")}</h1>
+          </div>
+          <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">{t("dataBankSubtitle")}</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-600 dark:text-red-200">{error}</div>
+      )}
+      {success && (
+        <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-4 text-green-700 dark:text-green-200">{t("dbEntrySaved")}</div>
+      )}
+
+      <div className="rounded-2xl border-2 border-theme bg-theme-card shadow-xl overflow-hidden">
+        <div className="bg-theme-track border-b border-theme px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <label className="text-xs font-bold text-theme-muted uppercase tracking-wider">{t("date")}</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-4 py-2.5 rounded-xl bg-theme-card border border-theme text-theme font-mono text-sm focus:ring-2 focus:ring-amber-500/50 outline-none"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[10px] sm:text-xs">
+            <div className="flex flex-col">
+              <span className="text-theme-muted font-bold uppercase tracking-tighter">{t("dbEntriesCount")}</span>
+              <span className="text-sm font-black text-theme">{daySummary.count}</span>
+            </div>
+            {daySummary.totalLabor > 0 && (
+              <div className="flex flex-col">
+                <span className="text-theme-muted font-bold uppercase tracking-tighter">{t("dbTotalLabor")}</span>
+                <span className="text-sm font-black text-rose-500">Rs {daySummary.totalLabor.toLocaleString()}</span>
+              </div>
+            )}
+            {daySummary.totalWater > 0 && (
+              <div className="flex flex-col">
+                <span className="text-theme-muted font-bold uppercase tracking-tighter">{t("dbTotalWater")}</span>
+                <span className="text-sm font-black text-blue-500">{daySummary.totalWater} {t("minutes")}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-theme mb-4">{editingId ? t("edit") : t("dbNewEntry")}</h2>
+          <form onSubmit={handleSaveEntry} className="space-y-4">
+            {submitError && <p className="text-red-500 dark:text-red-400 text-sm">{submitError}</p>}
+            {editingId && <button type="button" onClick={() => setEditingId(null)} className="text-sm text-theme-muted hover:text-theme">{t("cancel")}</button>}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-theme-muted mb-1">{t("field")}</label>
+                <select value={fieldId} onChange={(e) => setFieldId(e.target.value)} required className="w-full px-4 py-2.5 rounded-lg bg-theme-track border border-theme text-theme">
+                  <option value="">{t("selectField")}</option>
+                  {cultivableFields.map((f, idx) => (
+                    <option key={f.id ? `${f.id}-${idx}` : `field-${idx}`} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-theme-muted mb-1">{t("dbActivity")}</label>
+                <select value={activity} onChange={(e) => { setActivity(e.target.value as DailyActivityType); setOtherActivityText(""); }} className="w-full px-4 py-2.5 rounded-lg bg-theme-track border border-theme text-theme">
+                  {ACTIVITIES.map((a) => (
+                    <option key={a.value} value={a.value}>{t(a.labelKey as keyof typeof t)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {activity === "other" && (
+              <div>
+                <label className="block text-sm text-theme-muted mb-1">{t("dbSpecifyActivity")} <span className="text-amber-500">*</span></label>
+                <input
+                  type="text"
+                  value={otherActivityText}
+                  onChange={(e) => setOtherActivityText(e.target.value)}
+                  placeholder={t("dbSpecifyActivityPlaceholder")}
+                  className="w-full px-4 py-2.5 rounded-lg bg-theme-track border border-theme text-theme placeholder-theme"
+                />
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm text-theme-muted">{t("dbMaterialsUsed")}</label>
+                <button type="button" onClick={addMaterialRow} className="text-xs text-amber-500 dark:text-amber-400 hover:underline flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> {t("dbAddMaterial")}
+                </button>
+              </div>
+              {materials.length === 0 ? (
+                <p className="text-theme-muted text-sm py-2">{t("dbNoMaterialsHint")}</p>
+              ) : null}
+              <div className="space-y-2">
+                {materialRows.map((row, i) => (
+                  <div key={i} className="flex gap-2 items-center flex-wrap">
+                    <select
+                      value={row.materialId}
+                      onChange={(e) => updateMaterialRow(i, "materialId", e.target.value)}
+                      className="flex-1 min-w-[180px] px-3 py-2 rounded-lg bg-theme-track border border-theme text-theme text-sm"
+                      aria-label={t("dbMaterialsUsed")}
+                    >
+                      <option value="">{t("materialsSelectMaterial")}</option>
+                      {materials.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} — {m.currentStock} {m.unit}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={t("materialsQty")}
+                      value={row.quantity}
+                      onChange={(e) => updateMaterialRow(i, "quantity", e.target.value)}
+                      className="w-24 px-3 py-2 rounded-lg bg-theme-track border border-theme text-theme text-sm placeholder-theme"
+                    />
+                    {materialRows.length > 1 && (
+                      <button type="button" onClick={() => removeMaterialRow(i)} className="p-1.5 text-red-500 dark:text-red-400 hover:bg-red-500/20 rounded" aria-label={t("cancel")}>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-theme-muted mb-1">{t("dbLaborCost")}</label>
+                <input type="number" min="0" value={laborCost} onChange={(e) => setLaborCost(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-theme-track border border-theme text-theme" />
+              </div>
+              <div>
+                <label className="block text-sm text-theme-muted mb-1">{t("dbWaterMinutes")}</label>
+                <input type="number" min="0" value={waterMinutes} onChange={(e) => setWaterMinutes(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-theme-track border border-theme text-theme" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-theme-muted mb-1">{t("dbNotes")}</label>
+              <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("dbNotesPlaceholder")} className="w-full px-4 py-2.5 rounded-lg bg-theme-track border border-theme text-theme placeholder-theme" />
+            </div>
+            <button type="submit" disabled={saving} className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium disabled:opacity-50">
+              {saving ? t("materialsSaving") : t("dbSaveEntry")}
+            </button>
+          </form>
+        </div>
+
+        <div className="border-t border-theme">
+          <div className="px-6 py-3 bg-theme-track flex flex-wrap items-center justify-between gap-4">
+            <h3 className="font-semibold text-theme">{t("dbEntriesFor")} {selectedDate}</h3>
+            {fields.length > 0 && (
+              <select value={filterFieldId} onChange={(e) => setFilterFieldId(e.target.value)} className="px-3 py-1.5 rounded-lg bg-theme-card border border-theme text-theme text-sm">
+                <option value="">{t("dbAllFields")}</option>
+                {fields.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="w-full">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-theme bg-theme-track text-theme-muted">
+                    <th className="px-4 py-3 font-medium">{t("field")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbActivity")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbMaterials")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbLabor")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbWater")}</th>
+                    <th className="px-4 py-3 font-medium">{t("dbNotes")}</th>
+                    <th className="px-4 py-3 w-20"></th>
+                  </tr>
+                </thead>
+                <tbody className="text-theme">
+                  {entriesForDate.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-theme-muted">{t("dbNoEntriesForDate")}</td>
+                    </tr>
+                  ) : (
+                    entriesForDate.map((entry, idx) => (
+                      <tr key={entry.id ? `${entry.id}-${idx}` : `entry-${idx}`} className="border-b border-theme hover:bg-theme-track">
+                        <td className="px-4 py-2.5">{fields.find((f) => f.id === entry.fieldId)?.name ?? entry.fieldId}</td>
+                        <td className="px-4 py-2.5">
+                          {entry.activity === "other" && entry.notes?.startsWith(t("dbOther") + ": ")
+                            ? entry.notes.slice((t("dbOther") + ": ").length).split(" | ")[0]
+                            : (t(ACTIVITIES.find((a) => a.value === entry.activity)?.labelKey as keyof typeof t) || entry.activity)}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {entry.materialsUsed?.length ? entry.materialsUsed.map((mu) => { const m = materials.find((x) => x.id === mu.materialId); return m ? `${m.name} ${mu.quantity}${m.unit}` : mu.quantity; }).join(", ") : "—"}
+                        </td>
+                        <td className="px-4 py-2.5">{entry.laborCost != null ? `Rs ${entry.laborCost.toLocaleString()}` : "—"}</td>
+                        <td className="px-4 py-2.5">{entry.waterMinutes != null ? `${entry.waterMinutes} ${t("minutes")}` : "—"}</td>
+                        <td className="px-4 py-2.5 max-w-[120px] truncate">
+                          {entry.activity === "other" && entry.notes
+                            ? (entry.notes.includes(" | ") ? entry.notes.split(" | ").slice(1).join(" | ") : "—")
+                            : (entry.notes || "—")}
+                        </td>
+                        <td className="px-4 py-2.5 flex gap-1">
+                          <button type="button" onClick={() => { const e = entry; setFieldId(e.fieldId); setSelectedDate(e.date); setActivity(e.activity as DailyActivityType); setLaborCost(e.laborCost != null ? String(e.laborCost) : ""); setWaterMinutes(e.waterMinutes != null ? String(e.waterMinutes) : ""); if (e.activity === "other" && e.notes?.startsWith(t("dbOther") + ": ")) { setOtherActivityText(e.notes.slice((t("dbOther") + ": ").length).split(" | ")[0] || ""); setNotes(e.notes.includes(" | ") ? e.notes.split(" | ").slice(1).join(" | ") : ""); } else { setOtherActivityText(""); setNotes(e.notes || ""); } setMaterialRows(e.materialsUsed?.length ? e.materialsUsed.map((mu) => ({ materialId: mu.materialId, quantity: String(mu.quantity) })) : [{ materialId: "", quantity: "" }]); setEditingId(e.id); setSubmitError(null); }} className="p-1.5 text-theme-muted hover:bg-theme-track rounded" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => setDeleteConfirmId(entry.id)} className="p-1.5 text-red-500 dark:text-red-400 hover:bg-red-500/20 rounded" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden space-y-3 p-4 bg-theme-track/30">
+              {entriesForDate.length === 0 ? (
+                <div className="text-center py-8 text-sm text-theme-muted bg-theme-card rounded-xl border border-theme">
+                  {t("dbNoEntriesForDate")}
+                </div>
+              ) : (
+                entriesForDate.map((entry, idx) => (
+                  <div key={entry.id ? `${entry.id}-${idx}` : `entry-mobile-${idx}`} className="bg-theme-card border border-theme rounded-xl p-4 shadow-sm relative">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1 pr-8">
+                        <p className="font-semibold text-theme text-base">
+                          {fields.find((f) => f.id === entry.fieldId)?.name ?? entry.fieldId}
+                        </p>
+                        <p className="text-sm font-medium text-amber-500">
+                          {entry.activity === "other" && entry.notes?.startsWith(t("dbOther") + ": ")
+                            ? entry.notes.slice((t("dbOther") + ": ").length).split(" | ")[0]
+                            : (t(ACTIVITIES.find((a) => a.value === entry.activity)?.labelKey as keyof typeof t) || entry.activity)}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2 absolute top-4 right-4">
+                        <button type="button" onClick={() => { const e = entry; setFieldId(e.fieldId); setSelectedDate(e.date); setActivity(e.activity as DailyActivityType); setLaborCost(e.laborCost != null ? String(e.laborCost) : ""); setWaterMinutes(e.waterMinutes != null ? String(e.waterMinutes) : ""); if (e.activity === "other" && e.notes?.startsWith(t("dbOther") + ": ")) { setOtherActivityText(e.notes.slice((t("dbOther") + ": ").length).split(" | ")[0] || ""); setNotes(e.notes.includes(" | ") ? e.notes.split(" | ").slice(1).join(" | ") : ""); } else { setOtherActivityText(""); setNotes(e.notes || ""); } setMaterialRows(e.materialsUsed?.length ? e.materialsUsed.map((mu) => ({ materialId: mu.materialId, quantity: String(mu.quantity) })) : [{ materialId: "", quantity: "" }]); setEditingId(e.id); setSubmitError(null); }} className="p-2 text-theme-muted hover:text-theme bg-theme-track hover:bg-theme-track border border-theme rounded-lg" title={t("edit")}><Pencil className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setDeleteConfirmId(entry.id)} className="p-2 text-red-500 hover:text-white hover:bg-red-500 bg-red-500/10 border border-red-500/20 rounded-lg" title={t("delete")}><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-2 mt-4 text-sm mt-3 border-t border-theme pt-3">
+                      <div>
+                        <span className="text-theme-muted block text-xs mb-0.5">{t("dbLabor")}</span>
+                        <span className="text-theme font-medium">{entry.laborCost != null ? `Rs ${entry.laborCost.toLocaleString()}` : "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-theme-muted block text-xs mb-0.5">{t("dbWater")}</span>
+                        <span className="text-theme font-medium">{entry.waterMinutes != null ? `${entry.waterMinutes} ${t("minutes")}` : "—"}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-theme-muted block text-xs mb-0.5">{t("dbMaterials")}</span>
+                        <span className="text-theme">{entry.materialsUsed?.length ? entry.materialsUsed.map((mu) => { const m = materials.find((x) => x.id === mu.materialId); return m ? `${m.name} ${mu.quantity}${m.unit}` : mu.quantity; }).join(", ") : "—"}</span>
+                      </div>
+                      {(entry.notes || (entry.activity === "other" && entry.notes?.includes(" | "))) && (
+                        <div className="col-span-2 mt-1">
+                          <span className="text-theme-muted block text-xs mb-0.5">{t("dbNotes")}</span>
+                          <span className="text-theme text-xs italic bg-theme-track p-2 rounded block">
+                            {entry.activity === "other" && entry.notes
+                              ? (entry.notes.includes(" | ") ? entry.notes.split(" | ").slice(1).join(" | ") : "—")
+                              : (entry.notes || "—")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
+          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
+            <p className="text-theme-muted text-sm mb-8 leading-relaxed">This entry will be permanently removed. This cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  await deleteDailyRegisterEntry(deleteConfirmId);
+                  setDeleteConfirmId(null);
+                  fetchDailyRegister({ date: selectedDate });
+                }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
+              >
+                Yes, Delete
+              </button>
+              <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-theme-track border border-theme text-theme-muted py-3.5 rounded-xl font-bold">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="h-20 md:hidden" />
+    </div>
+  );
+}
+
