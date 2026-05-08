@@ -305,15 +305,22 @@ function LaborDashboard() {
                                     <tr className="bg-theme-track text-[10px] uppercase tracking-widest text-theme-muted font-black border-b border-theme">
                                         <th className="p-4">{locale === 'ur' ? 'نام' : 'Name'}</th>
                                         <th className="p-4">{locale === 'ur' ? 'تنخواہ' : 'Salary'}</th>
-                                        <th className="p-4 text-center">{locale === 'ur' ? 'مدت' : 'Month'}</th>
-                                        <th className="p-4 text-right">{locale === 'ur' ? 'ادا شدہ' : 'Salary Paid'}</th>
+                                        <th className="p-4 text-center">{locale === 'ur' ? 'قسم' : 'Type'}</th>
+                                        <th className="p-4 text-center">{locale === 'ur' ? 'دن' : 'Days'}</th>
+                                        <th className="p-4 text-right">{locale === 'ur' ? 'ادا شدہ' : 'Paid'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'باقی' : 'Balance'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => {
-                                        const st = getPeriodStats(l, ""); // All-time records in table
+                                        // Use backend pre-calculated values or fallback to frontend calculation
+                                        const paid = Number(l.total_paid ?? 0);
+                                        const balance = Number(l.balance ?? 0);
+                                        const advance = Number(l.advance_balance ?? 0);
+                                        const days = Number(l.days_worked ?? 0);
+                                        const joiningMonth = l.salary_start_date ? new Date(l.salary_start_date).toLocaleString('default', { month: 'short' }) : 'N/A';
+
                                         return (
                                             <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group text-theme">
                                                 <td className="p-4">
@@ -328,10 +335,18 @@ function LaborDashboard() {
                                                     </div>
                                                 </td>
                                                 <td className="p-4 text-sm font-bold text-theme">Rs {Number(l.salary_amount || 0).toLocaleString()} <span className="text-[10px] font-black text-theme-muted uppercase">/ {l.salary_type}</span></td>
-                                                <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${l.salary_type === 'monthly' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>{l.salary_type === 'monthly' ? (locale === 'ur' ? 'ماہانہ' : 'Monthly') : (locale === 'ur' ? 'روزانہ' : 'Daily')}</span></td>
-                                                <td className="p-4 text-right text-sm font-bold text-green-500">Rs {st.paid.toLocaleString()}</td>
-                                                <td className="p-4 text-right text-sm font-black text-red-500">Rs {st.balance.toLocaleString()}</td>
-                                                <td className="p-4 text-right text-sm font-black text-orange-500">Rs {st.advance.toLocaleString()}</td>
+                                                <td className="p-4 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${l.salary_type === 'monthly' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>
+                                                            {l.salary_type === 'monthly' ? (locale === 'ur' ? 'ماہانہ' : 'Monthly') : (locale === 'ur' ? 'روزانہ' : 'Daily')}
+                                                        </span>
+                                                        {l.salary_type === 'monthly' && <span className="text-[9px] font-bold text-theme-muted mt-1">{joiningMonth}</span>}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-center text-sm font-bold text-theme">{days}</td>
+                                                <td className="p-4 text-right text-sm font-bold text-green-500">Rs {paid.toLocaleString()}</td>
+                                                <td className="p-4 text-right text-sm font-black text-red-500">Rs {balance.toLocaleString()}</td>
+                                                <td className="p-4 text-right text-sm font-black text-orange-500">Rs {advance.toLocaleString()}</td>
                                             </tr>
                                         );
                                     })}
