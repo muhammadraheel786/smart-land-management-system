@@ -142,10 +142,10 @@ function LaborDashboard() {
     const allTimeStats = useMemo(() => {
         let totalPaid = 0, totalBalance = 0, totalAdvance = 0;
         labours.forEach(l => {
-            const st = getPeriodStats(l, ""); // Empty string for all-time
-            totalPaid += st.paid;
-            totalBalance += st.balance;
-            totalAdvance += st.advance;
+            // Use backend pre-calculated values
+            totalPaid += Number(l.total_paid || 0);
+            totalBalance += Number(l.balance || 0);
+            totalAdvance += Number(l.advance_balance || 0);
         });
         return { totalPaid, totalBalance, totalAdvance };
     }, [labours]);
