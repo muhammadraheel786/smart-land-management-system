@@ -45,6 +45,7 @@ interface Labour {
     total_salary?: number;
     total_paid?: number;
     balance?: number;
+    advance_balance?: number;
     days_worked?: number;
     photo?: string;
     transactions?: Transaction[];
