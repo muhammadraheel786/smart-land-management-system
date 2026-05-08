@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import {
     Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
@@ -111,7 +111,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-function ActivitiesContent() {
+export default function ActivitiesPage() {
     const { isDataEntry } = useAuth();
     const { t, locale, setLocale } = useLocale();
     const searchParams = useSearchParams();
@@ -1318,15 +1318,3 @@ function ActivitiesContent() {
     );
 }
 
-export default function ActivitiesPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
-                <p className="text-theme-muted">Loading activities...</p>
-            </div>
-        }>
-            <ActivitiesContent />
-        </Suspense>
-    );
-}

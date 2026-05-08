@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { BookOpen, Plus, Trash2, Pencil } from "lucide-react";
@@ -19,7 +19,7 @@ const ACTIVITIES: { value: DailyActivityType; labelKey: string }[] = [
   { value: "other", labelKey: "dbOther" },
 ];
 
-function DataBankContent() {
+export default function DataBankPage() {
   const { t } = useLocale();
   const {
     fields,
@@ -463,10 +463,3 @@ function DataBankContent() {
   );
 }
 
-export default function DataBankPage() {
-  return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center text-theme-muted">Loading…</div>}>
-      <DataBankContent />
-    </Suspense>
-  );
-}

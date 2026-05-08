@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Droplets, Pencil, Trash, AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import { useLandStore } from "@/lib/store";
@@ -9,7 +9,7 @@ import type { WaterAnalysisResponse } from "@/types";
 import { format } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
 
-function WaterContent() {
+export default function WaterPage() {
   const { t } = useLocale();
   const { fields, waterRecords, addWaterRecord, updateWaterRecord, deleteWaterRecord, fetchAll, loading, error } = useLandStore();
   const searchParams = useSearchParams();
@@ -383,10 +383,3 @@ function WaterContent() {
   );
 }
 
-export default function WaterPage() {
-  return (
-    <Suspense fallback={<div className="flex min-h-[400px] items-center justify-center text-theme-muted">Loading water management…</div>}>
-      <WaterContent />
-    </Suspense>
-  );
-}
