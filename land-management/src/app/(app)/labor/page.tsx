@@ -86,6 +86,23 @@ function LaborDashboard() {
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     });
 
+    // Month-Year Filter for Dashboard (makes it dynamic)
+    const [dashboardMonthYear, setDashboardMonthYear] = useState<string>(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    });
+
+    const dashboardMonthStats = useMemo(() => {
+        let totalPaid = 0, totalBalance = 0, totalAdvance = 0;
+        labours.forEach(l => {
+            const st = getPeriodStats(l, dashboardMonthYear);
+            totalPaid += st.paid;
+            totalBalance += st.balance;
+            totalAdvance += st.advance;
+        });
+        return { totalPaid, totalBalance, totalAdvance };
+    }, [labours, dashboardMonthYear]);
+
     // Toast
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
@@ -252,26 +269,42 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Month Filter */}
+                    <div className="bg-theme-card p-4 rounded-3xl border border-theme shadow-sm">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-orange-500" />
+                                <label className="text-xs font-black text-theme-muted uppercase">{locale === 'ur' ? 'مہینہ/سال' : 'Month / Year'}</label>
+                            </div>
+                            <input
+                                type="month"
+                                value={dashboardMonthYear}
+                                onChange={e => setDashboardMonthYear(e.target.value)}
+                                className="flex-1 sm:flex-none bg-theme-track border border-theme p-3 rounded-xl text-theme font-bold focus:outline-none focus:border-orange-500 w-full sm:w-auto"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
                             <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl"><Users className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3></div>
                             <div><p className="text-3xl font-black text-theme">{dynamicStats?.total_labour || 0}</p><p className="text-[10px] font-bold text-green-500 mt-1">{dynamicStats?.active_labour || 0} Active • {dynamicStats?.inactive_labour || 0} Inactive</p></div>
                         </div>
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Total Paid'}</h3></div>
-                            <div><p className="text-2xl font-black text-theme">Rs {dynamicStats?.total_paid_overall?.toLocaleString() || 0}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{`This Month: Rs ${dynamicStats?.paid_this_month?.toLocaleString() || 0}`}</p></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Salary Paid'}</h3></div>
+                            <div><p className="text-2xl font-black text-theme">Rs {dashboardMonthStats.totalPaid.toLocaleString()}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{locale === 'ur' ? 'اس مہینے' : 'This Month'}</p></div>
                         </div>
                         <div className="bg-red-500/10 p-5 rounded-3xl border border-red-500/20 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div><h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{locale === 'ur' ? 'باقی تنخواہ' : 'Pending Salary'}</h3></div>
-                            <div><p className="text-3xl font-black text-red-500">Rs {dynamicStats?.pending_salary?.toLocaleString() || 0}</p></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div><h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{locale === 'ur' ? 'باقی' : 'Balance'}</h3></div>
+                            <div><p className="text-3xl font-black text-red-500">Rs {dashboardMonthStats.totalBalance.toLocaleString()}</p></div>
                         </div>
                         <div className="bg-orange-500/10 p-5 rounded-3xl border border-orange-500/20 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div><h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{locale === 'ur' ? 'ایڈوانس' : 'Advances Given'}</h3></div>
-                            <div><p className="text-3xl font-black text-orange-500">Rs {dynamicStats?.advances_given?.toLocaleString() || 0}</p></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div><h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</h3></div>
+                            <div><p className="text-3xl font-black text-orange-500">Rs {dashboardMonthStats.totalAdvance.toLocaleString()}</p></div>
                         </div>
                     </div>
 
-                    <div className="bg-theme-card rounded-3xl shadow-sm border border-theme overflow-hidden">
+                        <div className="bg-theme-card rounded-3xl shadow-sm border border-theme overflow-hidden">
                         <div className="p-4 border-b border-theme flex items-center justify-between bg-theme-track">
                             <h2 className="text-sm font-black text-theme uppercase tracking-widest flex items-center gap-2"><Users className="w-4 h-4 text-orange-500" /> Worker Records <span className="px-2 py-0.5 rounded-lg bg-theme-card border border-theme text-[10px] text-theme-muted font-black">{filteredLabours.length}</span></h2>
                         </div>
@@ -279,27 +312,35 @@ function LaborDashboard() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-theme-track text-[10px] uppercase tracking-widest text-theme-muted font-black border-b border-theme">
-                                        <th className="p-4">{locale === 'ur' ? 'مزدور' : 'Worker'}</th>
-                                        <th className="p-4">{locale === 'ur' ? 'کام' : 'Type'}</th>
-                                        <th className="p-4 text-right">{locale === 'ur' ? 'دن' : 'Days'}</th>
-                                        <th className="p-4 text-right">{locale === 'ur' ? 'کل تنخواہ' : 'Total Salary'}</th>
-                                        <th className="p-4 text-right">{locale === 'ur' ? 'ادا شدہ' : 'Paid'}</th>
-                                        <th className="p-4 text-right">{locale === 'ur' ? 'باقی' : 'Remaining'}</th>
-                                        <th className="p-4 text-center">{locale === 'ur' ? 'حالت' : 'Status'}</th>
+                                        <th className="p-4">{locale === 'ur' ? 'نام' : 'Name'}</th>
+                                        <th className="p-4">{locale === 'ur' ? 'تنخواہ' : 'Salary'}</th>
+                                        <th className="p-4 text-center">{locale === 'ur' ? 'مدت' : 'Month'}</th>
+                                        <th className="p-4 text-right">{locale === 'ur' ? 'ادا شدہ' : 'Salary Paid'}</th>
+                                        <th className="p-4 text-right">{locale === 'ur' ? 'باقی' : 'Balance'}</th>
+                                        <th className="p-4 text-right">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => {
-                                        const st = getPeriodStats(l, "");
+                                        const st = getPeriodStats(l, dashboardMonthYear);
                                         return (
                                             <tr key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="hover:bg-theme-track cursor-pointer transition-colors group text-theme">
-                                                <td className="p-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 border border-theme overflow-hidden">{l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}</div><div><p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p><p className="text-[10px] font-bold text-theme-muted">{l.phone}</p></div></div></td>
-                                                <td className="p-4 text-sm font-bold text-theme-muted">{l.work_type}</td>
-                                                <td className="p-4 text-right text-sm font-bold text-theme-muted">{st.days}</td>
-                                                <td className="p-4 text-right text-sm font-bold text-theme">Rs {st.salary.toLocaleString()}</td>
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-theme-track flex items-center justify-center font-bold text-theme-muted uppercase shrink-0 border border-theme overflow-hidden">
+                                                            {l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-theme group-hover:text-orange-500 transition-colors">{l.name}</p>
+                                                            <p className="text-[10px] font-bold text-theme-muted">{l.work_type}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-sm font-bold text-theme">Rs {Number(l.salary_amount || 0).toLocaleString()} <span className="text-[10px] font-black text-theme-muted uppercase">/ {l.salary_type}</span></td>
+                                                <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${l.salary_type === 'monthly' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>{l.salary_type === 'monthly' ? (locale === 'ur' ? 'ماہانہ' : 'Monthly') : (locale === 'ur' ? 'روزانہ' : 'Daily')}</span></td>
                                                 <td className="p-4 text-right text-sm font-bold text-green-500">Rs {st.paid.toLocaleString()}</td>
                                                 <td className="p-4 text-right text-sm font-black text-red-500">Rs {st.balance.toLocaleString()}</td>
-                                                <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${l.status === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-theme-track text-theme-muted'}`}>{l.status}</span></td>
+                                                <td className="p-4 text-right text-sm font-black text-orange-500">Rs {st.advance.toLocaleString()}</td>
                                             </tr>
                                         );
                                     })}
@@ -308,20 +349,24 @@ function LaborDashboard() {
                         </div>
                         <div className="md:hidden flex flex-col divide-y divide-theme">
                             {filteredLabours.map(l => {
-                                const st = getPeriodStats(l, "");
+                                const st = getPeriodStats(l, dashboardMonthYear);
                                 return (
-                                    <div key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="p-4 hover:bg-theme-track active:bg-theme-track transition-colors flex flex-col gap-4 text-theme">
+                                    <div key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="p-4 hover:bg-theme-track active:bg-theme-track transition-colors flex flex-col gap-3 text-theme">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-12 h-12 rounded-full bg-theme-track flex items-center justify-center font-black border border-theme overflow-hidden">{l.photo ? <img src={l.photo} className="w-full h-full object-cover" alt="" /> : l.name?.[0]}</div>
-                                                <div><p className="font-black text-theme">{l.name}</p><p className="text-[10px] font-bold text-theme-muted uppercase tracking-widest">{l.work_type} • {l.salary_type}</p></div>
+                                                <div>
+                                                    <p className="font-black text-theme">{l.name}</p>
+                                                    <p className="text-[10px] font-bold text-theme-muted">{l.work_type}</p>
+                                                </div>
                                             </div>
-                                            <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter ${l.status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-theme-track text-theme-muted'}`}>{l.status}</div>
+                                            <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${l.salary_type === 'monthly' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>{l.salary_type === 'monthly' ? (locale === 'ur' ? 'ماہانہ' : 'Monthly') : (locale === 'ur' ? 'روزانہ' : 'Daily')}</span>
                                         </div>
+                                        <div className="text-xs font-bold text-theme">Rs {Number(l.salary_amount || 0).toLocaleString()} / {l.salary_type}</div>
                                         <div className="grid grid-cols-3 gap-2 text-center">
-                                            <div className="bg-theme-track/50 p-2 rounded-xl"><p className="text-[8px] font-black text-theme-muted uppercase mb-1">Days</p><p className="text-xs font-black">{st.days}</p></div>
-                                            <div className="bg-theme-track/50 p-2 rounded-xl"><p className="text-[8px] font-black text-theme-muted uppercase mb-1">Salary</p><p className="text-xs font-black">Rs {st.salary.toLocaleString()}</p></div>
-                                            <div className={`${st.balance < 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} p-2 rounded-xl`}><p className="text-[8px] font-black opacity-60 uppercase mb-1">Bal</p><p className="text-xs font-black">Rs {Math.abs(st.balance).toLocaleString()} {st.balance < 0 ? '(Adv)' : ''}</p></div>
+                                            <div className="bg-green-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-green-500 uppercase mb-1">{locale === 'ur' ? 'ادا' : 'Paid'}</p><p className="text-xs font-black text-green-500">Rs {st.paid.toLocaleString()}</p></div>
+                                            <div className="bg-red-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-red-500 uppercase mb-1">{locale === 'ur' ? 'باقی' : 'Bal'}</p><p className="text-xs font-black text-red-500">Rs {st.balance.toLocaleString()}</p></div>
+                                            <div className="bg-orange-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-orange-500 uppercase mb-1">{locale === 'ur' ? 'ایڈوانس' : 'Adv'}</p><p className="text-xs font-black text-orange-500">Rs {st.advance.toLocaleString()}</p></div>
                                         </div>
                                     </div>
                                 );
