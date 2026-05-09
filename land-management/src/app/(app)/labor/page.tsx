@@ -16,7 +16,7 @@ import { api } from "@/lib/api";
 interface Transaction {
     id?: string;
     _id?: string;
-    type: 'salary' | 'advance';
+    type: 'salary' | 'advance' | 'recovery';
     amount: number;
     date: string;
     notes?: string;
@@ -77,7 +77,7 @@ function LaborDashboard() {
 
     // Modal States
     const [openAddLabour, setOpenAddLabour] = useState(false);
-    const [openTransaction, setOpenTransaction] = useState<{ type: 'salary' | 'advance', open: boolean }>({ type: 'salary', open: false });
+    const [openTransaction, setOpenTransaction] = useState<{ type: 'salary' | 'advance' | 'recovery', open: boolean }>({ type: 'salary', open: false });
     const [openAttendance, setOpenAttendance] = useState(false);
     const [openSlip, setOpenSlip] = useState(false);
 
@@ -427,9 +427,11 @@ function LaborDashboard() {
                                 </div>
                             </div>
                             {!isDataEntry && (
-                                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                                    <button onClick={() => setOpenAttendance(true)} className="flex-1 lg:flex-none bg-orange-500 text-white px-6 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all shadow-xl shadow-orange-500/20 active:scale-95">Mark Present</button>
-                                    <button onClick={() => setOpenSlip(true)} className="flex-1 lg:flex-none bg-theme-track border border-theme hover:bg-theme-card px-6 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95">Salary Slip</button>
+                                <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                                    <button onClick={() => setOpenAttendance(true)} className="flex-1 lg:flex-none bg-orange-500 text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-orange-500/20 active:scale-95">Mark Present</button>
+                                    <button onClick={() => setOpenTransaction({ type: 'salary', open: true })} className="flex-1 lg:flex-none bg-green-500 text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-green-500/20 active:scale-95">Add Payment</button>
+                                    <button onClick={() => setOpenTransaction({ type: 'recovery', open: true })} className="flex-1 lg:flex-none bg-blue-500 text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-blue-500/20 active:scale-95">Recovery</button>
+                                    <button onClick={() => setOpenSlip(true)} className="flex-1 lg:flex-none bg-theme-track border border-theme hover:bg-theme-card px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95">Salary Slip</button>
                                 </div>
                             )}
                         </div>
@@ -468,7 +470,7 @@ function LaborDashboard() {
                                 {profileStats?.monthTxs?.map((t: Transaction) => (
                                     <div key={t.id || t._id} className="flex justify-between p-4 bg-theme-track rounded-2xl border border-theme text-theme text-sm">
                                         <div><p className="font-black uppercase">{t.type}</p><p className="text-[10px] font-bold text-theme-muted">{new Date(t.date).toLocaleDateString()}</p></div>
-                                        <p className={`font-black ${t.type === 'salary' ? 'text-green-500' : 'text-orange-500'}`}>Rs {t.amount?.toLocaleString()}</p>
+                                        <p className={`font-black ${t.type === 'salary' ? 'text-green-500' : t.type === 'recovery' ? 'text-blue-500' : 'text-orange-500'}`}>Rs {t.amount?.toLocaleString()}</p>
                                     </div>
                                 ))}
                             </div>
@@ -532,7 +534,7 @@ function AddLabourModal({ open, onClose, onSave, locale }: { open: boolean, onCl
     );
 }
 
-function AddTransactionModal({ open, type, labour, onClose, onSave, locale }: { open: boolean, type: 'salary' | 'advance', labour: Labour | null, onClose: () => void, onSave: () => void, locale: string }) {
+function AddTransactionModal({ open, type, labour, onClose, onSave, locale }: { open: boolean, type: 'salary' | 'advance' | 'recovery', labour: Labour | null, onClose: () => void, onSave: () => void, locale: string }) {
     if (!open || !labour) return null;
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({ amount: '', notes: '', date: new Date().toISOString().split('T')[0] });
@@ -571,10 +573,15 @@ function AttendanceModal({ open, labour, onClose, onSave, locale }: { open: bool
 
 function SlipModal({ open, onClose, labour }: { open: boolean, onClose: () => void, labour: Labour | null }) {
     if (!open || !labour) return null;
-    const monthlySalary = Number(labour.salary_amount) || 0;
-    const totalAdvance = (labour.transactions || []).reduce((sum: number, t: any) => t.type === 'advance' ? sum + (Number(t.amount) || 0) : sum, 0);
-    const totalSalaryPaid = (labour.transactions || []).reduce((sum: number, t: any) => t.type === 'salary' ? sum + (Number(t.amount) || 0) : sum, 0);
-    const balance = monthlySalary - (totalAdvance + totalSalaryPaid);
+    const netPaid = (labour.transactions || []).reduce((sum: number, t: any) => {
+        if (t.type === 'recovery') return sum - (Number(t.amount) || 0);
+        return sum + (Number(t.amount) || 0);
+    }, 0);
+    // Use the same salary calculation as the rest of the app
+    const st = getPeriodStats(labour, ""); 
+    const totalSalary = st.salary;
+    const balance = netPaid - totalSalary;
+
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 sm:p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -590,27 +597,25 @@ function SlipModal({ open, onClose, labour }: { open: boolean, onClose: () => vo
                         <p className="font-bold text-lg sm:text-xl text-slate-900">{labour.name}</p>
                     </div>
                     <div className="sm:text-right">
-                        <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Payment Month</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Generated Date</p>
                         <p className="font-bold text-sm text-slate-900">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
                     </div>
                 </div>
 
                 <div className="space-y-1 mb-10">
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
-                        <span className="text-xs font-bold uppercase text-slate-500">Gross Salary</span>
-                        <span className="font-black text-slate-900 text-lg">Rs {monthlySalary.toLocaleString()}</span>
+                        <span className="text-xs font-bold uppercase text-slate-500">Accumulated Salary</span>
+                        <span className="font-black text-slate-900 text-lg">Rs {totalSalary.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-200">
-                        <span className="text-xs font-bold uppercase text-slate-500">Total Advance</span>
-                        <span className="font-black text-red-600">- Rs {totalAdvance.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 border-b border-slate-200">
-                        <span className="text-xs font-bold uppercase text-slate-500">Amount Paid</span>
-                        <span className="font-black text-emerald-600">- Rs {totalSalaryPaid.toLocaleString()}</span>
+                        <span className="text-xs font-bold uppercase text-slate-500">Net Amount Paid</span>
+                        <span className="font-black text-emerald-600">Rs {netPaid.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center py-5 mt-2 bg-slate-50 px-4 rounded-xl">
                         <span className="text-sm font-black uppercase text-slate-900 tracking-wider">Net Balance</span>
-                        <span className={`font-black text-2xl ${balance < 0 ? 'text-green-600' : 'text-red-600'}`}>Rs {Math.abs(balance).toLocaleString()} {balance < 0 ? '(Advance)' : ''}</span>
+                        <span className={`font-black text-2xl ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {balance > 0 && '+'}Rs {balance.toLocaleString()} {balance > 0 ? '(Advance)' : balance < 0 ? '(Due)' : ''}
+                        </span>
                     </div>
                 </div>
 
