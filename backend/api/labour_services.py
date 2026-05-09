@@ -23,17 +23,34 @@ class LabourService:
         trans_col = get_collection('salary_transactions')
         attn_col = get_collection('attendance')
         
+        today = datetime.utcnow()
+        
         for l in labours:
             lid = l['id']
             # Compute stats
             trans = list(trans_col.find({'labour_id': lid}))
             
-            total_salary = l.get('salary_amount', 0) if l.get('salary_type') == 'monthly' else 0
-            if l.get('salary_type') == 'daily':
-                # calculate from attendance
+            salary_rate = _to_num(l.get('salary_amount', 0))
+            total_salary = 0
+            
+            if l.get('salary_type') == 'monthly':
+                # Calculate months from joining date to today
+                joining_s = l.get('joining_date') or l.get('salary_start_date') or l.get('created_at', '')[:10]
+                try:
+                    if not joining_s: raise ValueError()
+                    joining_d = datetime.strptime(joining_s[:10], '%Y-%m-%d')
+                    months = (today.year - joining_d.year) * 12 + (today.month - joining_d.month)
+                    if today.day >= joining_d.day:
+                        months += 1
+                    months = max(1, months)
+                    total_salary = months * salary_rate
+                except:
+                    total_salary = salary_rate # Fallback to 1 month
+            else:
+                # Daily: calculate from attendance
                 days = attn_col.count_documents({'labour_id': lid, 'status': 'present'})
                 halfs = attn_col.count_documents({'labour_id': lid, 'status': 'half_day'})
-                total_salary = (days + (halfs * 0.5)) * _to_num(l.get('salary_amount', 0))
+                total_salary = (days + (halfs * 0.5)) * salary_rate
             
             total_paid = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'salary')
             advance_given = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'advance')
@@ -43,7 +60,7 @@ class LabourService:
             l['total_paid'] = total_paid
             l['balance'] = max(0, total_salary - total_paid)
             l['advance_balance'] = advance_given - advance_recovered
-            l['days_worked'] = attn_col.count_documents({'labour_id': lid, 'status': 'present'})
+            l['days_worked'] = attn_col.count_documents({'labour_id': lid, 'status': 'present'}) + (attn_col.count_documents({'labour_id': lid, 'status': 'half_day'}) * 0.5)
             
         return labours
 
