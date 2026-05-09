@@ -290,7 +290,7 @@ function LaborDashboard() {
                         <div className={`p-5 rounded-3xl border shadow-sm flex flex-col justify-between ${allTimeStats.totalBalance >= 0 ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
                             <div className="flex items-center gap-2 mb-2"><div className={`p-2 rounded-xl ${allTimeStats.totalBalance >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}><AlertCircle className="w-5 h-5" /></div><h3 className={`text-xs font-black uppercase tracking-wider ${allTimeStats.totalBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>{locale === 'ur' ? 'باقی' : 'Overall Balance'}</h3></div>
                             <div>
-                                <p className={`text-3xl font-black ${allTimeStats.totalBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>Rs {Math.abs(allTimeStats.totalBalance).toLocaleString()}</p>
+                                <p className={`text-3xl font-black ${allTimeStats.totalBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{allTimeStats.totalBalance > 0 && '+'}Rs {allTimeStats.totalBalance.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-theme-muted mt-1">{allTimeStats.totalBalance >= 0 ? (locale === 'ur' ? 'ایڈوانس / زیادہ ادائیگی' : 'Advance / Overpaid') : (locale === 'ur' ? 'واجب الادا رقم' : 'Money Owed to Workers')}</p>
                             </div>
                         </div>
@@ -346,7 +346,7 @@ function LaborDashboard() {
                                                 <td className="p-4 text-center text-sm font-bold text-theme">{days}</td>
                                                 <td className="p-4 text-right text-sm font-bold text-green-500">Rs {paid.toLocaleString()}</td>
                                                 <td className={`p-4 text-right text-sm font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                    Rs {Math.abs(balance).toLocaleString()}
+                                                    {balance > 0 && '+'}Rs {balance.toLocaleString()}
                                                     <span className="text-[8px] block opacity-60 uppercase">{balance >= 0 ? 'Adv' : 'Due'}</span>
                                                 </td>
                                             </tr>
@@ -381,7 +381,7 @@ function LaborDashboard() {
                                             <div className="bg-green-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-green-500 uppercase mb-1">{locale === 'ur' ? 'ادا' : 'Paid'}</p><p className="text-xs font-black text-green-500">Rs {paid.toLocaleString()}</p></div>
                                             <div className={`${balance >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'} p-2 rounded-xl`}>
                                                 <p className={`text-[8px] font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'} uppercase mb-1`}>{locale === 'ur' ? 'باقی' : 'Balance'}</p>
-                                                <p className={`text-xs font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>Rs {Math.abs(balance).toLocaleString()}</p>
+                                                <p className={`text-xs font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{balance > 0 && '+'}Rs {balance.toLocaleString()}</p>
                                                 <p className={`text-[8px] font-bold opacity-60 uppercase ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{balance >= 0 ? 'Adv' : 'Due'}</p>
                                             </div>
                                         </div>
@@ -458,7 +458,7 @@ function LaborDashboard() {
                         <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'کل ادائیگی' : 'Total Paid'}</p><p className="text-2xl font-black text-green-500">Rs {profileStats?.totalPaid.toLocaleString()}</p></div>
                         <div className={`p-6 rounded-3xl border shadow-sm ${profileStats && profileStats.balance >= 0 ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
                             <p className={`text-[10px] font-black uppercase mb-1 ${profileStats && profileStats.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{locale === 'ur' ? 'باقی' : 'Current Balance'}</p>
-                            <p className={`text-2xl font-black ${profileStats && profileStats.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>Rs {Math.abs(profileStats?.balance || 0).toLocaleString()}</p>
+                            <p className={`text-2xl font-black ${profileStats && profileStats.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{profileStats && profileStats.balance > 0 && '+'}Rs {profileStats?.balance.toLocaleString()}</p>
                             <p className={`text-[10px] font-bold uppercase mt-1 opacity-70 ${profileStats && profileStats.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{profileStats && profileStats.balance >= 0 ? 'Advance' : 'Amount Due'}</p>
                         </div>
                     </div>
@@ -612,7 +612,7 @@ function SlipModal({ open, onClose, labour, stats }: { open: boolean, onClose: (
                     <div className="flex justify-between items-center py-5 mt-2 bg-slate-50 px-4 rounded-xl">
                         <span className="text-sm font-black uppercase text-slate-900 tracking-wider">Net Balance</span>
                         <span className={`font-black text-2xl ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            Rs {Math.abs(balance).toLocaleString()} {balance > 0 ? '(Advance)' : balance < 0 ? '(Due)' : ''}
+                            {balance > 0 && '+'}Rs {balance.toLocaleString()} {balance > 0 ? '(Advance)' : balance < 0 ? '(Due)' : ''}
                         </span>
                     </div>
                 </div>
