@@ -495,7 +495,7 @@ function LaborDashboard() {
             <AddLabourModal open={openAddLabour} onClose={() => setOpenAddLabour(false)} onSave={() => { setOpenAddLabour(false); fetchData(); showToast('success', 'Labour Added'); }} locale={locale} />
             <AddTransactionModal open={openTransaction.open} type={openTransaction.type} labour={selectedLabour} onClose={() => setOpenTransaction(prev => ({...prev, open: false}))} onSave={() => { setOpenTransaction(prev => ({...prev, open: false})); handleSelectLabour(selectedLabour); showToast('success', 'Transaction saved'); }} locale={locale} />
             <AttendanceModal open={openAttendance} labour={selectedLabour} onClose={() => setOpenAttendance(false)} onSave={() => { setOpenAttendance(false); handleSelectLabour(selectedLabour); showToast('success', 'Attendance marked'); }} locale={locale} />
-            <SlipModal open={openSlip} labour={selectedLabour} onClose={() => setOpenSlip(false)} />
+            <SlipModal open={openSlip} labour={selectedLabour} stats={profileStats} onClose={() => setOpenSlip(false)} />
         </div>
     );
 }
@@ -571,16 +571,11 @@ function AttendanceModal({ open, labour, onClose, onSave, locale }: { open: bool
     );
 }
 
-function SlipModal({ open, onClose, labour }: { open: boolean, onClose: () => void, labour: Labour | null }) {
-    if (!open || !labour) return null;
-    const netPaid = (labour.transactions || []).reduce((sum: number, t: any) => {
-        if (t.type === 'recovery') return sum - (Number(t.amount) || 0);
-        return sum + (Number(t.amount) || 0);
-    }, 0);
-    // Use the same salary calculation as the rest of the app
-    const st = getPeriodStats(labour, ""); 
-    const totalSalary = st.salary;
-    const balance = netPaid - totalSalary;
+function SlipModal({ open, onClose, labour, stats }: { open: boolean, onClose: () => void, labour: Labour | null, stats: any }) {
+    if (!open || !labour || !stats) return null;
+    const totalSalary = stats.totalSalary;
+    const netPaid = stats.totalPaid;
+    const balance = stats.balance;
 
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 sm:p-4">
