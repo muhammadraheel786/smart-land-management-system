@@ -191,37 +191,8 @@ class LabourService:
         amount = _to_num(data.get('amount', 0))
         txn_type = data.get('type', 'salary') # salary, advance, recovery
         
-        # If salary payment exceeds balance, auto-convert to advance
-        if txn_type == 'salary':
-            labour = LabourService.get_labour(labour_id)
-            if labour:
-                balance = labour['balance']
-                if amount > balance and balance > 0:
-                    # Split it
-                    col.insert_one({
-                        'id': generate_id(),
-                        'labour_id': labour_id,
-                        'amount': balance,
-                        'date': data.get('date', datetime.utcnow().strftime('%Y-%m-%d')),
-                        'notes': data.get('notes', '') + " (Auto-split salary part)",
-                        'transaction_id': data.get('transaction_id', ''),
-                        'payment_method': data.get('payment_method', 'Cash'),
-                        'type': 'salary',
-                        'created_at': datetime.utcnow().isoformat() + 'Z'
-                    })
-                    advance_amount = amount - balance
-                    col.insert_one({
-                        'id': generate_id(),
-                        'labour_id': labour_id,
-                        'amount': advance_amount,
-                        'date': data.get('date', datetime.utcnow().strftime('%Y-%m-%d')),
-                        'notes': data.get('notes', '') + " (Auto-split to Advance)",
-                        'transaction_id': data.get('transaction_id', ''),
-                        'payment_method': data.get('payment_method', 'Cash'),
-                        'type': 'advance',
-                        'created_at': datetime.utcnow().isoformat() + 'Z'
-                    })
-                    return {"status": "split", "salary": balance, "advance": advance_amount}
+        # Simply record the transaction as provided (no auto-splitting)
+        if txn_type == 'advance': txn_type = 'salary' # Treat both as salary internally for simplicity
         
         doc = {
             'id': generate_id(),

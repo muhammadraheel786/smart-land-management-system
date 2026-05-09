@@ -470,10 +470,13 @@ function LaborDashboard() {
                                 {profileStats?.monthTxs?.length === 0 && (
                                     <div className="p-4 text-center text-theme-muted text-xs font-bold">{locale === 'ur' ? 'اس مہینے کوئی لین دین نہیں' : 'No transactions this month'}</div>
                                 )}
-                                {profileStats?.monthTxs?.map((t: Transaction) => (
+                                {profileStats?.monthTxs?.map((t: any) => (
                                     <div key={t.id || t._id} className="flex justify-between p-4 bg-theme-track rounded-2xl border border-theme text-theme text-sm">
-                                        <div><p className="font-black uppercase">{t.type}</p><p className="text-[10px] font-bold text-theme-muted">{new Date(t.date).toLocaleDateString()}</p></div>
-                                        <p className={`font-black ${t.type === 'salary' ? 'text-green-500' : t.type === 'recovery' ? 'text-blue-500' : 'text-orange-500'}`}>Rs {t.amount?.toLocaleString()}</p>
+                                        <div>
+                                            <p className="font-black uppercase">{t.type === 'recovery' ? (locale === 'ur' ? 'ریکوری' : 'Recovery') : (locale === 'ur' ? 'تنخواہ' : 'Salary')}</p>
+                                            <p className="text-[10px] font-bold text-theme-muted">{new Date(t.date).toLocaleDateString()}</p>
+                                        </div>
+                                        <p className={`font-black ${t.type === 'recovery' ? 'text-blue-500' : 'text-green-500'}`}>Rs {t.amount?.toLocaleString()}</p>
                                     </div>
                                 ))}
                             </div>

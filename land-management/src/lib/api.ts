@@ -632,53 +632,17 @@ export const api = {
       });
     } catch (e) {
       if (e instanceof Error && e.message.includes("404")) {
-        // Fallback: log transaction as labor activity note
-        const current = await api.getLabourProfile(labourId);
         const rawAmount = Number(tx?.amount || 0);
         const safeAmount = Number.isFinite(rawAmount) ? Math.max(0, rawAmount) : 0;
         const date = tx?.date || new Date().toISOString().split("T")[0];
-
-        // If salary payment exceeds payable balance, split automatically:
-        // remaining payable part as salary + extra as advance.
-        if ((tx?.type || "salary") === "salary") {
-          const balance = Number(current?.balance || 0);
-          const salaryPart = balance > 0 ? Math.min(safeAmount, balance) : 0;
-          const advancePart = safeAmount - salaryPart;
-
-          if (salaryPart > 0) {
-            await fetchJson<any>(`/activities`, {
-              method: 'POST',
-              body: JSON.stringify({
-                activity_type: "labor",
-                date,
-                notes: `LABOUR_TX::${labourId}::${JSON.stringify({ ...tx, type: "salary", amount: salaryPart, notes: `${tx?.notes || ""}${tx?.notes ? " " : ""}(auto split)` })}`,
-              }),
-            });
-          }
-
-          if (advancePart > 0) {
-            await fetchJson<any>(`/activities`, {
-              method: 'POST',
-              body: JSON.stringify({
-                activity_type: "labor",
-                date,
-                cost: advancePart,
-                notes: `LABOUR_TX::${labourId}::${JSON.stringify({ ...tx, type: "advance", amount: advancePart, notes: `${tx?.notes || ""}${tx?.notes ? " " : ""}(auto extra as advance)` })}`,
-              }),
-            });
-            return { status: "split", salary: salaryPart, advance: advancePart };
-          }
-
-          return { status: "salary", salary: salaryPart, advance: 0 };
-        }
+        const type = (tx?.type === 'recovery') ? 'recovery' : 'salary';
 
         return fetchJson<any>(`/activities`, {
           method: 'POST',
           body: JSON.stringify({
             activity_type: "labor",
             date,
-            cost: tx?.type === "advance" ? safeAmount : 0,
-            notes: `LABOUR_TX::${labourId}::${JSON.stringify({ ...tx, amount: safeAmount })}`,
+            notes: `LABOUR_TX::${labourId}::${JSON.stringify({ ...tx, type, amount: safeAmount })}`,
           }),
         });
       }
