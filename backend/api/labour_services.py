@@ -52,14 +52,16 @@ class LabourService:
                 halfs = attn_col.count_documents({'labour_id': lid, 'status': 'half_day'})
                 total_salary = (days + (halfs * 0.5)) * salary_rate
             
-            total_paid = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'salary')
-            advance_given = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'advance')
-            advance_recovered = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'recovery')
+            # Total paid is the sum of ALL payments minus recoveries
+            # This simplifies everything into one 'Paid' number
+            total_paid = sum(_to_num(t.get('amount')) for t in trans if t.get('type') in ('salary', 'advance'))
+            total_recovered = sum(_to_num(t.get('amount')) for t in trans if t.get('type') == 'recovery')
+            net_paid = total_paid - total_recovered
             
             l['total_salary'] = total_salary
-            l['total_paid'] = total_paid
-            l['balance'] = max(0, total_salary - total_paid)
-            l['advance_balance'] = advance_given - advance_recovered
+            l['total_paid'] = net_paid
+            # Balance = Paid - Salary (Positive = Advance/Overpaid, Negative = Due/Underpaid)
+            l['balance'] = net_paid - total_salary
             l['days_worked'] = attn_col.count_documents({'labour_id': lid, 'status': 'present'}) + (attn_col.count_documents({'labour_id': lid, 'status': 'half_day'}) * 0.5)
             
         return labours
@@ -172,8 +174,7 @@ class LabourService:
             'total_salary_overall': total_salary_overall,
             'total_paid_overall': total_paid_overall,
             'paid_this_month': paid_this_month,
-            'pending_salary': pending_salary,
-            'advances_given': advances_given
+            'pending_salary': pending_salary
         }
 
     # --- Transactions ---

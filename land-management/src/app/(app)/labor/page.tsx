@@ -129,25 +129,27 @@ function LaborDashboard() {
         }
 
         const monthTxs = (labour.transactions || []).filter(t => inMonth(t.date));
-        const paid = monthTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const paid = monthTxs.reduce((sum, t) => {
+            if (t.type === 'recovery') return sum - (Number(t.amount) || 0);
+            return sum + (Number(t.amount) || 0);
+        }, 0);
 
-        // Auto-advance: if paid exceeds salary, excess is advance
-        const advance = paid > salary ? paid - salary : 0;
-        const effectivePaid = paid > salary ? salary : paid;
-        const balance = salary - effectivePaid;
+        // New Logic: Balance = Paid - Salary
+        // If Paid > Salary, Balance is Positive (Advance)
+        // If Paid < Salary, Balance is Negative (Due)
+        const balance = paid - salary;
 
-        return { days, salary, paid, advance, balance, monthAttendance, monthTxs };
+        return { days, salary, paid, balance, monthAttendance, monthTxs };
     };
 
     const allTimeStats = useMemo(() => {
-        let totalPaid = 0, totalBalance = 0, totalAdvance = 0;
+        let totalPaid = 0, totalBalance = 0;
         labours.forEach(l => {
             // Use backend pre-calculated values
             totalPaid += Number(l.total_paid || 0);
             totalBalance += Number(l.balance || 0);
-            totalAdvance += Number(l.advance_balance || 0);
         });
-        return { totalPaid, totalBalance, totalAdvance };
+        return { totalPaid, totalBalance };
     }, [labours]);
 
     // Toast
@@ -200,7 +202,7 @@ function LaborDashboard() {
     const profileStats = useMemo(() => {
         if (!selectedLabour) return null;
         const st = getPeriodStats(selectedLabour, selectedMonthYear);
-        return { totalSalary: st.salary, totalPaid: st.paid, advance: st.advance, balance: st.balance, days: st.days, monthAttendance: st.monthAttendance, monthTxs: st.monthTxs };
+        return { totalSalary: st.salary, totalPaid: st.paid, balance: st.balance, days: st.days, monthAttendance: st.monthAttendance, monthTxs: st.monthTxs };
     }, [selectedLabour, selectedMonthYear]);
 
     const handleExport = () => {
@@ -212,9 +214,8 @@ function LaborDashboard() {
                 "Days Worked": st.days,
                 "Salary Rate": Number(l.salary_amount) || 0,
                 "Total Salary": st.salary,
-                "Paid": st.paid,
-                "Advance": st.advance,
-                "Balance": st.balance,
+                "Net Paid": st.paid,
+                "Balance (Paid-Salary)": st.balance,
                 "Status": l.status
             };
         });
@@ -277,22 +278,21 @@ function LaborDashboard() {
 
 
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
                             <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl"><Users className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3></div>
                             <div><p className="text-3xl font-black text-theme">{dynamicStats?.total_labour || 0}</p><p className="text-[10px] font-bold text-green-500 mt-1">{dynamicStats?.active_labour || 0} Active • {dynamicStats?.inactive_labour || 0} Inactive</p></div>
                         </div>
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Salary Paid'}</h3></div>
-                            <div><p className="text-2xl font-black text-theme">Rs {allTimeStats.totalPaid.toLocaleString()}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{locale === 'ur' ? 'کل ادائیگی' : 'Total Paid'}</p></div>
+                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl"><Banknote className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'ادائیگی' : 'Net Paid'}</h3></div>
+                            <div><p className="text-2xl font-black text-theme">Rs {allTimeStats.totalPaid.toLocaleString()}</p><p className="text-[10px] font-bold text-theme-muted mt-1">{locale === 'ur' ? 'کل ادائیگی' : 'Total payments minus recoveries'}</p></div>
                         </div>
-                        <div className="bg-red-500/10 p-5 rounded-3xl border border-red-500/20 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-red-500/20 text-red-400 rounded-xl"><AlertCircle className="w-5 h-5" /></div><h3 className="text-xs font-black text-red-400 uppercase tracking-wider">{locale === 'ur' ? 'باقی' : 'Balance'}</h3></div>
-                            <div><p className="text-3xl font-black text-red-500">Rs {allTimeStats.totalBalance.toLocaleString()}</p></div>
-                        </div>
-                        <div className="bg-orange-500/10 p-5 rounded-3xl border border-orange-500/20 shadow-sm flex flex-col justify-between">
-                            <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl"><ArrowUpRight className="w-5 h-5" /></div><h3 className="text-xs font-black text-orange-400 uppercase tracking-wider">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</h3></div>
-                            <div><p className="text-3xl font-black text-orange-500">Rs {allTimeStats.totalAdvance.toLocaleString()}</p></div>
+                        <div className={`p-5 rounded-3xl border shadow-sm flex flex-col justify-between ${allTimeStats.totalBalance >= 0 ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                            <div className="flex items-center gap-2 mb-2"><div className={`p-2 rounded-xl ${allTimeStats.totalBalance >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}><AlertCircle className="w-5 h-5" /></div><h3 className={`text-xs font-black uppercase tracking-wider ${allTimeStats.totalBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>{locale === 'ur' ? 'باقی' : 'Overall Balance'}</h3></div>
+                            <div>
+                                <p className={`text-3xl font-black ${allTimeStats.totalBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>Rs {allTimeStats.totalBalance.toLocaleString()}</p>
+                                <p className="text-[10px] font-bold text-theme-muted mt-1">{allTimeStats.totalBalance >= 0 ? 'Advance / Overpaid' : 'Money Owed to Workers'}</p>
+                            </div>
                         </div>
                     </div>
 
@@ -310,7 +310,6 @@ function LaborDashboard() {
                                         <th className="p-4 text-center">{locale === 'ur' ? 'دن' : 'Days'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'ادا شدہ' : 'Paid'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'باقی' : 'Balance'}</th>
-                                        <th className="p-4 text-right">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-theme">
@@ -346,8 +345,9 @@ function LaborDashboard() {
                                                 </td>
                                                 <td className="p-4 text-center text-sm font-bold text-theme">{days}</td>
                                                 <td className="p-4 text-right text-sm font-bold text-green-500">Rs {paid.toLocaleString()}</td>
-                                                <td className="p-4 text-right text-sm font-black text-red-500">Rs {balance.toLocaleString()}</td>
-                                                <td className="p-4 text-right text-sm font-black text-orange-500">Rs {advance.toLocaleString()}</td>
+                                                <td className={`p-4 text-right text-sm font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {balance > 0 && '+'}Rs {balance.toLocaleString()}
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -358,7 +358,6 @@ function LaborDashboard() {
                             {filteredLabours.map(l => {
                                 const paid = Number(l.total_paid ?? 0);
                                 const balance = Number(l.balance ?? 0);
-                                const advance = Number(l.advance_balance ?? 0);
                                 const joiningMonth = l.salary_start_date ? new Date(l.salary_start_date).toLocaleString('default', { month: 'short' }) : 'N/A';
 
                                 return (
@@ -377,10 +376,12 @@ function LaborDashboard() {
                                             </div>
                                         </div>
                                         <div className="text-xs font-bold text-theme">Rs {Number(l.salary_amount || 0).toLocaleString()} / {l.salary_type}</div>
-                                        <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div className="grid grid-cols-2 gap-2 text-center">
                                             <div className="bg-green-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-green-500 uppercase mb-1">{locale === 'ur' ? 'ادا' : 'Paid'}</p><p className="text-xs font-black text-green-500">Rs {paid.toLocaleString()}</p></div>
-                                            <div className="bg-red-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-red-500 uppercase mb-1">{locale === 'ur' ? 'باقی' : 'Bal'}</p><p className="text-xs font-black text-red-500">Rs {balance.toLocaleString()}</p></div>
-                                            <div className="bg-orange-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-orange-500 uppercase mb-1">{locale === 'ur' ? 'ایڈوانس' : 'Adv'}</p><p className="text-xs font-black text-orange-500">Rs {advance.toLocaleString()}</p></div>
+                                            <div className={`${balance >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'} p-2 rounded-xl`}>
+                                                <p className={`text-[8px] font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'} uppercase mb-1`}>{locale === 'ur' ? 'باقی' : 'Balance'}</p>
+                                                <p className={`text-xs font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{balance > 0 && '+'}Rs {balance.toLocaleString()}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -448,11 +449,13 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'کل تنخواہ' : 'Total Salary'}</p><p className="text-2xl font-black text-theme">Rs {profileStats?.totalSalary.toLocaleString()}</p></div>
                         <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'کل ادائیگی' : 'Total Paid'}</p><p className="text-2xl font-black text-green-500">Rs {profileStats?.totalPaid.toLocaleString()}</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'ایڈوانس' : 'Advance'}</p><p className="text-2xl font-black text-orange-500">Rs {profileStats?.advance.toLocaleString()}</p></div>
-                        <div className="bg-theme-card p-6 rounded-3xl border border-theme shadow-sm"><p className="text-[10px] font-black text-theme-muted uppercase mb-1">{locale === 'ur' ? 'باقی' : 'Balance'}</p><p className="text-2xl font-black text-blue-500">Rs {profileStats?.balance.toLocaleString()}</p></div>
+                        <div className={`p-6 rounded-3xl border shadow-sm ${profileStats && profileStats.balance >= 0 ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                            <p className={`text-[10px] font-black uppercase mb-1 ${profileStats && profileStats.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{locale === 'ur' ? 'باقی' : 'Balance'}</p>
+                            <p className={`text-2xl font-black ${profileStats && profileStats.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{profileStats && profileStats.balance > 0 && '+'}Rs {profileStats?.balance.toLocaleString()}</p>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
