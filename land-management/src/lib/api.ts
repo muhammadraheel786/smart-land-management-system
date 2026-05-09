@@ -75,8 +75,7 @@ function mapActivityToLabour(a: any): any {
     days_worked: 0,
     total_salary: Number(meta?.salary_amount || a?.cost || 0),
     total_paid: 0,
-    advance_balance: 0,
-    balance: Number(meta?.salary_amount || a?.cost || 0),
+    balance: -Number(meta?.salary_amount || a?.cost || 0), // Paid (0) - Salary
     status: "Active",
     transactions: [],
     attendance: [],
@@ -142,9 +141,8 @@ function computeFallbackLabourRows(activities: any[]): any[] {
       ...l,
       days_worked: days,
       total_salary: totalSalary,
-      total_paid: paid,
-      advance_balance: advances,
-      balance: totalSalary - paid - advances,
+      total_paid: paid + advances, // Include advances in total paid
+      balance: (paid + advances) - totalSalary,
     };
   });
 }
@@ -512,13 +510,14 @@ export const api = {
         const advances = txRows
           .filter((r) => r.tx?.type === "advance")
           .reduce((s, r) => s + (Number(r.tx?.amount) || 0), 0);
-        const pending = Math.max(0, totalSalary - totalPaid);
+        const totalPaidOverall = totalPaid + advances;
+        const pending = totalPaidOverall - totalSalary;
         return {
           total_labour: total,
           active_labour: total,
           inactive_labour: 0,
-          total_paid_overall: totalPaid,
-          paid_this_month: totalPaid,
+          total_paid_overall: totalPaidOverall,
+          paid_this_month: totalPaidOverall,
           pending_salary: pending,
           advances_given: advances,
         };
@@ -616,9 +615,8 @@ export const api = {
         return {
           ...found,
           total_salary: totalSalary,
-          total_paid: totalPaid,
-          advance_balance: advances,
-          balance: totalSalary - totalPaid - advances,
+          total_paid: totalPaid + advances,
+          balance: (totalPaid + advances) - totalSalary,
           transactions: txData,
           attendance: attData,
         };

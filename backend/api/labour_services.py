@@ -159,7 +159,7 @@ class LabourService:
         total_paid_overall = sum(l['total_paid'] for l in labours)
         pending_salary = sum(l['balance'] for l in labours)
         
-        advances_given = sum(l['advance_balance'] for l in labours if l['advance_balance'] > 0)
+        advances_given = sum(l['balance'] for l in labours if l['balance'] > 0)
         
         # To get "This Month" paid, we look at transactions
         trans_col = get_collection('salary_transactions')
@@ -174,7 +174,8 @@ class LabourService:
             'total_salary_overall': total_salary_overall,
             'total_paid_overall': total_paid_overall,
             'paid_this_month': paid_this_month,
-            'pending_salary': pending_salary
+            'pending_salary': pending_salary,
+            'advances_given': advances_given
         }
 
     # --- Transactions ---
