@@ -356,7 +356,11 @@ function LaborDashboard() {
                         </div>
                         <div className="md:hidden flex flex-col divide-y divide-theme">
                             {filteredLabours.map(l => {
-                                const st = getPeriodStats(l, dashboardMonthYear);
+                                const paid = Number(l.total_paid ?? 0);
+                                const balance = Number(l.balance ?? 0);
+                                const advance = Number(l.advance_balance ?? 0);
+                                const joiningMonth = l.salary_start_date ? new Date(l.salary_start_date).toLocaleString('default', { month: 'short' }) : 'N/A';
+
                                 return (
                                     <div key={l.id || l._id} onClick={() => handleSelectLabour(l)} className="p-4 hover:bg-theme-track active:bg-theme-track transition-colors flex flex-col gap-3 text-theme">
                                         <div className="flex items-center justify-between">
@@ -367,13 +371,16 @@ function LaborDashboard() {
                                                     <p className="text-[10px] font-bold text-theme-muted">{l.work_type}</p>
                                                 </div>
                                             </div>
-                                            <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${l.salary_type === 'monthly' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>{l.salary_type === 'monthly' ? (locale === 'ur' ? 'ماہانہ' : 'Monthly') : (locale === 'ur' ? 'روزانہ' : 'Daily')}</span>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-tighter border ${l.salary_type === 'monthly' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>{l.salary_type === 'monthly' ? (locale === 'ur' ? 'ماہانہ' : 'Monthly') : (locale === 'ur' ? 'روزانہ' : 'Daily')}</span>
+                                                {l.salary_type === 'monthly' && <span className="text-[8px] font-bold text-theme-muted uppercase tracking-widest">{joiningMonth}</span>}
+                                            </div>
                                         </div>
                                         <div className="text-xs font-bold text-theme">Rs {Number(l.salary_amount || 0).toLocaleString()} / {l.salary_type}</div>
                                         <div className="grid grid-cols-3 gap-2 text-center">
-                                            <div className="bg-green-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-green-500 uppercase mb-1">{locale === 'ur' ? 'ادا' : 'Paid'}</p><p className="text-xs font-black text-green-500">Rs {st.paid.toLocaleString()}</p></div>
-                                            <div className="bg-red-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-red-500 uppercase mb-1">{locale === 'ur' ? 'باقی' : 'Bal'}</p><p className="text-xs font-black text-red-500">Rs {st.balance.toLocaleString()}</p></div>
-                                            <div className="bg-orange-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-orange-500 uppercase mb-1">{locale === 'ur' ? 'ایڈوانس' : 'Adv'}</p><p className="text-xs font-black text-orange-500">Rs {st.advance.toLocaleString()}</p></div>
+                                            <div className="bg-green-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-green-500 uppercase mb-1">{locale === 'ur' ? 'ادا' : 'Paid'}</p><p className="text-xs font-black text-green-500">Rs {paid.toLocaleString()}</p></div>
+                                            <div className="bg-red-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-red-500 uppercase mb-1">{locale === 'ur' ? 'باقی' : 'Bal'}</p><p className="text-xs font-black text-red-500">Rs {balance.toLocaleString()}</p></div>
+                                            <div className="bg-orange-500/10 p-2 rounded-xl"><p className="text-[8px] font-black text-orange-500 uppercase mb-1">{locale === 'ur' ? 'ایڈوانس' : 'Adv'}</p><p className="text-xs font-black text-orange-500">Rs {advance.toLocaleString()}</p></div>
                                         </div>
                                     </div>
                                 );
