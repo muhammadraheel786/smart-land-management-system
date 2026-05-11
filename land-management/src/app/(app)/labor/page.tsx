@@ -5,7 +5,7 @@ import {
     Users, Plus, Loader2, CheckCircle,
     AlertCircle, X, Printer, Banknote,
     ArrowUpRight, Download, FileText,
-    Phone, Calendar
+    Phone, Calendar, Trash2
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
@@ -204,6 +204,24 @@ function LaborDashboard() {
         const st = getPeriodStats(selectedLabour, selectedMonthYear);
         return { totalSalary: st.salary, totalPaid: st.paid, balance: st.balance, days: st.days, monthAttendance: st.monthAttendance, monthTxs: st.monthTxs };
     }, [selectedLabour, selectedMonthYear]);
+
+    const handleDeleteLabour = async (id: string) => {
+        const confirmMsg = locale === 'ur' ? 'کیا آپ واقعی اس ورکر کو ڈیلیٹ کرنا چاہتے ہیں؟ اس سے تمام لین دین اور حاضری کا ریکارڈ ختم ہو جائے گا۔' : 'Are you sure you want to delete this worker? This will remove all transactions and attendance records.';
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            setLoading(true);
+            await api.deleteLabour(id);
+            setView("dashboard");
+            await fetchData();
+            showToast('success', locale === 'ur' ? 'ورکر کو ڈیلیٹ کر دیا گیا' : 'Worker deleted successfully');
+        } catch (error) {
+            console.error(error);
+            showToast('error', locale === 'ur' ? 'ڈیلیٹ کرنے میں غلطی' : 'Error deleting worker');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleExport = () => {
         const data = labours.map(l => {
@@ -434,6 +452,9 @@ function LaborDashboard() {
                                     <button onClick={() => setOpenTransaction({ type: 'salary', open: true })} className="flex-1 lg:flex-none bg-green-500 text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-green-500/20 active:scale-95">Add Payment</button>
                                     <button onClick={() => setOpenTransaction({ type: 'recovery', open: true })} className="flex-1 lg:flex-none bg-blue-500 text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-blue-500/20 active:scale-95">Recovery</button>
                                     <button onClick={() => setOpenSlip(true)} className="flex-1 lg:flex-none bg-theme-track border border-theme hover:bg-theme-card px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95">Salary Slip</button>
+                                    <button onClick={() => handleDeleteLabour(selectedLabour.id || selectedLabour._id || '')} className="flex-1 lg:flex-none bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-1.5 transition-all active:scale-95">
+                                        <Trash2 className="w-3.5 h-3.5" /> {locale === 'ur' ? 'ڈیلیٹ' : 'Delete'}
+                                    </button>
                                 </div>
                             )}
                         </div>

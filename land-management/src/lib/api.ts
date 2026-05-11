@@ -670,4 +670,25 @@ export const api = {
       throw e;
     }
   },
+  async deleteLabour(id: string) {
+    try {
+      return await fetchJson<void>(`/labours/${id}`, { method: 'DELETE' });
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        const activities = await fetchJson<any[]>('/activities');
+        const toDelete = activities.filter(a => {
+          const m = parseLabourNotes(a.notes);
+          if (m && a.id === id) return true;
+          const tx = parseLabourTxNotes(a.notes);
+          if (tx && tx.labourId === id) return true;
+          const att = parseLabourAttNotes(a.notes);
+          if (att && att.labourId === id) return true;
+          return false;
+        });
+        await Promise.all(toDelete.map(a => api.deleteActivity(a.id)));
+      } else {
+        throw e;
+      }
+    }
+  },
 };
