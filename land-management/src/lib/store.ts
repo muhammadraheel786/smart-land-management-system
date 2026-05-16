@@ -64,6 +64,7 @@ interface LandState {
   deleteDailyRegisterEntry: (id: string) => Promise<void>;
 
   fetchFieldRecommendations: () => Promise<void>;
+  undoDelete: () => Promise<void>;
 }
 
 export const useLandStore = create<LandState>((set, get) => ({
@@ -449,6 +450,19 @@ export const useLandStore = create<LandState>((set, get) => ({
     } catch (e) {
       set({ fieldRecommendations: [] });
       throw e;
+    }
+  },
+  undoDelete: async () => {
+    set({ loading: true });
+    try {
+      await api.undoLastDelete();
+      await get().fetchAll();
+      await get().fetchMaterials();
+      await get().fetchDailyRegister();
+    } catch (e) {
+      console.error('Undo failed:', e);
+    } finally {
+      set({ loading: false });
     }
   },
 }));

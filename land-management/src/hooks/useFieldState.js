@@ -255,7 +255,7 @@ export function useFieldState() {
   }, []);
 
   const handleDeleteField = useCallback(async (fieldId) => {
-    if (!window.confirm("Are you sure you want to delete this field and all its associated records? This action cannot be undone.")) {
+    if (!window.confirm("Are you sure you want to delete this field and all its associated records? You can undo this action for a short time.")) {
       return;
     }
     try {

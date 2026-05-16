@@ -170,7 +170,16 @@ export default function ThakaPage() {
               ) : (
                 <form onSubmit={handleAdd} className="space-y-4">
                   {submitError && <p className="text-red-400 text-sm">{submitError}</p>}
-                  {success && <p className="text-green-400 text-sm">{editingId ? t("recordUpdated") : t("thakaRecordAdded")}</p>}
+                  {success && (
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20 mb-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                      <p className="text-green-400 text-sm font-medium">
+                        {editingId ? t("recordUpdated") : t("thakaRecordAdded")}
+                      </p>
+                      <button type="button" onClick={() => { useLandStore.getState().undoDelete(); setSuccess(false); }} className="px-3 py-1 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 text-[10px] font-black uppercase tracking-widest transition-all">
+                        {t("undo") || "Undo"}
+                      </button>
+                    </div>
+                  )}
                   {editingId && <button type="button" onClick={() => setEditingId(null)} className="text-sm text-theme-muted hover:text-theme">{t("cancel")}</button>}
                   <div>
                     <label className="block text-sm text-theme-muted mb-1">{t("field")}</label>
@@ -273,12 +282,14 @@ export default function ThakaPage() {
                   <Trash className="w-8 h-8 text-red-500" />
                 </div>
                 <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
-                <p className="text-theme-muted text-sm mb-8 leading-relaxed">This record will be permanently removed. This cannot be undone.</p>
+                <p className="text-theme-muted text-sm mb-8 leading-relaxed">This record will be moved to the trash. You can undo this action for a short time.</p>
                 <div className="flex gap-3">
                   <button
                     onClick={async () => {
                       await deleteThakaRecord(deleteConfirmId);
                       setDeleteConfirmId(null);
+                      setSuccess(true);
+                      setTimeout(() => setSuccess(false), 8000);
                     }}
                     className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]"
                   >

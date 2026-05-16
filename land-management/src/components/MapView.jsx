@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFieldState } from "@/hooks/useFieldState";
 import { useMapDraw } from "@/hooks/useMapDraw";
-import { Menu, TrendingUp, DollarSign, Activity, Calendar, MapPin, Grid3X3, Droplets, Trash2, X } from "lucide-react";
+import { Menu, TrendingUp, DollarSign, Activity, Calendar, MapPin, Grid3X3, Droplets, Trash2, X, Edit2, RotateCcw } from "lucide-react";
 import { useLandStore } from "@/lib/store";
 import MapComponent from "./NewMapComponent";
 import Sidebar from "./NewSidebar";
@@ -14,6 +14,8 @@ export default function MapView() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mapInstance, setMapInstance] = useState(null);
   const [activeTab, setActiveTab] = useState("search");
+  const [editingField, setEditingField] = useState(null);
+  const [showUndoToast, setShowUndoToast] = useState(false);
 
   const fetchAll = useLandStore((state) => state.fetchAll);
 
@@ -113,6 +115,26 @@ export default function MapView() {
   const handleSidebarToggle = useCallback(() => {
     setSidebarCollapsed(prev => !prev);
   }, []);
+
+  const handleUndo = async () => {
+    await useLandStore.getState().undoDelete();
+    setShowUndoToast(false);
+  };
+
+  const onDeleteField = async (id) => {
+    await fieldState.handleDeleteField(id);
+    setShowUndoToast(true);
+    setTimeout(() => setShowUndoToast(false), 8000);
+  };
+
+  const handleUpdateField = async (e) => {
+    e.preventDefault();
+    const name = e.target.fieldName.value;
+    const status = e.target.status.value;
+    await updateField(editingField.id, { name, status });
+    setEditingField(null);
+    setSelectedField(prev => ({ ...prev, name, status }));
+  };
 
   return (
     <div className="-mx-4 -my-4 sm:-mx-6 sm:-my-6 md:-mx-8 md:-my-8 h-[calc(100dvh-140px)] md:h-[calc(100vh-73px)] flex relative overflow-hidden bg-[var(--background)]">
@@ -419,15 +441,61 @@ export default function MapView() {
             </div>
 
             {/* Actions */}
-            <div className="mt-8 pt-6 border-t border-[var(--border)]">
+            <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-col gap-2">
               <button
-                onClick={() => fieldState.handleDeleteField(selectedField.id)}
+                onClick={() => setEditingField(selectedField)}
+                className="w-full bg-blue-500/10 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-500/20 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit Metadata
+              </button>
+              <button
+                onClick={() => onDeleteField(selectedField.id)}
                 className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Destroy Record
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Undo Toast */}
+        {showUndoToast && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[2000] flex items-center gap-4 bg-gray-900 text-white px-6 py-3 rounded-2xl shadow-2xl border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
+            <span className="text-sm font-bold tracking-tight">Field record deleted.</span>
+            <button onClick={handleUndo} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+              <RotateCcw className="w-3.5 h-3.5" />
+              Undo
+            </button>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {editingField && (
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setEditingField(null)} />
+            <form onSubmit={handleUpdateField} className="relative z-10 w-full max-w-sm bg-[var(--card)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+              <h3 className="text-xl font-black mb-6 uppercase tracking-widest text-center">Update Field</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] mb-2 block">Field Name</label>
+                  <input name="fieldName" defaultValue={editingField.name} className="w-full bg-[var(--background)] border border-[var(--border)] p-4 rounded-2xl text-theme" required />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] mb-2 block">Status</label>
+                  <select name="status" defaultValue={editingField.status} className="w-full bg-[var(--background)] border border-[var(--border)] p-4 rounded-2xl text-theme">
+                    <option value="cultivated">Cultivated</option>
+                    <option value="available">Available</option>
+                    <option value="not_usable">Not Usable</option>
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="submit" className="flex-1 bg-green-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-500/20 transition-all active:scale-95">Save Changes</button>
+                  <button type="button" onClick={() => setEditingField(null)} className="flex-1 bg-[var(--background)] border border-[var(--border)] text-[var(--muted)] py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
+                </div>
+              </div>
+            </form>
           </div>
         )}
 

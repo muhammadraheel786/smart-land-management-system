@@ -6,7 +6,7 @@ import {
     Plus, Loader2, ArrowUpRight, ArrowDownRight, Sprout, TrendingUp,
     Droplet, DollarSign, Leaf, ShoppingCart, Users, Trash2, X,
     CheckCircle, AlertCircle, Filter, ChevronDown, Package, BarChart3,
-    Calendar, FileText, Zap, Map as MapIcon, Info, Download, Truck, Fuel, Search
+    Calendar, FileText, Zap, Map as MapIcon, Info, Download, Truck, Fuel, Search, Pencil, RotateCcw
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
@@ -133,7 +133,7 @@ export default function ActivitiesPage() {
     const [fields, setFields] = useState<GeoFence[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+    const [toast, setToast] = useState<{ type: "success" | "error"; msg: string; undoable?: boolean } | null>(null);
 
     // Filter
     const [filterType, setFilterType] = useState<string>(typeFromUrl);
@@ -359,9 +359,11 @@ export default function ActivitiesPage() {
                 if (income) payload.income = Number(income);
             }
 
-            const res = await apiFetch("/api/activities", { method: "POST", body: JSON.stringify(payload) });
-            if (res?.id || res?.activity_type) {
-                setOpen(false); resetForm(); fetchData();
+            const method = editingId ? "PUT" : "POST";
+            const url = editingId ? `/api/activities/${editingId}` : "/api/activities";
+            const res = await apiFetch(url, { method, body: JSON.stringify(payload) });
+            if (res?.id || res?.activity_type || res?.success) {
+                setOpen(false); resetForm(); setEditingId(null); fetchData();
                 showToast("success", locale === "ur" ? "ریکارڈ کامیابی سے محفوظ ہو گیا!" : "Activity recorded successfully!");
             } else {
                 showToast("error", locale === "ur" ? "محفوظ کرنے میں غلطی ہوئی۔" : (res?.error ?? "Failed to save activity."));
@@ -373,15 +375,51 @@ export default function ActivitiesPage() {
         }
     };
 
+    const handleUndo = async () => {
+        try {
+            await apiFetch("/api/undo", { method: "POST" });
+            fetchData();
+            setToast(null);
+            showToast("success", "Action undone successfully.");
+        } catch {
+            showToast("error", "Failed to undo action.");
+        }
+    };
+
     // ── Delete ──
     const handleDelete = async (id: string) => {
         try {
             await apiFetch(`/api/activities/${id}`, { method: "DELETE" });
             setDeleteId(null); fetchData();
-            showToast("success", "Activity deleted.");
+            setToast({ type: "success", msg: "Activity record moved to trash.", undoable: true });
+            setTimeout(() => setToast(null), 8000);
         } catch {
             showToast("error", "Failed to delete.");
         }
+    };
+
+    const handleEdit = (act: Activity) => {
+        setEditingId(act.id);
+        setActivityType(act.activity_type);
+        setDate(act.date?.split("T")[0] || "");
+        setFieldId(act.field_id || "");
+        setMaterialId(act.material_id || "");
+        setQuantity(act.quantity_used?.toString() || "");
+        setCost(act.cost?.toString() || "");
+        setIncome(act.income?.toString() || "");
+        
+        const customName = extractCustomName(act.notes);
+        if (customName) {
+            setIsCustomMode(true);
+            setCustomName(customName);
+            setCustomType(act.income ? 'income' : 'expense');
+            setCustomAmount(act.income?.toString() || act.cost?.toString() || "");
+            setNotes(stripCustomName(act.notes));
+        } else {
+            setIsCustomMode(false);
+            setNotes(act.notes || "");
+        }
+        setOpen(true);
     };
 
     // ── Which form fields to show ──
@@ -468,12 +506,20 @@ export default function ActivitiesPage() {
         <div className="min-h-screen bg-theme">
             {/* ── Toast ── */}
             {toast && (
-                <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-medium animate-fade-in
+                <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] flex items-center justify-between gap-6 px-6 py-4 rounded-[2rem] shadow-2xl border text-sm font-bold animate-in slide-in-from-bottom-8 duration-500 backdrop-blur-xl
           ${toast.type === "success"
-                        ? "bg-green-500/95 text-white border-green-400"
+                        ? "bg-gray-900/95 text-white border-white/10"
                         : "bg-red-500/95 text-white border-red-400"}`}>
-                    {toast.type === "success" ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-                    {toast.msg}
+                    <div className="flex items-center gap-3">
+                        {toast.type === "success" ? <CheckCircle className="w-5 h-5 text-green-400 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+                        {toast.msg}
+                    </div>
+                    {toast.undoable && (
+                        <button onClick={handleUndo} className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Undo
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -779,12 +825,20 @@ export default function ActivitiesPage() {
                                                         <p className="text-theme-muted text-xs truncate">{cleanNotes || "—"}</p>
                                                     </td>
                                                     <td className="px-4 py-4 text-right">
-                                                        <button
-                                                            onClick={() => setDeleteId(act.id)}
-                                                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                        <div className="flex justify-end gap-1">
+                                                            <button
+                                                                onClick={() => handleEdit(act)}
+                                                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-blue-400 hover:bg-blue-500/10 transition-all"
+                                                            >
+                                                                <Pencil className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setDeleteId(act.id)}
+                                                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
