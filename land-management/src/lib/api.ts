@@ -691,4 +691,50 @@ export const api = {
       }
     }
   },
+  async updateLabour(id: string, data: any) {
+    return fetchJson<any>(`/labours/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  async updateTransaction(txId: string, data: any) {
+    return fetchJson<any>(`/transactions/${txId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  async deleteTransaction(txId: string) {
+    return fetchJson<void>(`/transactions/${txId}`, { method: 'DELETE' });
+  },
+  async deleteAttendance(id: string) {
+    try {
+      return await fetchJson<void>(`/attendance/${id}`, { method: 'DELETE' });
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        // Fallback: delete the matching activity record
+        return fetchJson<void>(`/activities/${id}`, { method: 'DELETE' });
+      }
+      throw e;
+    }
+  },
+  async updateAttendance(id: string, data: { status: string; date: string }) {
+    try {
+      return await fetchJson<any>(`/attendance/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("404")) {
+        // Fallback: update as activity note
+        return fetchJson<any>(`/activities/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ date: data.date }),
+        });
+      }
+      throw e;
+    }
+  },
+  async undoLastDelete() {
+    return fetchJson<any>('/undo', { method: 'POST', body: '{}' });
+  },
 };

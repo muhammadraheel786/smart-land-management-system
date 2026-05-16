@@ -5,7 +5,7 @@ import {
     Users, Plus, Loader2, CheckCircle,
     AlertCircle, X, Printer, Banknote,
     ArrowUpRight, Download, FileText,
-    Phone, Calendar, Trash2
+    Phone, Calendar, Trash2, Edit2, RotateCcw
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,6 +80,9 @@ function LaborDashboard() {
     const [openTransaction, setOpenTransaction] = useState<{ type: 'salary' | 'advance' | 'recovery', open: boolean }>({ type: 'salary', open: false });
     const [openAttendance, setOpenAttendance] = useState(false);
     const [openSlip, setOpenSlip] = useState(false);
+    const [openEditLabour, setOpenEditLabour] = useState(false);
+    const [openEditTransaction, setOpenEditTransaction] = useState<{ open: boolean, transaction: Transaction | null }>({ open: false, transaction: null });
+    const [openEditAttendance, setOpenEditAttendance] = useState<{ open: boolean, attendance: Attendance | null }>({ open: false, attendance: null });
 
     // Month-Year Filter for Profile View
     const [selectedMonthYear, setSelectedMonthYear] = useState<string>(() => {
@@ -153,11 +156,29 @@ function LaborDashboard() {
     }, [labours]);
 
     // Toast
-    const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+    const [toast, setToast] = useState<{ type: "success" | "error"; msg: string; showUndo?: boolean } | null>(null);
 
-    const showToast = (type: "success" | "error", msg: string) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 3000);
+    const showToast = (type: "success" | "error", msg: string, showUndo = false) => {
+        setToast({ type, msg, showUndo });
+        setTimeout(() => setToast(null), 6000); // Longer timeout for undo
+    };
+
+    const handleUndo = async () => {
+        try {
+            setLoading(true);
+            await api.undoLastDelete();
+            setToast(null);
+            await fetchData();
+            if (view === "profile" && selectedLabour) {
+                handleSelectLabour(selectedLabour);
+            }
+            showToast('success', locale === 'ur' ? 'ڈیٹا بحال کر دیا گیا' : 'Data restored successfully');
+        } catch (error) {
+            console.error(error);
+            showToast('error', locale === 'ur' ? 'بحال کرنے میں غلطی' : 'Error undoing delete');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchData = async () => {
@@ -214,10 +235,40 @@ function LaborDashboard() {
             await api.deleteLabour(id);
             setView("dashboard");
             await fetchData();
-            showToast('success', locale === 'ur' ? 'ورکر کو ڈیلیٹ کر دیا گیا' : 'Worker deleted successfully');
+            showToast('success', locale === 'ur' ? 'ورکر کو ڈیلیٹ کر دیا گیا' : 'Worker moved to trash', true);
         } catch (error) {
             console.error(error);
             showToast('error', locale === 'ur' ? 'ڈیلیٹ کرنے میں غلطی' : 'Error deleting worker');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteAttendance = async (id: string) => {
+        if (!window.confirm(locale === 'ur' ? 'کیا آپ واقعی اس حاضری کو حذف کرنا چاہتے ہیں؟' : 'Are you sure you want to delete this attendance record?')) return;
+        try {
+            setLoading(true);
+            await api.deleteAttendance(id);
+            if (selectedLabour) await handleSelectLabour(selectedLabour);
+            showToast('success', locale === 'ur' ? 'حاضری حذف کر دی گئی' : 'Attendance record moved to trash', true);
+        } catch (error) {
+            console.error(error);
+            showToast('error', 'Error deleting attendance');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteTransaction = async (id: string) => {
+        if (!window.confirm(locale === 'ur' ? 'کیا آپ واقعی اس ٹرانزیکشن کو حذف کرنا چاہتے ہیں؟' : 'Are you sure you want to delete this transaction?')) return;
+        try {
+            setLoading(true);
+            await api.deleteTransaction(id);
+            if (selectedLabour) await handleSelectLabour(selectedLabour);
+            showToast('success', locale === 'ur' ? 'ٹرانزیکشن حذف کر دی گئی' : 'Transaction moved to trash', true);
+        } catch (error) {
+            console.error(error);
+            showToast('error', 'Error deleting transaction');
         } finally {
             setLoading(false);
         }
@@ -253,9 +304,16 @@ function LaborDashboard() {
         <div className="min-h-screen bg-theme pb-20 text-theme">
             {toast && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200]">
-                    <div className={`px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold text-white text-sm animate-bounce ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
-                        {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                        {toast.msg}
+                    <div className={`px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 font-bold text-white text-sm animate-bounce ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+                        <div className="flex items-center gap-3">
+                            {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                            {toast.msg}
+                        </div>
+                        {toast.showUndo && (
+                            <button onClick={handleUndo} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg flex items-center gap-1 text-[10px] uppercase tracking-widest transition-all">
+                                <RotateCcw className="w-3 h-3" /> {locale === 'ur' ? 'واپس' : 'Undo'}
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
@@ -294,8 +352,6 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-
-
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="bg-theme-card p-5 rounded-3xl border border-theme shadow-sm flex flex-col justify-between hover:border-orange-500/30 transition-all">
                             <div className="flex items-center gap-2 mb-2"><div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl"><Users className="w-5 h-5" /></div><h3 className="text-xs font-black text-theme-muted uppercase tracking-wider">{locale === 'ur' ? 'کل مزدور' : 'Total Labour'}</h3></div>
@@ -314,7 +370,7 @@ function LaborDashboard() {
                         </div>
                     </div>
 
-                        <div className="bg-theme-card rounded-3xl shadow-sm border border-theme overflow-hidden">
+                    <div className="bg-theme-card rounded-3xl shadow-sm border border-theme overflow-hidden">
                         <div className="p-4 border-b border-theme flex items-center justify-between bg-theme-track">
                             <h2 className="text-sm font-black text-theme uppercase tracking-widest flex items-center gap-2"><Users className="w-4 h-4 text-orange-500" /> Worker Records <span className="px-2 py-0.5 rounded-lg bg-theme-card border border-theme text-[10px] text-theme-muted font-black">{filteredLabours.length}</span></h2>
                         </div>
@@ -328,14 +384,13 @@ function LaborDashboard() {
                                         <th className="p-4 text-center">{locale === 'ur' ? 'دن' : 'Days'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'ادا شدہ' : 'Paid'}</th>
                                         <th className="p-4 text-right">{locale === 'ur' ? 'باقی' : 'Balance'}</th>
+                                        <th className="p-4 text-right">{locale === 'ur' ? 'ایکشن' : 'Actions'}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-theme">
                                     {filteredLabours.map(l => {
-                                        // Use backend pre-calculated values or fallback to frontend calculation
                                         const paid = Number(l.total_paid ?? 0);
                                         const balance = Number(l.balance ?? 0);
-                                        const advance = Number(l.advance_balance ?? 0);
                                         const days = Number(l.days_worked ?? 0);
                                         const joiningMonth = l.salary_start_date ? new Date(l.salary_start_date).toLocaleString('default', { month: 'short' }) : 'N/A';
 
@@ -362,10 +417,20 @@ function LaborDashboard() {
                                                     </div>
                                                 </td>
                                                 <td className="p-4 text-center text-sm font-bold text-theme">{days}</td>
-                                                <td className="p-4 text-right text-sm font-bold text-green-500">Rs {paid.toLocaleString()}</td>
+                                                <td className="p-4 text-right text-sm font-black text-green-500">Rs {paid.toLocaleString()}</td>
                                                 <td className={`p-4 text-right text-sm font-black ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                                     {balance > 0 && '+'}Rs {balance.toLocaleString()}
                                                     <span className="text-[8px] block opacity-60 uppercase">{balance >= 0 ? 'Adv' : 'Due'}</span>
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button onClick={(e) => { e.stopPropagation(); setOpenEditLabour(true); setSelectedLabour(l); }} className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors" title={locale === 'ur' ? 'ترمیم' : 'Edit'}>
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteLabour(l.id || l._id || ''); }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title={locale === 'ur' ? 'حذف' : 'Delete'}>
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -403,6 +468,16 @@ function LaborDashboard() {
                                                 <p className={`text-[8px] font-bold opacity-60 uppercase ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{balance >= 0 ? 'Adv' : 'Due'}</p>
                                             </div>
                                         </div>
+                                        {!isDataEntry && (
+                                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-theme/50">
+                                                <button onClick={(e) => { e.stopPropagation(); setOpenEditLabour(true); setSelectedLabour(l); }} className="flex-1 bg-blue-500/10 text-blue-500 py-2 rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-1">
+                                                    <Edit2 className="w-3 h-3" /> {locale === 'ur' ? 'ترمیم' : 'Edit'}
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteLabour(l.id || l._id || ''); }} className="flex-1 bg-red-500/10 text-red-500 py-2 rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-1">
+                                                    <Trash2 className="w-3 h-3" /> {locale === 'ur' ? 'حذف' : 'Delete'}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -412,14 +487,12 @@ function LaborDashboard() {
                 </div>
             )}
 
-
-
             {view === "profile" && selectedLabour && (
                 <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
                     <button onClick={() => { setView("dashboard"); fetchData(); }} className="flex items-center gap-2 text-theme-muted hover:text-theme font-bold bg-theme-card px-4 py-2 rounded-xl border border-theme">
                         <ArrowUpRight className="w-5 h-5 rotate-[-135deg]" /> Back to Dashboard
                     </button>
-                    
+
                     <div className="bg-theme-card rounded-[2rem] p-5 md:p-8 shadow-sm border border-theme">
                         <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 flex-1 w-full text-theme">
@@ -444,6 +517,11 @@ function LaborDashboard() {
                                             <Calendar className="w-3.5 h-3.5 text-theme-muted" /> {selectedLabour.salary_start_date ? new Date(selectedLabour.salary_start_date).toLocaleDateString() : '—'}
                                         </div>
                                     </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    <button onClick={() => setOpenEditLabour(true)} className="bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase flex items-center gap-2 transition-all">
+                                        <Edit2 className="w-3.5 h-3.5" /> {locale === 'ur' ? 'ترمیم' : 'Edit Profile'}
+                                    </button>
                                 </div>
                             </div>
                             {!isDataEntry && (
@@ -498,6 +576,10 @@ function LaborDashboard() {
                                             <p className="text-[10px] font-bold text-theme-muted">{new Date(t.date).toLocaleDateString()}</p>
                                         </div>
                                         <p className={`font-black ${t.type === 'recovery' ? 'text-blue-500' : 'text-green-500'}`}>Rs {t.amount?.toLocaleString()}</p>
+                                        <div className="flex items-center gap-1 ml-4 border-l border-theme pl-2">
+                                            <button onClick={() => setOpenEditTransaction({ open: true, transaction: t })} className="p-1.5 text-blue-500 hover:bg-blue-500/10 rounded-lg" title="Edit"><Edit2 className="w-3.5 h-3.5" /></button>
+                                            <button onClick={() => handleDeleteTransaction(t.id || t._id || '')} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -509,8 +591,12 @@ function LaborDashboard() {
                                     <div className="p-4 text-center text-theme-muted text-xs font-bold">{locale === 'ur' ? 'اس مہینے کوئی حاضری نہیں' : 'No attendance this month'}</div>
                                 )}
                                 {profileStats?.monthAttendance?.map((a: Attendance) => (
-                                    <div key={a.id || a._id} className="flex justify-between p-4 bg-theme-track rounded-2xl border border-theme text-theme text-sm">
+                                    <div key={a.id || a._id} className="flex justify-between p-4 bg-theme-track rounded-2xl border border-theme text-theme text-sm group">
                                         <div><p className="font-black uppercase">{a.status}</p><p className="text-[10px] font-bold text-theme-muted">{new Date(a.date).toLocaleDateString()}</p></div>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => setOpenEditAttendance({ open: true, attendance: a })} className="p-1.5 text-blue-500 hover:bg-blue-500/10 rounded-lg" title="Edit"><Edit2 className="w-3.5 h-3.5" /></button>
+                                            <button onClick={() => handleDeleteAttendance(a.id || a._id || '')} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -519,10 +605,103 @@ function LaborDashboard() {
                 </div>
             )}
 
+
             <AddLabourModal open={openAddLabour} onClose={() => setOpenAddLabour(false)} onSave={() => { setOpenAddLabour(false); fetchData(); showToast('success', 'Labour Added'); }} locale={locale} />
-            <AddTransactionModal open={openTransaction.open} type={openTransaction.type} labour={selectedLabour} onClose={() => setOpenTransaction(prev => ({...prev, open: false}))} onSave={() => { setOpenTransaction(prev => ({...prev, open: false})); handleSelectLabour(selectedLabour); showToast('success', 'Transaction saved'); }} locale={locale} />
+            <EditLabourModal open={openEditLabour} labour={selectedLabour} onClose={() => setOpenEditLabour(false)} onSave={() => { setOpenEditLabour(false); fetchData(); if (selectedLabour) handleSelectLabour(selectedLabour); showToast('success', 'Labour Updated'); }} locale={locale} />
+            <AddTransactionModal open={openTransaction.open} type={openTransaction.type} labour={selectedLabour} onClose={() => setOpenTransaction(prev => ({ ...prev, open: false }))} onSave={() => { setOpenTransaction(prev => ({ ...prev, open: false })); handleSelectLabour(selectedLabour); showToast('success', 'Transaction saved'); }} locale={locale} />
+            <EditTransactionModal open={openEditTransaction.open} transaction={openEditTransaction.transaction} onClose={() => setOpenEditTransaction({ open: false, transaction: null })} onSave={() => { setOpenEditTransaction({ open: false, transaction: null }); if (selectedLabour) handleSelectLabour(selectedLabour); showToast('success', 'Transaction updated'); }} locale={locale} />
             <AttendanceModal open={openAttendance} labour={selectedLabour} onClose={() => setOpenAttendance(false)} onSave={() => { setOpenAttendance(false); handleSelectLabour(selectedLabour); showToast('success', 'Attendance marked'); }} locale={locale} />
+            <EditAttendanceModal open={openEditAttendance.open} attendance={openEditAttendance.attendance} onClose={() => setOpenEditAttendance({ open: false, attendance: null })} onSave={() => { setOpenEditAttendance({ open: false, attendance: null }); if (selectedLabour) handleSelectLabour(selectedLabour); showToast('success', 'Attendance updated'); }} locale={locale} />
             <SlipModal open={openSlip} labour={selectedLabour} stats={profileStats} onClose={() => setOpenSlip(false)} />
+        </div>
+    );
+}
+
+function EditLabourModal({ open, labour, onClose, onSave, locale }: { open: boolean, labour: Labour | null, onClose: () => void, onSave: () => void, locale: string }) {
+    if (!open || !labour) return null;
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({
+        name: labour.name || '',
+        phone: labour.phone || '',
+        cnic: labour.cnic || '',
+        work_type: labour.work_type || 'Helper',
+        salary_type: labour.salary_type || 'daily',
+        salary_amount: labour.salary_amount?.toString() || '',
+        salary_start_date: labour.salary_start_date || '',
+        status: labour.status || 'Active'
+    });
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            await api.updateLabour(labour.id || labour._id || '', form);
+            onSave();
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Error updating labour');
+        }
+        setSaving(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-lg bg-theme-card border border-theme rounded-3xl shadow-2xl p-4 md:p-8 text-theme mx-2 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-black">{locale === 'ur' ? 'لیبر ترمیم' : 'Edit Labour'}</h2><button onClick={onClose}><X /></button></div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input required placeholder="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <input placeholder="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                        <input placeholder="CNIC" value={form.cnic} onChange={e => setForm({ ...form, cnic: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <select value={form.work_type} onChange={e => setForm({ ...form, work_type: e.target.value })} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option>Helper</option><option>Mason</option><option>Driver</option><option>Guard</option><option>Plumber</option><option>Electrician</option></select>
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option>Active</option><option>Inactive</option></select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <input required type="number" placeholder="Amount" value={form.salary_amount} onChange={e => setForm({ ...form, salary_amount: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                        <input required type="date" value={form.salary_start_date} onChange={e => setForm({ ...form, salary_start_date: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                    </div>
+                    <button disabled={saving} className="w-full bg-orange-500 text-white p-5 rounded-xl font-black uppercase mt-2">{saving ? 'Saving...' : 'Update Worker'}</button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function EditTransactionModal({ open, transaction, onClose, onSave, locale }: { open: boolean, transaction: Transaction | null, onClose: () => void, onSave: () => void, locale: string }) {
+    if (!open || !transaction) return null;
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({
+        amount: transaction.amount?.toString() || '',
+        notes: transaction.notes || '',
+        date: transaction.date || ''
+    });
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            await api.updateTransaction(transaction.id || transaction._id || '', form);
+            onSave();
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Error updating transaction');
+        }
+        setSaving(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-sm bg-theme-card border border-theme rounded-3xl p-5 md:p-8 text-theme mx-2">
+                <div className="flex justify-between items-center mb-6"><h2 className="font-black uppercase">Edit {transaction.type}</h2><button onClick={onClose}><X /></button></div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input required type="number" placeholder="Amount" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme text-2xl font-black" />
+                    <input required type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                    <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme text-sm h-24" />
+                    <button disabled={saving} className="w-full bg-blue-500 text-white p-5 rounded-xl font-black uppercase">Update</button>
+                </form>
+            </div>
         </div>
     );
 }
@@ -538,20 +717,20 @@ function AddLabourModal({ open, onClose, onSave, locale }: { open: boolean, onCl
             <div className="relative z-10 w-full max-w-lg bg-theme-card border border-theme rounded-3xl shadow-2xl p-4 md:p-8 text-theme mx-2 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-black">{locale === 'ur' ? 'نیا مزدور' : 'Add Labour'}</h2><button onClick={onClose}><X /></button></div>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <input required placeholder="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                    <input required placeholder="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                     <div className="grid grid-cols-2 gap-4">
-                        <input placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
-                        <input placeholder="CNIC" value={form.cnic} onChange={e => setForm({...form, cnic: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                        <input placeholder="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                        <input placeholder="CNIC" value={form.cnic} onChange={e => setForm({ ...form, cnic: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <select value={form.work_type} onChange={e => setForm({...form, work_type: e.target.value})} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option>Helper</option><option>Mason</option><option>Driver</option></select>
-                        <select value={form.salary_type} onChange={e => setForm({...form, salary_type: e.target.value as 'daily' | 'monthly'})} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option value="daily">Daily</option><option value="monthly">Monthly</option></select>
+                        <select value={form.work_type} onChange={e => setForm({ ...form, work_type: e.target.value })} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option>Helper</option><option>Mason</option><option>Driver</option></select>
+                        <select value={form.salary_type} onChange={e => setForm({ ...form, salary_type: e.target.value as 'daily' | 'monthly' })} className="bg-theme-track border border-theme p-4 rounded-xl text-theme"><option value="daily">Daily</option><option value="monthly">Monthly</option></select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <input required type="number" placeholder="Amount" value={form.salary_amount} onChange={e => setForm({...form, salary_amount: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                        <input required type="number" placeholder="Amount" value={form.salary_amount} onChange={e => setForm({ ...form, salary_amount: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                         <div className="relative flex flex-col justify-center">
                             <span className="absolute -top-2 left-3 bg-theme-card px-1 text-[10px] font-bold text-theme-muted">Start Date</span>
-                            <input required type="date" value={form.salary_start_date} onChange={e => setForm({...form, salary_start_date: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                            <input required type="date" value={form.salary_start_date} onChange={e => setForm({ ...form, salary_start_date: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                         </div>
                     </div>
                     <button disabled={saving} className="w-full bg-green-500 text-white p-5 rounded-xl font-black uppercase mt-2">{saving ? 'Saving...' : 'Save Worker'}</button>
@@ -572,8 +751,8 @@ function AddTransactionModal({ open, type, labour, onClose, onSave, locale }: { 
             <div className="relative z-10 w-full max-w-sm bg-theme-card border border-theme rounded-3xl p-5 md:p-8 text-theme mx-2">
                 <div className="flex justify-between items-center mb-6"><h2 className="font-black uppercase">{type}</h2><button onClick={onClose}><X /></button></div>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <input required type="number" placeholder="Amount" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme text-2xl font-black" />
-                    <input required type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                    <input required type="number" placeholder="Amount" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme text-2xl font-black" />
+                    <input required type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
                     <button disabled={saving} className="w-full bg-green-500 text-white p-5 rounded-xl font-black uppercase">Confirm</button>
                 </form>
             </div>
@@ -612,7 +791,7 @@ function SlipModal({ open, onClose, labour, stats }: { open: boolean, onClose: (
                     <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">Mashori Farm</h1>
                     <p className="text-[10px] sm:text-sm font-bold uppercase tracking-widest opacity-60">Official Salary Slip</p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Worker Name</p>
@@ -657,6 +836,54 @@ function SlipModal({ open, onClose, labour, stats }: { open: boolean, onClose: (
                         Close Preview
                     </button>
                 </div>
+            </div>
+        </div>
+    )
+}
+
+// Edit Attendance Modal
+function EditAttendanceModal({ open, attendance, onClose, onSave, locale: _locale }: { open: boolean, attendance: Attendance | null, onClose: () => void, onSave: () => void, locale: string }) {
+    const [saving, setSaving] = useState(false);
+    const [status, setStatus] = useState<'present' | 'absent' | 'half_day'>('present');
+    const [date, setDate] = useState('');
+
+    useEffect(() => {
+        if (attendance) {
+            setStatus(attendance.status);
+            setDate(attendance.date);
+        }
+    }, [attendance]);
+
+    if (!open || !attendance) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            await api.updateAttendance(attendance.id || attendance._id || '', { status, date });
+            onSave();
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Error updating attendance');
+        }
+        setSaving(false);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-sm bg-theme-card border border-theme rounded-3xl p-5 md:p-8 text-theme mx-2">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="font-black uppercase">Edit Attendance</h2>
+                    <button onClick={onClose}><X /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <button type="button" onClick={() => setStatus('present')} className={`p-4 rounded-xl font-black uppercase border ${status === 'present' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-theme-track text-theme border-theme'}`}>Present</button>
+                        <button type="button" onClick={() => setStatus('absent')} className={`p-4 rounded-xl font-black uppercase border ${status === 'absent' ? 'bg-red-500 text-white border-red-500' : 'bg-theme-track text-theme border-theme'}`}>Absent</button>
+                    </div>
+                    <button disabled={saving} className="w-full bg-orange-500 text-white p-5 rounded-xl font-black uppercase">{saving ? 'Saving...' : 'Update Attendance'}</button>
+                </form>
             </div>
         </div>
     );
