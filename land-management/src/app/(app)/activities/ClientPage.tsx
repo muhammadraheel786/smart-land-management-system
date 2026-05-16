@@ -148,6 +148,7 @@ export default function ActivitiesPage() {
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [viewStartDate, setViewStartDate] = useState<string>("");
     const [viewEndDate, setViewEndDate] = useState<string>("");
     const [searchTerm, setSearchTerm] = useState<string>("");
