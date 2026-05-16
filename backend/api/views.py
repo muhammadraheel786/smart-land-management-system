@@ -47,6 +47,21 @@ def _parse_body(request):
         return {}
 
 
+def _soft_delete(collection_name, item_id):
+    col = get_collection(collection_name)
+    doc = col.find_one({'id': item_id}, {'_id': 0})
+    if not doc:
+        return False
+    get_collection('deleted_records').insert_one({
+        'record_id': item_id,
+        'collection': collection_name,
+        'data': doc,
+        'deleted_at': datetime.utcnow().isoformat() + 'Z'
+    })
+    col.delete_one({'id': item_id})
+    return True
+
+
 # --- Fields (GeoFence) ---
 
 @csrf_exempt
@@ -104,13 +119,14 @@ def fields_detail(request, pk):
         return _json_response(result)
 
     if request.method == 'DELETE':
-        col.delete_one({'id': pk})
-        get_collection('expenses').delete_many({'fieldId': pk})
-        get_collection('incomes').delete_many({'fieldId': pk})
-        get_collection('thaka_records').delete_many({'fieldId': pk})
-        get_collection('water_records').delete_many({'fieldId': pk})
-        get_collection('temperature_records').delete_many({'fieldId': pk})
-        return _json_response({}, 204)
+        if _soft_delete('fields', pk):
+            get_collection('expenses').delete_many({'fieldId': pk})
+            get_collection('incomes').delete_many({'fieldId': pk})
+            get_collection('thaka_records').delete_many({'fieldId': pk})
+            get_collection('water_records').delete_many({'fieldId': pk})
+            get_collection('temperature_records').delete_many({'fieldId': pk})
+            return _json_response({}, 204)
+        return _json_response({'error': 'Not found'}, 404)
 
 
 # --- Expenses ---
@@ -164,9 +180,9 @@ def expenses_detail(request, pk):
         del result['_id']
         return _json_response(result)
     if request.method == 'DELETE':
-        if col.delete_one({'id': pk}).deleted_count == 0:
-            return _json_response({'error': 'Not found'}, 404)
-        return _json_response({}, 204)
+        if _soft_delete('expenses', pk):
+            return _json_response({}, 204)
+        return _json_response({'error': 'Not found'}, 404)
 
 
 # --- Incomes ---
@@ -220,9 +236,9 @@ def incomes_detail(request, pk):
         del result['_id']
         return _json_response(result)
     if request.method == 'DELETE':
-        if col.delete_one({'id': pk}).deleted_count == 0:
-            return _json_response({'error': 'Not found'}, 404)
-        return _json_response({}, 204)
+        if _soft_delete('incomes', pk):
+            return _json_response({}, 204)
+        return _json_response({'error': 'Not found'}, 404)
 
 
 # --- Thaka Records ---
@@ -278,9 +294,9 @@ def thaka_detail(request, pk):
         del result['_id']
         return _json_response(result)
     if request.method == 'DELETE':
-        if col.delete_one({'id': pk}).deleted_count == 0:
-            return _json_response({'error': 'Not found'}, 404)
-        return _json_response({}, 204)
+        if _soft_delete('thaka_records', pk):
+            return _json_response({}, 204)
+        return _json_response({'error': 'Not found'}, 404)
 
 
 # --- Water Records ---

@@ -142,6 +142,17 @@ class LabourService:
     @staticmethod
     def delete_labour(labour_id):
         col = get_collection('labours')
+        doc = col.find_one({'id': labour_id}, {'_id': 0})
+        if not doc: return False
+        
+        # Save for undo
+        get_collection('deleted_records').insert_one({
+            'record_id': labour_id,
+            'collection': 'labours',
+            'data': doc,
+            'deleted_at': datetime.utcnow().isoformat() + 'Z'
+        })
+        
         # Also clean up transactions and attendance
         get_collection('salary_transactions').delete_many({'labour_id': labour_id})
         get_collection('attendance').delete_many({'labour_id': labour_id})
@@ -210,8 +221,36 @@ class LabourService:
         return doc
         
     @staticmethod
+    def update_transaction(txn_id, data):
+        col = get_collection('salary_transactions')
+        doc = col.find_one({'id': txn_id}, {'_id': 0})
+        if not doc: return None
+        
+        excluded = ('id', '_id', 'created_at', 'labour_id')
+        for k, v in data.items():
+            if k not in excluded:
+                doc[k] = v
+        
+        if 'amount' in data:
+            doc['amount'] = _to_num(data['amount'])
+            
+        col.replace_one({'id': txn_id}, doc)
+        return doc
+
+    @staticmethod
     def delete_transaction(txn_id):
         col = get_collection('salary_transactions')
+        doc = col.find_one({'id': txn_id}, {'_id': 0})
+        if not doc: return False
+        
+        # Save for undo
+        get_collection('deleted_records').insert_one({
+            'record_id': txn_id,
+            'collection': 'salary_transactions',
+            'data': doc,
+            'deleted_at': datetime.utcnow().isoformat() + 'Z'
+        })
+        
         res = col.delete_one({'id': txn_id})
         return res.deleted_count > 0
 
@@ -248,3 +287,30 @@ class LabourService:
             
         if '_id' in doc: del doc['_id']
         return doc
+    @staticmethod
+    def delete_attendance(att_id):
+        col = get_collection('attendance')
+        doc = col.find_one({'id': att_id}, {'_id': 0})
+        if not doc: return False
+        
+        # Save for undo
+        get_collection('deleted_records').insert_one({
+            'record_id': att_id,
+            'collection': 'attendance',
+            'data': doc,
+            'deleted_at': datetime.utcnow().isoformat() + 'Z'
+        })
+        
+        res = col.delete_one({'id': att_id})
+        return res.deleted_count > 0
+
+    @staticmethod
+    def undo_last_delete():
+        col = get_collection('deleted_records')
+        last = col.find_one({}, sort=[('deleted_at', -1)])
+        if not last: return None
+        
+        target_col = get_collection(last['collection'])
+        target_col.insert_one(last['data'])
+        col.delete_one({'_id': last['_id']})
+        return last['data']

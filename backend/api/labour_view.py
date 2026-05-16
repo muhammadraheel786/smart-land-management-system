@@ -59,11 +59,27 @@ def labour_transactions(request, pk):
             return _api_error(str(e), 500)
 
 @csrf_exempt
-@require_http_methods(["DELETE"])
+@require_http_methods(["PUT", "DELETE"])
 def transaction_detail(request, tx_id):
-    if LabourService.delete_transaction(tx_id):
-        return _json_response({}, 204)
-    return _json_response({"error": "Transaction not found"}, 404)
+    if request.method == "PUT":
+        body = _parse_body(request)
+        result = LabourService.update_transaction(tx_id, body)
+        if result: return _json_response(result)
+        return _json_response({"error": "Transaction not found"}, 404)
+    elif request.method == "DELETE":
+        if LabourService.delete_transaction(tx_id):
+            return _json_response({}, 204)
+        return _json_response({"error": "Transaction not found"}, 404)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def undo_delete(request):
+    try:
+        result = LabourService.undo_last_delete()
+        if result: return _json_response(result)
+        return _json_response({"error": "No deleted records found"}, 404)
+    except Exception as e:
+        return _api_error(str(e), 500)
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])

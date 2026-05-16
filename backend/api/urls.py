@@ -27,8 +27,9 @@ urlpatterns = [
     path("labours/<str:pk>/transactions", labour_view.labour_transactions),
     path("transactions/<str:tx_id>/", labour_view.transaction_detail),
     path("transactions/<str:tx_id>", labour_view.transaction_detail),
-    path("labours/<str:pk>/attendance/", labour_view.labour_attendance),
     path("labours/<str:pk>/attendance", labour_view.labour_attendance),
+    path("undo", labour_view.undo_delete),
+    path("undo/", labour_view.undo_delete),
 
     path("thaka", views.thaka_list),
     path("thaka/<str:pk>", views.thaka_detail),

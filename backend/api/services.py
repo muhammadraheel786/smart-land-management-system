@@ -147,4 +147,13 @@ class ActivityService:
             mat_col.update_one({'id': mat_id}, {'$inc': {'stock_quantity': qty}})
 
         col.delete_one({'id': activity_id})
+        
+        # Save for undo
+        get_collection('deleted_records').insert_one({
+            'record_id': activity_id,
+            'collection': 'activities',
+            'data': doc,
+            'deleted_at': datetime.utcnow().isoformat() + 'Z'
+        })
+        
         return True
