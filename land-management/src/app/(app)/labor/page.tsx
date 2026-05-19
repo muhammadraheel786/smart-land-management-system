@@ -470,11 +470,11 @@ function LaborDashboard() {
                                         </div>
                                         {!isDataEntry && (
                                             <div className="flex items-center justify-end gap-2 pt-2 border-t border-theme/50">
-                                                <button onClick={(e) => { e.stopPropagation(); setOpenEditLabour(true); setSelectedLabour(l); }} className="flex-1 bg-blue-500/10 text-blue-500 py-2 rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-1">
-                                                    <Edit2 className="w-3 h-3" /> {locale === 'ur' ? 'ترمیم' : 'Edit'}
+                                                <button onClick={(e) => { e.stopPropagation(); setOpenEditLabour(true); setSelectedLabour(l); }} className="p-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-xl transition-all" title={locale === 'ur' ? 'ترمیم' : 'Edit'}>
+                                                    <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteLabour(l.id || l._id || ''); }} className="flex-1 bg-red-500/10 text-red-500 py-2 rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-1">
-                                                    <Trash2 className="w-3 h-3" /> {locale === 'ur' ? 'حذف' : 'Delete'}
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteLabour(l.id || l._id || ''); }} className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all" title={locale === 'ur' ? 'حذف' : 'Delete'}>
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         )}
