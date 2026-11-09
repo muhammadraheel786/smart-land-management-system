@@ -7,6 +7,7 @@ export const statusColors: Record<LandStatus, string> = {
   uncultivated: "#DEB887", // Burlywood - dry soil / bare earth
   not_usable: "#8B7355",   // Dark khaki - rocky / saline
   thaka: "#4682B4",        // Steel blue - leased land
+  haari: "#D97706",        // Warm amber - sharecropped land (Batai)
 };
 
 export const statusGradients: Record<LandStatus, string> = {
@@ -15,6 +16,7 @@ export const statusGradients: Record<LandStatus, string> = {
   uncultivated: "linear-gradient(135deg, #DEB887, #F4A460)",
   not_usable: "linear-gradient(135deg, #8B7355, #A0522D)",
   thaka: "linear-gradient(135deg, #4682B4, #5F9EA0)",
+  haari: "linear-gradient(135deg, #F59E0B, #D97706)",
 };
 
 export const statusBorderColors: Record<LandStatus, string> = {
@@ -23,6 +25,7 @@ export const statusBorderColors: Record<LandStatus, string> = {
   uncultivated: "#D2691E",
   not_usable: "#654321",
   thaka: "#1E90FF",
+  haari: "#B45309",
 };
 
 /** Enhanced border styling with glow effects */

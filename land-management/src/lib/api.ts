@@ -207,6 +207,8 @@ export const api = {
       expenses: import('@/types').Expense[];
       incomes: import('@/types').Income[];
       thakaRecords: import('@/types').ThakaRecord[];
+      haariRecords?: import('@/types').HaariRecord[];
+      haariSettlements?: import('@/types').HaariSettlement[];
       waterRecords: import('@/types').WaterRecord[];
       temperatureRecords: import('@/types').TemperatureRecord[];
     }>('/dashboard');
@@ -286,6 +288,41 @@ export const api = {
   },
   async deleteThakaRecord(id: string) {
     return fetchJson<void>(`/thaka/${id}`, { method: 'DELETE' });
+  },
+
+  // Haari (Sharecropping / Batai) endpoints
+  async getHaariRecords() {
+    return fetchJson<import('@/types').HaariRecord[]>('/haari');
+  },
+  async addHaariRecord(record: Omit<import('@/types').HaariRecord, 'id'> & { id?: string }) {
+    return fetchJson<import('@/types').HaariRecord>('/haari', {
+      method: 'POST',
+      body: JSON.stringify(record),
+    });
+  },
+  async updateHaariRecord(id: string, updates: Partial<import('@/types').HaariRecord>) {
+    return fetchJson<import('@/types').HaariRecord>(`/haari/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  },
+  async deleteHaariRecord(id: string) {
+    return fetchJson<void>(`/haari/${id}`, { method: 'DELETE' });
+  },
+
+  // Haari Harvest Settlements
+  async getHaariSettlements(haariId?: string) {
+    const url = haariId ? `/haari-settlements?haariId=${encodeURIComponent(haariId)}` : '/haari-settlements';
+    return fetchJson<import('@/types').HaariSettlement[]>(url);
+  },
+  async addHaariSettlement(settlement: Omit<import('@/types').HaariSettlement, 'id'> & { id?: string }) {
+    return fetchJson<import('@/types').HaariSettlement>('/haari-settlements', {
+      method: 'POST',
+      body: JSON.stringify(settlement),
+    });
+  },
+  async deleteHaariSettlement(id: string) {
+    return fetchJson<void>(`/haari-settlements/${id}`, { method: 'DELETE' });
   },
 
   // Legacy water endpoints (kept for backward compatibility in case the backend exposes /water)

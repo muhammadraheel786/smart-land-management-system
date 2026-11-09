@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GeoFence, Expense, Income, ThakaRecord, WaterRecord, TemperatureRecord, AIRecommendation, Material, MaterialTransaction, DailyRegisterEntry, Activity } from '@/types';
+import type { GeoFence, Expense, Income, ThakaRecord, HaariRecord, HaariSettlement, WaterRecord, TemperatureRecord, AIRecommendation, Material, MaterialTransaction, DailyRegisterEntry, Activity } from '@/types';
 import { api } from './api';
 
 function dedupeFieldsById(items: GeoFence[]): GeoFence[] {
@@ -20,6 +20,8 @@ interface LandState {
   expenses: Expense[];
   incomes: Income[];
   thakaRecords: ThakaRecord[];
+  haariRecords: HaariRecord[];
+  haariSettlements: HaariSettlement[];
   waterRecords: WaterRecord[];
   temperatureRecords: TemperatureRecord[];
   aiRecommendations: AIRecommendation[];
@@ -43,6 +45,11 @@ interface LandState {
   addThakaRecord: (record: Omit<ThakaRecord, 'id'> & { id?: string }) => Promise<ThakaRecord | null>;
   updateThakaRecord: (id: string, updates: Partial<ThakaRecord>) => Promise<void>;
   deleteThakaRecord: (id: string) => Promise<void>;
+  addHaariRecord: (record: Omit<HaariRecord, 'id'> & { id?: string }) => Promise<HaariRecord | null>;
+  updateHaariRecord: (id: string, updates: Partial<HaariRecord>) => Promise<void>;
+  deleteHaariRecord: (id: string) => Promise<void>;
+  addHaariSettlement: (settlement: Omit<HaariSettlement, 'id'> & { id?: string }) => Promise<HaariSettlement | null>;
+  deleteHaariSettlement: (id: string) => Promise<void>;
   addWaterRecord: (record: Omit<WaterRecord, 'id'> & { id?: string }) => Promise<WaterRecord | null>;
   updateWaterRecord: (id: string, updates: Partial<WaterRecord>) => Promise<void>;
   deleteWaterRecord: (id: string) => Promise<void>;
@@ -72,6 +79,8 @@ export const useLandStore = create<LandState>((set, get) => ({
   expenses: [],
   incomes: [],
   thakaRecords: [],
+  haariRecords: [],
+  haariSettlements: [],
   waterRecords: [],
   temperatureRecords: [],
   aiRecommendations: [],
@@ -91,6 +100,8 @@ export const useLandStore = create<LandState>((set, get) => ({
         expenses: data.expenses ?? [],
         incomes: data.incomes ?? [],
         thakaRecords: data.thakaRecords ?? [],
+        haariRecords: data.haariRecords ?? [],
+        haariSettlements: data.haariSettlements ?? [],
         waterRecords: data.waterRecords ?? [],
         temperatureRecords: data.temperatureRecords ?? [],
       });
@@ -102,6 +113,8 @@ export const useLandStore = create<LandState>((set, get) => ({
         expenses: [],
         incomes: [],
         thakaRecords: [],
+        haariRecords: [],
+        haariSettlements: [],
         waterRecords: [],
         temperatureRecords: [],
       });
@@ -231,6 +244,60 @@ export const useLandStore = create<LandState>((set, get) => ({
     } catch (e) {
       console.error('Delete thaka record failed, reverting:', e);
       set({ thakaRecords: prevThaka });
+    }
+  },
+
+  addHaariRecord: async (record) => {
+    try {
+      const fromApi = await api.addHaariRecord(record);
+      set((s) => ({ haariRecords: [...s.haariRecords, fromApi] }));
+      return fromApi;
+    } catch (e) {
+      console.error('Add haari failed:', e);
+      return null;
+    }
+  },
+  updateHaariRecord: async (id, updates) => {
+    try {
+      const updated = await api.updateHaariRecord(id, updates);
+      set((s) => ({ haariRecords: s.haariRecords.map((h) => (h.id === id ? updated : h)) }));
+    } catch (e) {
+      console.error('Update haari failed:', e);
+    }
+  },
+  deleteHaariRecord: async (id) => {
+    const prevHaari = get().haariRecords;
+    set((state) => ({ haariRecords: state.haariRecords.filter((r) => r.id !== id) }));
+    try {
+      await api.deleteHaariRecord(id);
+      await get().fetchAll();
+    } catch (e) {
+      console.error('Delete haari record failed, reverting:', e);
+      set({ haariRecords: prevHaari });
+    }
+  },
+
+  addHaariSettlement: async (settlement) => {
+    try {
+      const fromApi = await api.addHaariSettlement(settlement);
+      set((s) => ({ haariSettlements: [fromApi, ...s.haariSettlements] }));
+      // Refresh to update Khaata balances and contract state
+      await get().fetchAll();
+      return fromApi;
+    } catch (e) {
+      console.error('Add haari settlement failed:', e);
+      return null;
+    }
+  },
+  deleteHaariSettlement: async (id) => {
+    const prevSettlements = get().haariSettlements;
+    set((state) => ({ haariSettlements: state.haariSettlements.filter((s) => s.id !== id) }));
+    try {
+      await api.deleteHaariSettlement(id);
+      await get().fetchAll();
+    } catch (e) {
+      console.error('Delete haari settlement failed, reverting:', e);
+      set({ haariSettlements: prevSettlements });
     }
   },
 

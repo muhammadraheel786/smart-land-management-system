@@ -46,6 +46,7 @@ const statusLabels: Record<LandStatus, string> = {
   uncultivated: "Uncultivated",
   not_usable: "Not Usable",
   thaka: "Thaka (Leased)",
+  haari: "Haari (Sharecrop)",
 };
 
 const mapLayers = [

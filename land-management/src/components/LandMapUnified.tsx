@@ -106,6 +106,7 @@ const statusOptions: { value: LandStatus; label: string }[] = [
   { value: "available", label: "Available" },
   { value: "uncultivated", label: "Uncultivated" },
   { value: "thaka", label: "Thaka (Leased)" },
+  { value: "haari", label: "Haari (Sharecrop)" },
   { value: "not_usable", label: "Not usable" },
 ];
 
@@ -327,6 +328,7 @@ const STATUS_LABELS: Record<LandStatus, string> = {
   uncultivated: "Uncultivated",
   not_usable: "Not usable",
   thaka: "Thaka (Leased)",
+  haari: "Haari (Sharecrop)",
 };
 
 export default function LandMapUnified() {

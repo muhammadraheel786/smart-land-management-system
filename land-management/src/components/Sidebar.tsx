@@ -26,6 +26,7 @@ import {
   PanelLeftOpen,
   X,
   Users,
+  Handshake,
 } from "lucide-react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -41,6 +42,7 @@ const navItems = [
   { href: "/map", icon: Map, labelKey: "landMap", fallbackLabel: "Map View" },
   // Expenses are now unified inside Activities
   { href: "/thaka", icon: FileText, labelKey: "thakaManagement", fallbackLabel: "Lease (Thaka)" },
+  { href: "/haari", icon: Handshake, labelKey: "haariManagement", fallbackLabel: "Haari (Sharecrop)" },
   { href: "/temperature", icon: Thermometer, labelKey: "temperatureManagement", fallbackLabel: "Temperature" },
   { href: "/statistics", icon: BarChart3, labelKey: "statistics", fallbackLabel: "Statistics" },
   { href: "/fields", icon: BarChart2, labelKey: "fieldAnalytics", fallbackLabel: "Field Stats" },
@@ -124,7 +126,7 @@ export default function Sidebar() {
                 .filter((item) => {
                   if (!isDataEntry) return true;
                   // Data-entry users: focus on login and operations per Faisal Bhai's request
-                  const allowed = ["/dashboard", "/activities", "/materials", "/water", "/thaka", "/labor"];
+                  const allowed = ["/dashboard", "/activities", "/materials", "/water", "/thaka", "/haari", "/labor"];
                   return allowed.includes(item.href);
                 })
                 .map((item) => {

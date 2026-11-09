@@ -103,6 +103,7 @@ const fieldStatusColors = {
   uncultivated: colors.gray[400],
   not_usable: colors.gray[600],
   thaka: colors.purple[500],
+  haari: '#f59e0b',
 };
 
 const fieldStatusGradients = {
@@ -111,6 +112,7 @@ const fieldStatusGradients = {
   uncultivated: 'linear-gradient(135deg, #94a3b8, #64748b)',
   not_usable: 'linear-gradient(135deg, #475569, #1e293b)',
   thaka: 'linear-gradient(135deg, #a855f7, #7e22ce)',
+  haari: 'linear-gradient(135deg, #f59e0b, #b45309)',
 };
 
 export default function BeautifulGeofence() {

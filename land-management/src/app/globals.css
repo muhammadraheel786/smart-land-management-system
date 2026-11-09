@@ -17,6 +17,7 @@
   --available: #eab308;
   --not-usable: #ef4444;
   --thaka: #3b82f6;
+  --haari: #f59e0b;
   --unfenced: #6b7280;
   --muted: #8b949e;
 }
@@ -34,6 +35,7 @@
   --available: #ca8a04;
   --not-usable: #dc2626;
   --thaka: #2563eb;
+  --haari: #d97706;
   --unfenced: #6b7280;
   --muted: #6b7280;
 }
@@ -142,6 +144,10 @@ body {
 
 .status-thaka {
   border-left-color: var(--thaka);
+}
+
+.status-haari {
+  border-left-color: var(--haari);
 }
 
 .status-unfenced {

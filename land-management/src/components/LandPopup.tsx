@@ -13,7 +13,8 @@ import {
   Wheat,
   TreePine,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Handshake,
 } from "lucide-react";
 
 interface LandPopupProps {
@@ -30,6 +31,7 @@ const statusIcons: Record<LandStatus, React.ReactNode> = {
   uncultivated: <AlertCircle className="w-4 h-4" />,
   not_usable: <AlertCircle className="w-4 h-4" />,
   thaka: <CheckCircle className="w-4 h-4" />,
+  haari: <Handshake className="w-4 h-4" />,
 };
 
 const statusDescriptions: Record<LandStatus, string> = {
@@ -38,6 +40,7 @@ const statusDescriptions: Record<LandStatus, string> = {
   uncultivated: "Bare earth, no current activity",
   not_usable: "Unsuitable for farming",
   thaka: "Leased to tenant",
+  haari: "Sharecropped with Hari (Batai)",
 };
 
 export default function LandPopup({ field, onEdit, onDelete, liveTempC }: LandPopupProps) {

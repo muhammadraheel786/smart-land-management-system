@@ -50,6 +50,15 @@ function analyzeQuery(query: string, store: ReturnType<typeof useLandStore.getSt
       }`;
   }
 
+  // Haari / Batai
+  if (q.includes("haari") || q.includes("hari") || q.includes("batai") || q.includes("sharecrop") || q.includes("khaata")) {
+    const haari = store.haariRecords || [];
+    const active = haari.filter((h) => h.status === "active");
+    const totalArea = active.reduce((a, h) => a + (h.allocatedArea || 0), 0);
+    const totalKhaata = active.reduce((a, h) => a + (h.advanceLoanAmount || 0), 0);
+    return `**Haari Management Summary:**\n- **${active.length}** active Haari contract(s) covering ~**${totalArea.toFixed(1)} acres**\n- Total Outstanding Khaata (Advance Loans): **Rs ${totalKhaata.toLocaleString()}**\n${active.length ? `- Active Haris: ${active.map((h) => `${h.hariName} (${h.crop || 'Crop'}, ${h.landownerSharePercentage}/${h.hariSharePercentage}%)`).join(", ")}` : ""}`;
+  }
+
   // Field-specific
   const fieldMatch = fields.find((f) => q.includes(f.name.toLowerCase()));
   if (fieldMatch) {
@@ -82,7 +91,7 @@ function analyzeQuery(query: string, store: ReturnType<typeof useLandStore.getSt
   }
 
   // Default
-  return `I've analyzed your land data. Here's what I found:\n\n- **${fields.length}** total fields\n- **${expenses.length}** expense records\n- **${incomes.length}** income records\n- **${thaka.length}** Thaka agreements\n- **${store.waterRecords.length}** water records\n- **${store.temperatureRecords?.length || 0}** temperature records\n\nAsk me: "Total land?", "Profit?", "Thaka income?", "Cultivated area?", "Water records?", "Temperature?"`;
+  return `I've analyzed your land data. Here's what I found:\n\n- **${fields.length}** total fields\n- **${expenses.length}** expense records\n- **${incomes.length}** income records\n- **${thaka.length}** Thaka agreements\n- **${store.haariRecords?.length || 0}** Haari contracts\n- **${store.waterRecords.length}** water records\n- **${store.temperatureRecords?.length || 0}** temperature records\n\nAsk me: "Total land?", "Profit?", "Thaka income?", "Haari summary?", "Cultivated area?", "Water records?", "Temperature?"`;
 }
 
 export default function AIChatbot() {

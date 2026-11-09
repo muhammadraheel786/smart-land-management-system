@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { GeoFence, Expense, Income, ThakaRecord, WaterRecord } from "@/types";
+import { GeoFence, Expense, Income, ThakaRecord, HaariRecord, WaterRecord } from "@/types";
 import { useLandStore } from "@/lib/store";
 import { statusColors } from "@/lib/map-styles";
 import {
@@ -23,7 +23,8 @@ import {
   X,
   Edit3,
   Eye,
-  Calculator
+  Calculator,
+  Handshake,
 } from "lucide-react";
 
 interface FieldSidePanelProps {
@@ -33,7 +34,7 @@ interface FieldSidePanelProps {
 }
 
 export default function FieldSidePanel({ field, onClose, onEdit }: FieldSidePanelProps) {
-  const { expenses, incomes, thakaRecords, waterRecords } = useLandStore();
+  const { expenses, incomes, thakaRecords, haariRecords, waterRecords } = useLandStore();
   const [activeTab, setActiveTab] = useState<'soil' | 'water' | 'sun'>('soil');
 
   const analytics = useMemo(() => {
@@ -44,6 +45,7 @@ export default function FieldSidePanel({ field, onClose, onEdit }: FieldSidePane
     const fieldIncomes = incomes.filter(i => i.fieldId === field.id);
     const fieldWaterRecords = waterRecords.filter(w => w.fieldId === field.id);
     const fieldThaka = thakaRecords.find(t => t.fieldId === field.id) || null;
+    const fieldHaari = haariRecords.find(h => h.fieldId === field.id && h.status === 'active') || null;
 
     // Calculate financials
     const totalExpenses = fieldExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -87,11 +89,12 @@ export default function FieldSidePanel({ field, onClose, onEdit }: FieldSidePane
       incomeByType,
       waterUsage: { totalHours, avgPerSession, sessions },
       thakaInfo: fieldThaka,
+      haariInfo: fieldHaari,
       lastActivity,
       fieldExpenses: fieldExpenses.slice(0, 5), // Show recent 5
       fieldIncomes: fieldIncomes.slice(0, 5), // Show recent 5
     };
-  }, [field, expenses, incomes, thakaRecords, waterRecords]);
+  }, [field, expenses, incomes, thakaRecords, haariRecords, waterRecords]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -402,6 +405,38 @@ export default function FieldSidePanel({ field, onClose, onEdit }: FieldSidePane
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Amount</span>
                 <span className="font-medium">{formatCurrency(analytics.thakaInfo.amount)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Haari (Sharecropping) Information */}
+        {analytics?.haariInfo && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <Handshake className="w-4 h-4 text-amber-500" />
+              Haari (Sharecrop) Details
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">Hari (Farmer)</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{analytics.haariInfo.hariName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">Crop</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{analytics.haariInfo.crop || "Wheat"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">Share Ratio</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">
+                  {analytics.haariInfo.landownerSharePercentage}% L / {analytics.haariInfo.hariSharePercentage}% H
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">Khaata Advance</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">
+                  Rs {(analytics.haariInfo.advanceLoanAmount || 0).toLocaleString()}
+                </span>
               </div>
             </div>
           </div>

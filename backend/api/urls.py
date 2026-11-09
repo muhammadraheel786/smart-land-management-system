@@ -33,6 +33,10 @@ urlpatterns = [
 
     path("thaka", views.thaka_list),
     path("thaka/<str:pk>", views.thaka_detail),
+    path("haari", views.haari_list),
+    path("haari/<str:pk>", views.haari_detail),
+    path("haari-settlements", views.haari_settlements_list),
+    path("haari-settlements/<str:pk>", views.haari_settlements_detail),
     path("temperature", views.temperature_list),
 
     # Water records (logging irrigation) + analysis

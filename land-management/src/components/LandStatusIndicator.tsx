@@ -10,7 +10,8 @@ import {
   CheckCircle,
   TrendingUp,
   Droplets,
-  Sun
+  Sun,
+  Handshake,
 } from "lucide-react";
 
 interface LandStatusIndicatorProps {
@@ -28,6 +29,7 @@ const statusIcons: Record<LandStatus, React.ReactNode> = {
   uncultivated: <AlertTriangle className="w-4 h-4" />,
   not_usable: <XCircle className="w-4 h-4" />,
   thaka: <CheckCircle className="w-4 h-4" />,
+  haari: <Handshake className="w-4 h-4" />,
 };
 
 const statusLabels: Record<LandStatus, string> = {
@@ -36,6 +38,7 @@ const statusLabels: Record<LandStatus, string> = {
   uncultivated: "Uncultivated",
   not_usable: "Not Usable",
   thaka: "Thaka (Leased)",
+  haari: "Haari (Sharecropped)",
 };
 
 const statusDescriptions: Record<LandStatus, string> = {
@@ -44,6 +47,7 @@ const statusDescriptions: Record<LandStatus, string> = {
   uncultivated: "Bare earth, no current activity",
   not_usable: "Unsuitable for farming",
   thaka: "Currently leased to tenant",
+  haari: "Partnered with Hari on sharecropping (Batai)",
 };
 
 const statusStats: Record<LandStatus, {
@@ -56,6 +60,7 @@ const statusStats: Record<LandStatus, {
   uncultivated: { water: 'Low', sunlight: 'Medium', fertility: 'Low' },
   not_usable: { water: 'Low', sunlight: 'Low', fertility: 'Low' },
   thaka: { water: 'Medium', sunlight: 'Medium', fertility: 'Medium' },
+  haari: { water: 'High', sunlight: 'High', fertility: 'High' },
 };
 
 const getStatColor = (stat: 'Low' | 'Medium' | 'High') => {

@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Target,
   Activity,
+  Handshake,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, subMonths, startOfMonth, startOfYear } from "date-fns";
@@ -51,6 +52,7 @@ export default function DashboardPage() {
     incomes,
     waterRecords,
     thakaRecords,
+    haariRecords,
     aiRecommendations,
     fieldRecommendations,
     fetchAll,
@@ -122,9 +124,10 @@ export default function DashboardPage() {
       netProfit: totalInc - totalExp,
       totalWaterMins,
       activeThaka: activeThakaRecords.length,
+      activeHaari: haariRecords.filter((hr) => hr.status === "active").length,
       waterSessionCount: filteredWater.length,
     };
-  }, [fields, expenses, incomes, waterRecords, thakaRecords, dateFilter]);
+  }, [fields, expenses, incomes, waterRecords, thakaRecords, haariRecords, dateFilter]);
 
   const cultivatedArea = useMemo(
     () => fields.filter((f) => f.status === "cultivated").reduce((a, f) => a + (f.area || 0), 0),
@@ -132,6 +135,10 @@ export default function DashboardPage() {
   );
   const thakaArea = useMemo(
     () => fields.filter((f) => f.status === "thaka").reduce((a, f) => a + (f.area || 0), 0),
+    [fields]
+  );
+  const haariArea = useMemo(
+    () => fields.filter((f) => f.status === "haari").reduce((a, f) => a + (f.area || 0), 0),
     [fields]
   );
 
@@ -335,6 +342,20 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-theme-muted">{t("onHaari")}</span>
+                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                  {totals.totalArea ? ((haariArea / totals.totalArea) * 100).toFixed(0) : 0}% — {haariArea.toFixed(1)} {t("acres")}
+                </span>
+              </div>
+              <div className="w-full bg-theme-track rounded-full h-2.5">
+                <div
+                  className="h-2.5 rounded-full bg-amber-500 transition-all"
+                  style={{ width: `${totals.totalArea ? (haariArea / totals.totalArea) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -377,6 +398,13 @@ export default function DashboardPage() {
             >
               <ClipboardList className="w-5 h-5 text-yellow-500" />
               <span className="text-sm">{t("thakaRecords")}</span>
+            </Link>
+            <Link
+              href="/haari"
+              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-theme-track hover:opacity-90 transition border border-theme text-center text-theme"
+            >
+              <Handshake className="w-5 h-5 text-amber-500" />
+              <span className="text-sm">{t("haariRecords")}</span>
             </Link>
             <Link
               href="/materials"

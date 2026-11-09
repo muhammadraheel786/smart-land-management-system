@@ -299,6 +299,162 @@ def thaka_detail(request, pk):
         return _json_response({'error': 'Not found'}, 404)
 
 
+# --- Haari (Sharecropping / Batai) Records ---
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def haari_list(request):
+    col = get_collection('haari_records')
+    if request.method == 'GET':
+        items = list(col.find({}, {'_id': 0}))
+        return _json_response(items)
+
+    body = _parse_body(request)
+    doc = {
+        'id': body.get('id') or f"haari_{generate_id()}",
+        'fieldId': body.get('fieldId', ''),
+        'hariName': body.get('hariName', ''),
+        'hariContact': body.get('hariContact', ''),
+        'hariCnic': body.get('hariCnic', ''),
+        'allocatedArea': _to_num(body.get('allocatedArea', 0)),
+        'crop': body.get('crop', ''),
+        'startDate': body.get('startDate', ''),
+        'endDate': body.get('endDate', ''),
+        'landownerSharePercentage': _to_num(body.get('landownerSharePercentage', 50)),
+        'hariSharePercentage': _to_num(body.get('hariSharePercentage', 50)),
+        'expenseSharingMode': body.get('expenseSharingMode', 'SHARED_BY_PERCENTAGE'),
+        'advanceLoanAmount': _to_num(body.get('advanceLoanAmount', 0)),
+        'status': body.get('status', 'active'),
+        'notes': body.get('notes', ''),
+        'createdAt': datetime.utcnow().isoformat() + 'Z',
+        'updatedAt': datetime.utcnow().isoformat() + 'Z',
+    }
+    col.insert_one(doc)
+    del doc['_id']
+    return _json_response(doc, 201)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PUT", "DELETE"])
+def haari_detail(request, pk):
+    col = get_collection('haari_records')
+    if request.method == 'GET':
+        doc = col.find_one({'id': pk}, {'_id': 0})
+        if not doc:
+            return _json_response({'error': 'Not found'}, 404)
+        return _json_response(doc)
+    if request.method == 'PUT':
+        body = _parse_body(request)
+        allowed = {
+            'fieldId', 'hariName', 'hariContact', 'hariCnic',
+            'allocatedArea', 'crop', 'startDate', 'endDate',
+            'landownerSharePercentage', 'hariSharePercentage',
+            'expenseSharingMode', 'advanceLoanAmount', 'status', 'notes'
+        }
+        update = {k: body[k] for k in allowed if k in body}
+        # Cast numeric fields properly
+        for num_field in ('allocatedArea', 'landownerSharePercentage', 'hariSharePercentage', 'advanceLoanAmount'):
+            if num_field in update:
+                update[num_field] = _to_num(update[num_field])
+        update['updatedAt'] = datetime.utcnow().isoformat() + 'Z'
+        if not update:
+            doc = col.find_one({'id': pk}, {'_id': 0})
+            if not doc:
+                return _json_response({'error': 'Not found'}, 404)
+            del doc['_id']
+            return _json_response(doc)
+        result = col.find_one_and_update(
+            {'id': pk}, {'$set': update}, return_document=True
+        )
+        if not result:
+            return _json_response({'error': 'Not found'}, 404)
+        del result['_id']
+        return _json_response(result)
+    if request.method == 'DELETE':
+        if _soft_delete('haari_records', pk):
+            return _json_response({}, 204)
+        return _json_response({'error': 'Not found'}, 404)
+
+
+# --- Haari Harvest Settlements ---
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def haari_settlements_list(request):
+    col = get_collection('haari_settlements')
+    if request.method == 'GET':
+        haari_id = request.GET.get('haariId')
+        query = {'haariId': haari_id} if haari_id else {}
+        items = list(col.find(query, {'_id': 0}).sort('date', -1))
+        return _json_response(items)
+
+    body = _parse_body(request)
+    haari_id = body.get('haariId', '')
+    advance_deducted = _to_num(body.get('advanceDeducted', 0))
+
+    doc = {
+        'id': body.get('id') or f"settle_{generate_id()}",
+        'haariId': haari_id,
+        'fieldId': body.get('fieldId', ''),
+        'hariName': body.get('hariName', ''),
+        'crop': body.get('crop', ''),
+        'date': body.get('date', datetime.utcnow().strftime('%Y-%m-%d')),
+        'yieldQuantity': _to_num(body.get('yieldQuantity', 0)),
+        'yieldUnit': body.get('yieldUnit', 'maunds'),
+        'marketRate': _to_num(body.get('marketRate', 0)),
+        'grossHarvestValue': _to_num(body.get('grossHarvestValue', 0)),
+        'totalInputExpenses': _to_num(body.get('totalInputExpenses', 0)),
+        'expenseSharingMode': body.get('expenseSharingMode', 'SHARED_BY_PERCENTAGE'),
+        'landownerSharePercentage': _to_num(body.get('landownerSharePercentage', 50)),
+        'hariSharePercentage': _to_num(body.get('hariSharePercentage', 50)),
+        'landownerExpenseShare': _to_num(body.get('landownerExpenseShare', 0)),
+        'hariExpenseShare': _to_num(body.get('hariExpenseShare', 0)),
+        'landownerGrossShare': _to_num(body.get('landownerGrossShare', 0)),
+        'hariGrossShare': _to_num(body.get('hariGrossShare', 0)),
+        'landownerNetShare': _to_num(body.get('landownerNetShare', 0)),
+        'hariNetShare': _to_num(body.get('hariNetShare', 0)),
+        'advanceDeducted': advance_deducted,
+        'hariNetPayable': _to_num(body.get('hariNetPayable', 0)),
+        'notes': body.get('notes', ''),
+        'status': body.get('status', 'finalized'),
+        'createdAt': datetime.utcnow().isoformat() + 'Z',
+    }
+
+    # Automatically deduct recovered advance from Hari's Khaata balance if applicable
+    if advance_deducted > 0 and haari_id:
+        try:
+            haari_col = get_collection('haari_records')
+            contract = haari_col.find_one({'id': haari_id})
+            if contract:
+                current_advance = _to_num(contract.get('advanceLoanAmount', 0))
+                updated_advance = max(0, current_advance - advance_deducted)
+                haari_col.update_one({'id': haari_id}, {'$set': {
+                    'advanceLoanAmount': updated_advance,
+                    'updatedAt': datetime.utcnow().isoformat() + 'Z'
+                }})
+        except Exception as e:
+            logger.warning("Failed to auto-update Khaata on settlement: %s", e)
+
+    col.insert_one(doc)
+    del doc['_id']
+    return _json_response(doc, 201)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "DELETE"])
+def haari_settlements_detail(request, pk):
+    col = get_collection('haari_settlements')
+    if request.method == 'GET':
+        doc = col.find_one({'id': pk}, {'_id': 0})
+        if not doc:
+            return _json_response({'error': 'Not found'}, 404)
+        return _json_response(doc)
+    if request.method == 'DELETE':
+        if _soft_delete('haari_settlements', pk):
+            return _json_response({}, 204)
+        return _json_response({'error': 'Not found'}, 404)
+
+
 # --- Water Records ---
 
 @csrf_exempt
@@ -972,6 +1128,8 @@ def dashboard(request):
         fields = list(get_collection("fields").find({}, {"_id": 0}))
         activities = list(get_collection("activities").find({}, {"_id": 0}))
         thaka = list(get_collection("thaka_records").find({}, {"_id": 0}))
+        haari = list(get_collection("haari_records").find({}, {"_id": 0}))
+        haari_settlements = list(get_collection("haari_settlements").find({}, {"_id": 0}))
         temp = list(get_collection("temperature_records").find({}, {"_id": 0}))
         
         # Shim for transition: map old structures to activities so things don't immediately crash if partially updated
@@ -1029,6 +1187,8 @@ def dashboard(request):
             "fields": fields,
             "activities": activities,
             "thakaRecords": thaka,
+            "haariRecords": haari,
+            "haariSettlements": haari_settlements,
             "temperatureRecords": temp,
             # Legacy shims (can be removed once frontend fully refactored)
             "expenses": expenses_shim,

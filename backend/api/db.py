@@ -18,6 +18,8 @@ _indexes_ensured = False
 REQUIRED_COLLECTIONS = [
     "fields",
     "thaka_records",
+    "haari_records",
+    "haari_settlements",
     "temperature_records",
     "materials",
     "activities",
@@ -62,6 +64,10 @@ def ensure_indexes():
         db["temperature_records"].create_index([("fieldId", 1), ("date", -1)])
         db["fields"].create_index("id")  # non-unique so existing duplicates don't break
         db["materials"].create_index("id")
+        db["haari_records"].create_index("id")
+        db["haari_records"].create_index([("fieldId", 1), ("status", 1)])
+        db["haari_settlements"].create_index("id")
+        db["haari_settlements"].create_index([("haariId", 1), ("date", -1)])
         _indexes_ensured = True
         logger.debug("Indexes ensured")
     except Exception as e:

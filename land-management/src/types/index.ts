@@ -1,7 +1,7 @@
 // Land & Farm Management System - Type Definitions
 
-export type LandStatus = 'cultivated' | 'available' | 'uncultivated' | 'not_usable' | 'thaka';
-export type LandStatusColor = 'green' | 'yellow' | 'orange' | 'red' | 'blue' | 'gray';
+export type LandStatus = 'cultivated' | 'available' | 'uncultivated' | 'not_usable' | 'thaka' | 'haari';
+export type LandStatusColor = 'green' | 'yellow' | 'orange' | 'red' | 'blue' | 'gray' | 'purple';
 
 export interface Coordinates {
   lat: number;
@@ -43,7 +43,7 @@ export interface Expense {
 export interface Income {
   id: string;
   fieldId: string;
-  type: 'crop' | 'thaka';
+  type: 'crop' | 'thaka' | 'haari';
   amount: number;
   description?: string;
   date: string;
@@ -58,6 +58,56 @@ export interface ThakaRecord {
   endDate: string;
   amount: number;
   status: 'active' | 'expired' | 'renewed';
+}
+
+export type ExpenseSharingMode = 'SHARED_BY_PERCENTAGE' | 'LANDOWNER_BEARS_ALL' | 'HARI_BEARS_ALL';
+
+export interface HaariRecord {
+  id: string;
+  fieldId: string;
+  hariName: string;
+  hariContact?: string;
+  hariCnic?: string;
+  allocatedArea?: number;
+  crop?: string;
+  startDate: string;
+  endDate: string;
+  landownerSharePercentage: number;
+  hariSharePercentage: number;
+  expenseSharingMode: ExpenseSharingMode;
+  advanceLoanAmount: number;
+  status: 'active' | 'completed' | 'terminated';
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HaariSettlement {
+  id: string;
+  haariId: string;
+  fieldId: string;
+  hariName: string;
+  crop: string;
+  date: string;
+  yieldQuantity: number;
+  yieldUnit: string;
+  marketRate: number;
+  grossHarvestValue: number;
+  totalInputExpenses: number;
+  expenseSharingMode: ExpenseSharingMode;
+  landownerSharePercentage: number;
+  hariSharePercentage: number;
+  landownerExpenseShare: number;
+  hariExpenseShare: number;
+  landownerGrossShare: number;
+  hariGrossShare: number;
+  landownerNetShare: number;
+  hariNetShare: number;
+  advanceDeducted: number;
+  hariNetPayable: number;
+  notes?: string;
+  status: 'draft' | 'finalized';
+  createdAt?: string;
 }
 
 export interface WaterRecord {
@@ -133,6 +183,9 @@ export interface DashboardStats {
   cultivatedArea: number;
   availableArea: number;
   thakaArea: number;
+  haariArea: number;
+  activeHaariCount?: number;
+  totalKhaataLoan?: number;
   totalInvestment: number;
   totalIncome: number;
   netProfit: number;

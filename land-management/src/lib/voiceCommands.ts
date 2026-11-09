@@ -24,6 +24,7 @@ export const VOICE_COMMANDS: VoiceCommandDef[] = [
   { id: "map", labelKey: "landMap", path: "/map", action: "navigate", phrases: ["map", "land map", "show map"] },
   { id: "expenses", labelKey: "expensesIncome", path: "/expenses", action: "navigate", phrases: ["expenses", "income", "expense", "money", "wallet"] },
   { id: "thaka", labelKey: "thakaManagement", path: "/thaka", action: "navigate", phrases: ["thaka", "lease", "rented", "tenant"] },
+  { id: "haari", labelKey: "haariManagement", path: "/haari", action: "navigate", phrases: ["haari", "hari", "batai", "sharecrop", "sharecropping"] },
   { id: "water", labelKey: "waterManagement", path: "/water", action: "navigate", phrases: ["water", "irrigation", "water records"] },
   { id: "temperature", labelKey: "temperatureManagement", path: "/temperature", action: "navigate", phrases: ["temperature", "temp", "weather"] },
   { id: "statistics", labelKey: "statistics", path: "/statistics", action: "navigate", phrases: ["statistics", "stats", "charts"] },
