@@ -282,7 +282,12 @@ export const useLandStore = create<LandState>((set, get) => ({
       const updated = await api.updateHaariRecord(id, updates);
       set((s) => ({ haariRecords: s.haariRecords.map((h) => (h.id === id ? updated : h)) }));
     } catch (e) {
-      console.error('Update haari failed:', e);
+      console.error('Update haari failed, applying local state fallback:', e);
+      set((s) => ({
+        haariRecords: s.haariRecords.map((h) =>
+          h.id === id ? { ...h, ...updates, updatedAt: new Date().toISOString() } : h
+        ),
+      }));
     }
   },
   deleteHaariRecord: async (id) => {

@@ -182,6 +182,20 @@ export default function ActivitiesPage() {
     // Harvest / Sale - Vendor name
     const [vendorName, setVendorName] = useState("");
 
+    // Existing vendors list for harvest and sale
+    const existingVendors = useMemo(() => {
+        const set = new Set<string>();
+        activities.forEach(a => {
+            const match = a.notes?.match(/^\[Vendor:\s*(.+?)\]/i);
+            if (match && match[1]?.trim()) set.add(match[1].trim());
+        });
+        try {
+            const meta = JSON.parse(localStorage.getItem("vendor_profiles_meta") || "{}");
+            Object.keys(meta).forEach(k => { if (k.trim()) set.add(k.trim()); });
+        } catch {}
+        return Array.from(set).sort((a, b) => a.localeCompare(b));
+    }, [activities]);
+
     // Field search dropdown
     const [fieldSearch, setFieldSearch] = useState("");
     const [fieldDropdownOpen, setFieldDropdownOpen] = useState(false);
@@ -1389,19 +1403,67 @@ export default function ActivitiesPage() {
 
                                     {needsIncome && (
                                         <div className="space-y-4 animate-in fade-in duration-500">
-                                            {/* Vendor / Buyer Name for harvest & income */}
+                                            {/* Vendor / Buyer Name for harvest & income with Existing Vendors Selector */}
                                             {(activityType === "harvest" || activityType === "income") && (
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 px-1">
-                                                        {locale === "ur" ? "خریدار / وینڈر کا نام" : "Vendor / Buyer Name"}
-                                                    </label>
+                                                <div className="p-4 rounded-3xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="block text-[10px] font-black text-amber-500 uppercase tracking-widest px-1">
+                                                            {locale === "ur" ? "خریدار / وینڈر کا نام" : "Vendor / Buyer Name"}
+                                                        </label>
+                                                        {existingVendors.length > 0 && (
+                                                            <span className="text-[10px] text-theme-muted font-bold">
+                                                                {existingVendors.length} existing buyer{existingVendors.length > 1 ? 's' : ''}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Existing Vendors Dropdown */}
+                                                    {existingVendors.length > 0 && (
+                                                        <div>
+                                                            <select
+                                                                value={existingVendors.includes(vendorName) ? vendorName : ""}
+                                                                onChange={e => { if (e.target.value) setVendorName(e.target.value); }}
+                                                                className="w-full px-4 py-3 rounded-2xl bg-theme-track border border-amber-500/30 text-theme text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20"
+                                                            >
+                                                                <option value="">{locale === "ur" ? "-- موجودہ وینڈر منتخب کریں (یا نیچے نیا نام لکھیں) --" : "-- Select Existing Buyer (or type below) --"}</option>
+                                                                {existingVendors.map(v => (
+                                                                    <option key={v} value={v}>{v}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Quick clickable chips for existing vendors */}
+                                                    {existingVendors.length > 0 && (
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="text-[9px] font-black uppercase text-theme-muted">Quick Pick:</span>
+                                                            {existingVendors.slice(0, 5).map(v => (
+                                                                <button
+                                                                    key={v}
+                                                                    type="button"
+                                                                    onClick={() => setVendorName(v)}
+                                                                    className={`text-[10px] px-2.5 py-1 rounded-xl font-bold border transition ${vendorName === v ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-theme-track border-theme text-theme-muted hover:text-theme'}`}
+                                                                >
+                                                                    {v}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Text input with connected datalist */}
                                                     <input
                                                         type="text"
                                                         value={vendorName}
                                                         onChange={e => setVendorName(e.target.value)}
-                                                        placeholder={locale === "ur" ? "مثلاً: احمد تاجر، منڈی..." : "e.g. Ahmed Trader, Mandi..." }
-                                                        className="w-full px-6 py-4 rounded-2xl bg-theme-track border border-amber-500/30 text-theme text-sm font-bold focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                                                        placeholder={locale === "ur" ? "مثلاً: احمد تاجر، منڈی..." : "e.g. Ahmed Trader, Mandi..."}
+                                                        list="existing-vendors-datalist"
+                                                        className="w-full px-5 py-3.5 rounded-2xl bg-theme-track border border-amber-500/30 text-theme text-sm font-bold focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
                                                     />
+                                                    <datalist id="existing-vendors-datalist">
+                                                        {existingVendors.map(v => (
+                                                            <option key={v} value={v} />
+                                                        ))}
+                                                    </datalist>
                                                 </div>
                                             )}
                                             {activityType === "harvest" && (

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import {
   Handshake,
   Plus,
+  Minus,
   Pencil,
   Trash,
   Trash2,
@@ -11,6 +12,7 @@ import {
   History,
   FileText,
   User,
+  Users,
   Phone,
   CreditCard,
   CheckCircle2,
@@ -76,6 +78,16 @@ export default function HaariPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Quick Loan Adjustment Modal State (+ / - buttons on cards)
+  const [loanAdjustModalOpen, setLoanAdjustModalOpen] = useState(false);
+  const [adjustContractId, setAdjustContractId] = useState<string>("");
+  const [adjustLoanType, setAdjustLoanType] = useState<"business" | "personal">("business");
+  const [adjustAction, setAdjustAction] = useState<"add" | "deduct">("add");
+  const [adjustAmount, setAdjustAmount] = useState<string>("");
+  const [adjustDate, setAdjustDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const [adjustRemarks, setAdjustRemarks] = useState<string>("");
+  const [adjustSubmitting, setAdjustSubmitting] = useState(false);
+
   // Settlement Modal States
   const [settlementModalOpen, setSettlementModalOpen] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState<string>("");
@@ -96,6 +108,32 @@ export default function HaariPage() {
     fetchAll();
   }, [fetchAll]);
 
+  // Compute unique existing Haris so user can allocate multiple lands to the same person
+  const existingHaris = useMemo(() => {
+    const map: Record<string, { name: string; contact?: string; cnic?: string; count: number; fields: string[] }> = {};
+    haariRecords.forEach((r) => {
+      const trimmed = r.hariName.trim();
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      const fName = fields.find((f) => f.id === r.fieldId)?.name || r.fieldId;
+      if (!map[key]) {
+        map[key] = {
+          name: trimmed,
+          contact: r.hariContact,
+          cnic: r.hariCnic,
+          count: 1,
+          fields: fName ? [fName] : [],
+        };
+      } else {
+        map[key].count += 1;
+        if (!map[key].contact && r.hariContact) map[key].contact = r.hariContact;
+        if (!map[key].cnic && r.hariCnic) map[key].cnic = r.hariCnic;
+        if (fName && !map[key].fields.includes(fName)) map[key].fields.push(fName);
+      }
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [haariRecords, fields]);
+
   // When editing contract, populate form
   useEffect(() => {
     if (editingId) {
@@ -107,7 +145,7 @@ export default function HaariPage() {
         setHariCnic(c.hariCnic || "");
         setCrop(c.crop || "Wheat");
         setStartDate(c.startDate);
-        setEndDate(c.endDate);
+        setEndDate(c.endDate || "");
         setLandownerShare(c.landownerSharePercentage || 50);
         setNotes(c.notes || "");
 
@@ -167,7 +205,7 @@ export default function HaariPage() {
   const handleAddLoan = () => {
     const amt = Number(newLoanAmount);
     if (!amt || amt <= 0 || isNaN(amt)) {
-      setFormError("Please enter a valid loan amount.");
+      setFormError("Please enter a valid positive loan amount.");
       return;
     }
     const item: HaariLoanEntry = {
@@ -241,7 +279,7 @@ export default function HaariPage() {
     setFormError(null);
   };
 
-  // Submit contract form
+  // Submit contract form (create or edit)
   const handleSubmitContract = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -277,7 +315,7 @@ export default function HaariPage() {
     try {
       if (editingId) {
         await updateHaariRecord(editingId, payload);
-        setSuccessMsg(t("recordUpdated") || "Record updated.");
+        setSuccessMsg("Haari agreement updated successfully!");
         resetForm();
         setTimeout(() => setSuccessMsg(null), 4000);
         return;
@@ -297,6 +335,132 @@ export default function HaariPage() {
     } catch (err: any) {
       console.error("Haari contract submit error:", err);
       setFormError(err?.message || "Failed to save Haari contract. Try again.");
+    }
+  };
+
+  // ── Quick Loan Adjustment Logic (+ / - buttons on cards) ──
+  const openLoanAdjust = (
+    contract: HaariRecord,
+    loanType: "business" | "personal",
+    action: "add" | "deduct"
+  ) => {
+    setAdjustContractId(contract.id);
+    setAdjustLoanType(loanType);
+    setAdjustAction(action);
+    setAdjustAmount("");
+    setAdjustDate(format(new Date(), "yyyy-MM-dd"));
+    setAdjustRemarks(
+      action === "add"
+        ? loanType === "business"
+          ? "Fertilizer / seed advance"
+          : "Personal cash advance"
+        : `${loanType === "business" ? "Business" : "Personal"} loan deduction / return`
+    );
+    setLoanAdjustModalOpen(true);
+  };
+
+  const contractToAdjust = useMemo(
+    () => haariRecords.find((c) => c.id === adjustContractId) || null,
+    [haariRecords, adjustContractId]
+  );
+
+  const currentAdjustBalance = useMemo(() => {
+    if (!contractToAdjust) return 0;
+    if (adjustLoanType === "business") {
+      return contractToAdjust.loans
+        ? contractToAdjust.loans.filter((l) => l.type === "business").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+        : Number((contractToAdjust as any).businessLoanAmount || contractToAdjust.advanceLoanAmount || 0);
+    } else {
+      return contractToAdjust.loans
+        ? contractToAdjust.loans.filter((l) => l.type === "personal").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+        : Number((contractToAdjust as any).personalLoanAmount || 0);
+    }
+  }, [contractToAdjust, adjustLoanType]);
+
+  const handleConfirmLoanAdjust = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = Number(adjustAmount);
+    if (!amt || amt <= 0 || isNaN(amt)) {
+      alert("Please enter a valid positive amount.");
+      return;
+    }
+    if (!contractToAdjust) return;
+    setAdjustSubmitting(true);
+
+    const existingLoans: HaariLoanEntry[] =
+      Array.isArray(contractToAdjust.loans) && contractToAdjust.loans.length > 0
+        ? [...contractToAdjust.loans]
+        : [
+            ...((contractToAdjust as any).businessLoanAmount
+              ? [
+                  {
+                    id: "b_init_" + contractToAdjust.id,
+                    type: "business" as const,
+                    amount: Number((contractToAdjust as any).businessLoanAmount),
+                    date: contractToAdjust.startDate || format(new Date(), "yyyy-MM-dd"),
+                    remarks: "Initial business loan",
+                  },
+                ]
+              : []),
+            ...((contractToAdjust as any).personalLoanAmount
+              ? [
+                  {
+                    id: "p_init_" + contractToAdjust.id,
+                    type: "personal" as const,
+                    amount: Number((contractToAdjust as any).personalLoanAmount),
+                    date: contractToAdjust.startDate || format(new Date(), "yyyy-MM-dd"),
+                    remarks: "Initial personal loan",
+                  },
+                ]
+              : []),
+            ...(!((contractToAdjust as any).businessLoanAmount || (contractToAdjust as any).personalLoanAmount) &&
+            contractToAdjust.advanceLoanAmount
+              ? [
+                  {
+                    id: "adv_init_" + contractToAdjust.id,
+                    type: "business" as const,
+                    amount: Number(contractToAdjust.advanceLoanAmount),
+                    date: contractToAdjust.startDate || format(new Date(), "yyyy-MM-dd"),
+                    remarks: "Starting advance",
+                  },
+                ]
+              : []),
+          ];
+
+    const finalAmount = adjustAction === "add" ? amt : -amt;
+    const newEntry: HaariLoanEntry = {
+      id: "loan_" + Date.now(),
+      type: adjustLoanType,
+      amount: finalAmount,
+      date: adjustDate || format(new Date(), "yyyy-MM-dd"),
+      remarks:
+        adjustRemarks.trim() ||
+        (adjustAction === "add" ? `${adjustLoanType} loan added` : `${adjustLoanType} loan deducted`),
+    };
+
+    const updatedLoans = [...existingLoans, newEntry];
+    const newBizTotal = updatedLoans.filter((l) => l.type === "business").reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    const newPersonalTotal = updatedLoans.filter((l) => l.type === "personal").reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    const newAdvanceTotal = Math.max(0, newBizTotal + newPersonalTotal);
+
+    try {
+      await updateHaariRecord(contractToAdjust.id, {
+        loans: updatedLoans,
+        businessLoanAmount: Math.max(0, newBizTotal),
+        personalLoanAmount: Math.max(0, newPersonalTotal),
+        advanceLoanAmount: newAdvanceTotal,
+      });
+      setLoanAdjustModalOpen(false);
+      setSuccessMsg(
+        `${adjustLoanType === "business" ? "Business" : "Personal"} loan ${
+          adjustAction === "add" ? "increased" : "decreased"
+        } by Rs ${amt.toLocaleString()} for ${contractToAdjust.hariName}`
+      );
+      setTimeout(() => setSuccessMsg(null), 4500);
+    } catch (err: any) {
+      alert(err?.message || "Failed to update loan balance.");
+    } finally {
+      setAdjustSubmitting(false);
     }
   };
 
@@ -441,7 +605,7 @@ export default function HaariPage() {
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">
-            Manage Pakistani sharecropping contracts, dynamic loan ledger & harvest settlements
+            Manage Pakistani sharecropping contracts, dynamic loan ledger, quick +/- adjustments & harvest settlements
           </p>
         </div>
 
@@ -547,18 +711,30 @@ export default function HaariPage() {
       {activeTab === "contracts" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ══════════ CREATE / EDIT CONTRACT FORM (5 cols) ══════════ */}
-          <div className="lg:col-span-5 bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm h-fit">
+          <div
+            id="haari-contract-form"
+            className={`lg:col-span-5 bg-theme-card border rounded-[2rem] p-6 shadow-sm h-fit transition-all ${
+              editingId ? "border-amber-500 ring-2 ring-amber-500/30 shadow-xl shadow-amber-500/10" : "border-theme"
+            }`}
+          >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-theme">
-                {editingId ? t("edit") : t("haariNewAgreement")}
-              </h3>
+              <div>
+                <h3 className="text-lg font-bold text-theme">
+                  {editingId ? "✏️ Edit Haari Agreement" : t("haariNewAgreement")}
+                </h3>
+                {editingId && (
+                  <p className="text-xs text-amber-500 font-bold mt-0.5">
+                    Modifying agreement for {hariName || "selected Hari"}
+                  </p>
+                )}
+              </div>
               {editingId && (
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="text-xs text-theme-muted hover:text-theme underline"
+                  className="px-3 py-1 rounded-xl bg-theme-track border border-theme text-xs font-bold text-theme-muted hover:text-theme transition"
                 >
-                  {t("cancel")}
+                  Cancel Edit
                 </button>
               )}
             </div>
@@ -598,19 +774,81 @@ export default function HaariPage() {
                 </select>
               </div>
 
-              {/* Hari Name */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                  {t("haariHariName")} *
-                </label>
+              {/* ══════════ HARI SELECTOR & NAME (Assign Multiple Lands) ══════════ */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted">
+                    {t("haariHariName")} *
+                  </label>
+                  {existingHaris.length > 0 && (
+                    <span className="text-[10px] font-bold text-amber-500">
+                      {existingHaris.length} registered farmer{existingHaris.length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+
+                {/* Existing Hari Dropdown */}
+                {existingHaris.length > 0 && (
+                  <select
+                    value={existingHaris.some((h) => h.name.toLowerCase() === hariName.trim().toLowerCase()) ? hariName : ""}
+                    onChange={(e) => {
+                      const selected = existingHaris.find((h) => h.name === e.target.value);
+                      if (selected) {
+                        setHariName(selected.name);
+                        if (selected.contact) setHariContact(selected.contact);
+                        if (selected.cnic) setHariCnic(selected.cnic);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-amber-500/30 text-theme text-xs font-bold focus:ring-2 focus:ring-amber-500/40 outline-none"
+                  >
+                    <option value="">-- Select Existing Hari (یا نیچے نیا نام لکھیں) --</option>
+                    {existingHaris.map((h) => (
+                      <option key={h.name} value={h.name}>
+                        {h.name} ({h.count} active land{h.count > 1 ? "s" : ""}) {h.contact ? `· ${h.contact}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Quick chips for existing Haris */}
+                {existingHaris.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    <span className="text-[9px] font-black uppercase text-theme-muted">Quick Pick:</span>
+                    {existingHaris.slice(0, 4).map((h) => (
+                      <button
+                        key={h.name}
+                        type="button"
+                        onClick={() => {
+                          setHariName(h.name);
+                          if (h.contact) setHariContact(h.contact);
+                          if (h.cnic) setHariCnic(h.cnic);
+                        }}
+                        className={`text-[10px] px-2.5 py-1 rounded-lg font-bold border transition ${
+                          hariName === h.name
+                            ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                            : "bg-theme-track border-theme text-theme-muted hover:text-theme"
+                        }`}
+                      >
+                        {h.name} ({h.count})
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <input
                   type="text"
                   value={hariName}
                   onChange={(e) => setHariName(e.target.value)}
                   required
-                  className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
+                  list="existing-haris-datalist"
+                  className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none font-bold"
                   placeholder="e.g. Allah Dino / Ghulam Rasool"
                 />
+                <datalist id="existing-haris-datalist">
+                  {existingHaris.map((h) => (
+                    <option key={h.name} value={h.name} />
+                  ))}
+                </datalist>
               </div>
 
               {/* Phone & CNIC */}
@@ -729,7 +967,7 @@ export default function HaariPage() {
                 />
               </div>
 
-              {/* ══════════ NEW LOAN/ADVANCE LEDGER SECTION ══════════ */}
+              {/* ══════════ DYNAMIC LOAN / ADVANCE LEDGER SECTION ══════════ */}
               <div className="p-4 sm:p-5 rounded-2xl bg-theme-track/60 border border-theme space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
@@ -769,7 +1007,9 @@ export default function HaariPage() {
                             {item.type === "business" ? "Business Loan" : "Personal Loan"}
                           </span>
                           <div className="min-w-0">
-                            <span className="font-black text-theme">Rs {item.amount.toLocaleString()}</span>
+                            <span className="font-black text-theme">
+                              {item.amount < 0 ? `-Rs ${Math.abs(item.amount).toLocaleString()}` : `Rs ${item.amount.toLocaleString()}`}
+                            </span>
                             {item.remarks && <p className="text-[11px] text-theme-muted truncate">{item.remarks}</p>}
                           </div>
                         </div>
@@ -908,7 +1148,7 @@ export default function HaariPage() {
                 type="submit"
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-sm shadow-lg shadow-amber-500/30 hover:opacity-95 transition active:scale-95"
               >
-                {editingId ? t("update") : "Save Haari Agreement"}
+                {editingId ? "Update Haari Agreement" : "Save Haari Agreement"}
               </button>
             </form>
           </div>
@@ -977,17 +1217,57 @@ export default function HaariPage() {
                             </span>
                           </div>
 
-                          {/* Share & Loan Summary Pills */}
-                          <div className="flex items-center gap-2.5 pt-1 flex-wrap text-xs">
-                            <div className="px-2.5 py-1 rounded-lg bg-theme-track border border-theme font-medium text-theme">
+                          {/* Share & Loan Summary Pills with Quick +/- Buttons */}
+                          <div className="flex items-center gap-2 pt-1 flex-wrap text-xs">
+                            <div className="px-2.5 py-1.5 rounded-xl bg-theme-track border border-theme font-medium text-theme">
                               Split: <span className="text-amber-500 font-bold">{c.landownerSharePercentage}% L</span> /{" "}
                               <span className="text-emerald-500 font-bold">{c.hariSharePercentage}% H</span>
                             </div>
-                            <div className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 font-medium text-blue-400">
-                              Biz Loan: <span className="font-bold">Rs {bLoans.toLocaleString()}</span>
+
+                            {/* Biz Loan with +/- buttons */}
+                            <div className="flex items-center bg-blue-500/10 border border-blue-500/30 rounded-xl overflow-hidden shadow-sm">
+                              <span className="px-2.5 py-1 font-black text-blue-400 text-xs">
+                                Biz Loan: Rs {bLoans.toLocaleString()}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openLoanAdjust(c, "business", "add")}
+                                className="px-2 py-1 bg-blue-500/20 hover:bg-emerald-500 hover:text-white text-blue-400 font-black border-l border-blue-500/30 transition active:scale-90"
+                                title="Add to Business Loan (+)"
+                              >
+                                +
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openLoanAdjust(c, "business", "deduct")}
+                                className="px-2 py-1 bg-blue-500/20 hover:bg-amber-500 hover:text-white text-blue-400 font-black border-l border-blue-500/30 transition active:scale-90"
+                                title="Deduct from Business Loan (-)"
+                              >
+                                -
+                              </button>
                             </div>
-                            <div className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 font-medium text-purple-400">
-                              Personal Loan: <span className="font-bold">Rs {pLoans.toLocaleString()}</span>
+
+                            {/* Personal Loan with +/- buttons */}
+                            <div className="flex items-center bg-purple-500/10 border border-purple-500/30 rounded-xl overflow-hidden shadow-sm">
+                              <span className="px-2.5 py-1 font-black text-purple-400 text-xs">
+                                Personal: Rs {pLoans.toLocaleString()}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openLoanAdjust(c, "personal", "add")}
+                                className="px-2 py-1 bg-purple-500/20 hover:bg-emerald-500 hover:text-white text-purple-400 font-black border-l border-purple-500/30 transition active:scale-90"
+                                title="Add to Personal Loan (+)"
+                              >
+                                +
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openLoanAdjust(c, "personal", "deduct")}
+                                className="px-2 py-1 bg-purple-500/20 hover:bg-amber-500 hover:text-white text-purple-400 font-black border-l border-purple-500/30 transition active:scale-90"
+                                title="Deduct from Personal Loan (-)"
+                              >
+                                -
+                              </button>
                             </div>
                           </div>
 
@@ -1003,7 +1283,7 @@ export default function HaariPage() {
                                       : "bg-purple-500/5 border-purple-500/20 text-purple-400"
                                   }`}
                                 >
-                                  {l.type === "business" ? "Biz" : "Personal"}: Rs {l.amount.toLocaleString()}
+                                  {l.type === "business" ? "Biz" : "Personal"}: {l.amount < 0 ? `-Rs ${Math.abs(l.amount).toLocaleString()}` : `Rs ${l.amount.toLocaleString()}`}
                                   {l.remarks ? ` (${l.remarks})` : ""}
                                 </span>
                               ))}
@@ -1027,10 +1307,11 @@ export default function HaariPage() {
                               type="button"
                               onClick={() => {
                                 setEditingId(c.id);
-                                window.scrollTo({ top: 0, behavior: "smooth" });
+                                const formEl = document.getElementById("haari-contract-form");
+                                if (formEl) formEl.scrollIntoView({ behavior: "smooth", block: "start" });
                               }}
                               className="p-2 rounded-xl text-theme-muted hover:text-blue-500 hover:bg-blue-500/10 transition"
-                              title={t("edit")}
+                              title="Edit Full Contract & Details"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -1072,7 +1353,11 @@ export default function HaariPage() {
                       <div className="flex gap-1">
                         <button
                           type="button"
-                          onClick={() => setEditingId(c.id)}
+                          onClick={() => {
+                            setEditingId(c.id);
+                            const formEl = document.getElementById("haari-contract-form");
+                            if (formEl) formEl.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }}
                           className="p-1.5 rounded-lg text-theme-muted hover:text-theme"
                         >
                           <Pencil className="w-4 h-4" />
@@ -1090,6 +1375,147 @@ export default function HaariPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ QUICK LOAN ADJUSTMENT MODAL (+ / -) ══════════ */}
+      {loanAdjustModalOpen && contractToAdjust && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setLoanAdjustModalOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-md bg-theme-card border border-theme rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-theme pb-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg ${
+                    adjustAction === "add"
+                      ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/30"
+                      : "bg-amber-500/10 text-amber-500 border border-amber-500/30"
+                  }`}
+                >
+                  {adjustAction === "add" ? <Plus className="w-5 h-5" /> : <Minus className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-theme">
+                    {adjustAction === "add" ? "Add to" : "Deduct from"}{" "}
+                    {adjustLoanType === "business" ? "Business Loan" : "Personal Loan"}
+                  </h3>
+                  <p className="text-xs text-theme-muted font-bold">
+                    {contractToAdjust.hariName} · Current Balance: Rs {currentAdjustBalance.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLoanAdjustModalOpen(false)}
+                className="p-2 rounded-xl text-theme-muted hover:bg-theme-track transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmLoanAdjust} className="space-y-4">
+              {/* Quick Amount Chips */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-theme-muted mb-2">
+                  Quick Amount Presets:
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5000, 10000, 25000, 50000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setAdjustAmount(String(preset))}
+                      className="py-2 rounded-xl bg-theme-track border border-theme text-theme text-xs font-black hover:border-amber-500/50 hover:text-amber-500 transition active:scale-95"
+                    >
+                      +{preset.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Amount Input */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">
+                  Amount (Rs) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-muted font-black text-base opacity-40">
+                    Rs
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="any"
+                    value={adjustAmount}
+                    onChange={(e) => setAdjustAmount(e.target.value)}
+                    required
+                    placeholder="e.g. 15000"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-theme-track border-2 border-theme text-theme text-xl font-black outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">
+                  Transaction Date
+                </label>
+                <input
+                  type="date"
+                  value={adjustDate}
+                  onChange={(e) => setAdjustDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold outline-none"
+                />
+              </div>
+
+              {/* Remarks */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-theme-muted mb-1">
+                  Remarks / Purpose
+                </label>
+                <input
+                  type="text"
+                  value={adjustRemarks}
+                  onChange={(e) => setAdjustRemarks(e.target.value)}
+                  placeholder={
+                    adjustLoanType === "business"
+                      ? "e.g. Urea fertilizer bag, Tractor diesel"
+                      : "e.g. Ration advance, Medical aid, Cash return"
+                  }
+                  className="w-full px-4 py-3 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setLoanAdjustModalOpen(false)}
+                  className="flex-1 py-3.5 rounded-2xl bg-theme-track border border-theme text-theme font-black text-xs uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={adjustSubmitting}
+                  className={`flex-[2] py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg transition active:scale-95 disabled:opacity-50 ${
+                    adjustAction === "add"
+                      ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30"
+                      : "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30"
+                  }`}
+                >
+                  {adjustSubmitting
+                    ? "Updating..."
+                    : adjustAction === "add"
+                    ? `Confirm + Add ${adjustLoanType === "business" ? "Biz" : "Personal"} Loan`
+                    : `Confirm - Deduct ${adjustLoanType === "business" ? "Biz" : "Personal"} Loan`}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
