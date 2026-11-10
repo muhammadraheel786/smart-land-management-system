@@ -965,22 +965,23 @@ export default function HaariPage() {
 
       {/* Harvest Settlement Interactive Modal */}
       {settlementModalOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setSettlementModalOpen(false)}
           />
-          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-5 sm:p-8 max-w-2xl w-full shadow-2xl my-8 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-theme">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200 overflow-hidden">
+            {/* Modal Pinned Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b border-theme shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
                   <Calculator className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-black text-theme">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-black text-theme truncate">
                     {t("haariSettlementCalculator")}
                   </h3>
-                  <p className="text-xs text-theme-muted">
+                  <p className="text-xs text-theme-muted truncate">
                     Calculate Gross Harvest, Expense Split & Khaata Deductions
                   </p>
                 </div>
@@ -988,13 +989,15 @@ export default function HaariPage() {
               <button
                 type="button"
                 onClick={() => setSettlementModalOpen(false)}
-                className="p-2 rounded-xl text-theme-muted hover:text-theme hover:bg-theme-track"
+                className="p-2 rounded-xl text-theme-muted hover:text-theme hover:bg-theme-track transition shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleFinalizeSettlement} className="space-y-5 mt-5">
+            <form onSubmit={handleFinalizeSettlement} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              {/* Scrollable Form Body */}
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
               {/* Contract Selector */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
@@ -1195,20 +1198,23 @@ export default function HaariPage() {
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={settleSubmitting}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold hover:opacity-95 disabled:opacity-50 transition shadow-lg shadow-amber-500/20"
-                >
-                  {settleSubmitting ? "Finalizing…" : t("haariFinalizeSettlement")}
-                </button>
+              </div>
+
+              {/* Modal Pinned Footer with Action Buttons */}
+              <div className="p-4 sm:p-6 pt-3 border-t border-theme bg-theme-card/95 backdrop-blur-sm flex items-center justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setSettlementModalOpen(false)}
-                  className="px-5 py-3 rounded-xl bg-theme-track border border-theme text-theme-muted font-bold hover:text-theme"
+                  className="px-5 py-2.5 rounded-xl bg-theme-track border border-theme text-theme-muted font-bold hover:text-theme transition text-sm"
                 >
                   {t("cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={settleSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold hover:opacity-95 disabled:opacity-50 transition shadow-lg shadow-amber-500/20 text-sm"
+                >
+                  {settleSubmitting ? "Finalizing…" : t("haariFinalizeSettlement")}
                 </button>
               </div>
             </form>
