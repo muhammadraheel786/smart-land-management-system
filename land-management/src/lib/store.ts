@@ -95,13 +95,33 @@ export const useLandStore = create<LandState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const data = await api.getDashboard();
+      let haariRecords = data.haariRecords;
+      let haariSettlements = data.haariSettlements;
+
+      if (!haariRecords || !Array.isArray(haariRecords) || haariRecords.length === 0) {
+        try {
+          const fetchedHaari = await api.getHaariRecords();
+          if (fetchedHaari && fetchedHaari.length > 0) {
+            haariRecords = fetchedHaari;
+          }
+        } catch (_) {}
+      }
+      if (!haariSettlements || !Array.isArray(haariSettlements) || haariSettlements.length === 0) {
+        try {
+          const fetchedSettlements = await api.getHaariSettlements();
+          if (fetchedSettlements && fetchedSettlements.length > 0) {
+            haariSettlements = fetchedSettlements;
+          }
+        } catch (_) {}
+      }
+
       set({
         fields: dedupeFieldsById(data.fields ?? []),
         expenses: data.expenses ?? [],
         incomes: data.incomes ?? [],
         thakaRecords: data.thakaRecords ?? [],
-        haariRecords: data.haariRecords ?? [],
-        haariSettlements: data.haariSettlements ?? [],
+        haariRecords: haariRecords ?? [],
+        haariSettlements: haariSettlements ?? [],
         waterRecords: data.waterRecords ?? [],
         temperatureRecords: data.temperatureRecords ?? [],
       });

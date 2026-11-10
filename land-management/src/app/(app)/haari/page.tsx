@@ -178,36 +178,41 @@ export default function HaariPage() {
       hariName: hariName.trim(),
       hariContact: hariContact.trim() || undefined,
       hariCnic: hariCnic.trim() || undefined,
-      allocatedArea: allocatedArea ? Number(allocatedArea) : undefined,
+      allocatedArea: allocatedArea ? (Number(allocatedArea) || undefined) : undefined,
       crop: crop.trim() || "Wheat",
       startDate,
       endDate: endDate || startDate,
-      landownerSharePercentage: landownerShare,
-      hariSharePercentage: hariShare,
+      landownerSharePercentage: Number(landownerShare) || 50,
+      hariSharePercentage: Number(hariShare) || 50,
       expenseSharingMode,
-      advanceLoanAmount: advanceLoanAmount ? Number(advanceLoanAmount) : 0,
+      advanceLoanAmount: advanceLoanAmount ? (Number(advanceLoanAmount) || 0) : 0,
       status: "active" as const,
       notes: notes.trim() || undefined,
     };
 
-    if (editingId) {
-      await updateHaariRecord(editingId, payload);
-      setSuccessMsg(t("recordUpdated") || "Record updated.");
-      resetForm();
-      setTimeout(() => setSuccessMsg(null), 4000);
-      return;
-    }
+    try {
+      if (editingId) {
+        await updateHaariRecord(editingId, payload);
+        setSuccessMsg(t("recordUpdated") || "Record updated.");
+        resetForm();
+        setTimeout(() => setSuccessMsg(null), 4000);
+        return;
+      }
 
-    const ok = await addHaariRecord(payload);
-    if (ok) {
-      try {
-        await updateField(fieldId, { status: "haari" });
-      } catch (_) {}
-      setSuccessMsg(t("haariContractAdded") || "Haari agreement added successfully.");
-      resetForm();
-      setTimeout(() => setSuccessMsg(null), 4000);
-    } else {
-      setFormError(t("haariAddFailed") || "Failed to save Haari contract.");
+      const ok = await addHaariRecord(payload);
+      if (ok) {
+        try {
+          await updateField(fieldId, { status: "haari" });
+        } catch (_) {}
+        setSuccessMsg(t("haariContractAdded") || "Haari agreement added successfully.");
+        resetForm();
+        setTimeout(() => setSuccessMsg(null), 4000);
+      } else {
+        setFormError(t("haariAddFailed") || "Failed to save Haari contract. Try again.");
+      }
+    } catch (err: any) {
+      console.error("Haari contract submit error:", err);
+      setFormError(err?.message || t("haariAddFailed") || "Failed to save Haari contract. Try again.");
     }
   };
 

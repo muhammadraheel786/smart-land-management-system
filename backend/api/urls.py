@@ -31,11 +31,17 @@ urlpatterns = [
     path("undo", labour_view.undo_delete),
     path("undo/", labour_view.undo_delete),
 
+    path("thaka/", views.thaka_list),
     path("thaka", views.thaka_list),
+    path("thaka/<str:pk>/", views.thaka_detail),
     path("thaka/<str:pk>", views.thaka_detail),
+    path("haari/", views.haari_list),
     path("haari", views.haari_list),
+    path("haari/<str:pk>/", views.haari_detail),
     path("haari/<str:pk>", views.haari_detail),
+    path("haari-settlements/", views.haari_settlements_list),
     path("haari-settlements", views.haari_settlements_list),
+    path("haari-settlements/<str:pk>/", views.haari_settlements_detail),
     path("haari-settlements/<str:pk>", views.haari_settlements_detail),
     path("temperature", views.temperature_list),
 

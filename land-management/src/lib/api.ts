@@ -147,6 +147,61 @@ function computeFallbackLabourRows(activities: any[]): any[] {
   });
 }
 
+
+function parseHaariContractNotes(notes?: string): import('@/types').HaariRecord | null {
+  if (!notes || !notes.startsWith("HAARI_CONTRACT::")) return null;
+  try {
+    const raw = notes.replace("HAARI_CONTRACT::", "");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function parseHaariSettlementNotes(notes?: string): import('@/types').HaariSettlement | null {
+  if (!notes || !notes.startsWith("HAARI_SETTLEMENT::")) return null;
+  try {
+    const raw = notes.replace("HAARI_SETTLEMENT::", "");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function getLocalHaariRecords(): import('@/types').HaariRecord[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const data = localStorage.getItem("smartland_haari_records");
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalHaariRecords(list: import('@/types').HaariRecord[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("smartland_haari_records", JSON.stringify(list));
+  } catch {}
+}
+
+function getLocalHaariSettlements(): import('@/types').HaariSettlement[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const data = localStorage.getItem("smartland_haari_settlements");
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalHaariSettlements(list: import('@/types').HaariSettlement[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("smartland_haari_settlements", JSON.stringify(list));
+  } catch {}
+}
+
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const t = localStorage.getItem("smartland_token");
@@ -290,39 +345,268 @@ export const api = {
     return fetchJson<void>(`/thaka/${id}`, { method: 'DELETE' });
   },
 
-  // Haari (Sharecropping / Batai) endpoints
-  async getHaariRecords() {
-    return fetchJson<import('@/types').HaariRecord[]>('/haari');
-  },
-  async addHaariRecord(record: Omit<import('@/types').HaariRecord, 'id'> & { id?: string }) {
-    return fetchJson<import('@/types').HaariRecord>('/haari', {
-      method: 'POST',
-      body: JSON.stringify(record),
-    });
-  },
-  async updateHaariRecord(id: string, updates: Partial<import('@/types').HaariRecord>) {
-    return fetchJson<import('@/types').HaariRecord>(`/haari/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
-  },
-  async deleteHaariRecord(id: string) {
-    return fetchJson<void>(`/haari/${id}`, { method: 'DELETE' });
+  // Haari (Sharecropping / Batai) endpoints with seamless resilient fallback
+  async getHaariRecords(): Promise<import('@/types').HaariRecord[]> {
+    try {
+      const records = await fetchJson<import('@/types').HaariRecord[]>('/haari');
+      if (Array.isArray(records)) {
+        saveLocalHaariRecords(records);
+        return records;
+      }
+    } catch (_) {}
+
+    try {
+      const activities = await fetchJson<any[]>('/activities');
+      const fromActivities = (activities || [])
+        .map((a) => {
+          const rec = parseHaariContractNotes(a?.notes);
+          if (rec) {
+            rec.fieldId = rec.fieldId || a.field_id;
+            return rec;
+          }
+          return null;
+        })
+        .filter(Boolean) as import('@/types').HaariRecord[];
+
+      const local = getLocalHaariRecords();
+      const map = new Map<string, import('@/types').HaariRecord>();
+      for (const item of local) {
+        if (item?.id) map.set(item.id, item);
+      }
+      for (const item of fromActivities) {
+        if (item?.id) map.set(item.id, item);
+      }
+      const merged = Array.from(map.values());
+      saveLocalHaariRecords(merged);
+      return merged;
+    } catch (_) {
+      return getLocalHaariRecords();
+    }
   },
 
-  // Haari Harvest Settlements
-  async getHaariSettlements(haariId?: string) {
-    const url = haariId ? `/haari-settlements?haariId=${encodeURIComponent(haariId)}` : '/haari-settlements';
-    return fetchJson<import('@/types').HaariSettlement[]>(url);
+  async addHaariRecord(record: Omit<import('@/types').HaariRecord, 'id'> & { id?: string }): Promise<import('@/types').HaariRecord> {
+    try {
+      const created = await fetchJson<import('@/types').HaariRecord>('/haari', {
+        method: 'POST',
+        body: JSON.stringify(record),
+      });
+      const local = getLocalHaariRecords().filter((h) => h.id !== created.id);
+      saveLocalHaariRecords([created, ...local]);
+      return created;
+    } catch (e) {
+      if (e instanceof Error && (e.message.includes('404') || e.message.includes('500') || e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))) {
+        const id = record.id || `haari_${Math.random().toString(36).substring(2, 11)}`;
+        const now = new Date().toISOString();
+        const fullRecord: import('@/types').HaariRecord = {
+          ...record,
+          id,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        try {
+          await fetchJson<any>('/activities', {
+            method: 'POST',
+            body: JSON.stringify({
+              activity_type: 'contract',
+              field_id: record.fieldId,
+              date: record.startDate,
+              notes: `HAARI_CONTRACT::${JSON.stringify(fullRecord)}`,
+            }),
+          });
+        } catch (_) {}
+
+        const local = getLocalHaariRecords().filter((h) => h.id !== id);
+        saveLocalHaariRecords([fullRecord, ...local]);
+        return fullRecord;
+      }
+      throw e;
+    }
   },
-  async addHaariSettlement(settlement: Omit<import('@/types').HaariSettlement, 'id'> & { id?: string }) {
-    return fetchJson<import('@/types').HaariSettlement>('/haari-settlements', {
-      method: 'POST',
-      body: JSON.stringify(settlement),
-    });
+
+  async updateHaariRecord(id: string, updates: Partial<import('@/types').HaariRecord>): Promise<import('@/types').HaariRecord> {
+    try {
+      const updated = await fetchJson<import('@/types').HaariRecord>(`/haari/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+      const local = getLocalHaariRecords().map((h) => (h.id === id ? updated : h));
+      saveLocalHaariRecords(local);
+      return updated;
+    } catch (e) {
+      if (e instanceof Error && (e.message.includes('404') || e.message.includes('500'))) {
+        const local = getLocalHaariRecords();
+        const existing = local.find((h) => h.id === id) || ({ id, ...updates } as import('@/types').HaariRecord);
+        const merged: import('@/types').HaariRecord = {
+          ...existing,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedList = local.map((h) => (h.id === id ? merged : h));
+        saveLocalHaariRecords(updatedList);
+
+        try {
+          const activities = await fetchJson<any[]>('/activities');
+          const act = activities?.find((a) => {
+            const parsed = parseHaariContractNotes(a.notes);
+            return parsed && parsed.id === id;
+          });
+          if (act) {
+            await fetchJson<any>(`/activities/${act.id}`, {
+              method: 'PUT',
+              body: JSON.stringify({
+                notes: `HAARI_CONTRACT::${JSON.stringify(merged)}`,
+              }),
+            });
+          }
+        } catch (_) {}
+
+        return merged;
+      }
+      throw e;
+    }
   },
-  async deleteHaariSettlement(id: string) {
-    return fetchJson<void>(`/haari-settlements/${id}`, { method: 'DELETE' });
+
+  async deleteHaariRecord(id: string): Promise<void> {
+    try {
+      await fetchJson<void>(`/haari/${id}`, { method: 'DELETE' });
+    } catch (e) {
+      if (e instanceof Error && (e.message.includes('404') || e.message.includes('500'))) {
+        try {
+          const activities = await fetchJson<any[]>('/activities');
+          const act = activities?.find((a) => {
+            const parsed = parseHaariContractNotes(a.notes);
+            return parsed && parsed.id === id;
+          });
+          if (act) {
+            await fetchJson<void>(`/activities/${act.id}`, { method: 'DELETE' });
+          }
+        } catch (_) {}
+      } else {
+        throw e;
+      }
+    }
+    const local = getLocalHaariRecords().filter((h) => h.id !== id);
+    saveLocalHaariRecords(local);
+  },
+
+  // Haari Harvest Settlements with fallback
+  async getHaariSettlements(haariId?: string): Promise<import('@/types').HaariSettlement[]> {
+    try {
+      const url = haariId ? `/haari-settlements?haariId=${encodeURIComponent(haariId)}` : '/haari-settlements';
+      const settlements = await fetchJson<import('@/types').HaariSettlement[]>(url);
+      if (Array.isArray(settlements)) {
+        saveLocalHaariSettlements(settlements);
+        return settlements;
+      }
+    } catch (_) {}
+
+    try {
+      const activities = await fetchJson<any[]>('/activities');
+      const fromActivities = (activities || [])
+        .map((a) => {
+          const s = parseHaariSettlementNotes(a?.notes);
+          if (s) {
+            s.fieldId = s.fieldId || a.field_id;
+            return s;
+          }
+          return null;
+        })
+        .filter(Boolean) as import('@/types').HaariSettlement[];
+
+      const local = getLocalHaariSettlements();
+      const map = new Map<string, import('@/types').HaariSettlement>();
+      for (const item of local) {
+        if (item?.id) map.set(item.id, item);
+      }
+      for (const item of fromActivities) {
+        if (item?.id) map.set(item.id, item);
+      }
+      let merged = Array.from(map.values());
+      if (haariId) {
+        merged = merged.filter((s) => s.haariId === haariId);
+      }
+      saveLocalHaariSettlements(merged);
+      return merged;
+    } catch (_) {
+      const local = getLocalHaariSettlements();
+      return haariId ? local.filter((s) => s.haariId === haariId) : local;
+    }
+  },
+
+  async addHaariSettlement(settlement: Omit<import('@/types').HaariSettlement, 'id'> & { id?: string }): Promise<import('@/types').HaariSettlement> {
+    try {
+      const created = await fetchJson<import('@/types').HaariSettlement>('/haari-settlements', {
+        method: 'POST',
+        body: JSON.stringify(settlement),
+      });
+      const local = getLocalHaariSettlements().filter((s) => s.id !== created.id);
+      saveLocalHaariSettlements([created, ...local]);
+      return created;
+    } catch (e) {
+      if (e instanceof Error && (e.message.includes('404') || e.message.includes('500') || e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))) {
+        const id = settlement.id || `hsettle_${Math.random().toString(36).substring(2, 11)}`;
+        const fullSettlement: import('@/types').HaariSettlement = {
+          ...settlement,
+          id,
+          createdAt: new Date().toISOString(),
+        };
+
+        try {
+          await fetchJson<any>('/activities', {
+            method: 'POST',
+            body: JSON.stringify({
+              activity_type: 'harvest',
+              field_id: settlement.fieldId,
+              date: settlement.date,
+              cost: Number(settlement.totalInputExpenses || 0),
+              income: Number(settlement.landownerNetShare || 0),
+              notes: `HAARI_SETTLEMENT::${JSON.stringify(fullSettlement)}`,
+            }),
+          });
+        } catch (_) {}
+
+        const local = getLocalHaariSettlements().filter((s) => s.id !== id);
+        saveLocalHaariSettlements([fullSettlement, ...local]);
+
+        if (settlement.advanceDeducted > 0 && settlement.haariId) {
+          try {
+            const contracts = getLocalHaariRecords();
+            const contract = contracts.find((c) => c.id === settlement.haariId);
+            if (contract) {
+              const newKhaata = Math.max(0, Number(contract.advanceLoanAmount || 0) - settlement.advanceDeducted);
+              await api.updateHaariRecord(contract.id, { advanceLoanAmount: newKhaata });
+            }
+          } catch (_) {}
+        }
+
+        return fullSettlement;
+      }
+      throw e;
+    }
+  },
+
+  async deleteHaariSettlement(id: string): Promise<void> {
+    try {
+      await fetchJson<void>(`/haari-settlements/${id}`, { method: 'DELETE' });
+    } catch (e) {
+      if (e instanceof Error && (e.message.includes('404') || e.message.includes('500'))) {
+        try {
+          const activities = await fetchJson<any[]>('/activities');
+          const act = activities?.find((a) => {
+            const parsed = parseHaariSettlementNotes(a.notes);
+            return parsed && parsed.id === id;
+          });
+          if (act) {
+            await fetchJson<void>(`/activities/${act.id}`, { method: 'DELETE' });
+          }
+        } catch (_) {}
+      } else {
+        throw e;
+      }
+    }
+    const local = getLocalHaariSettlements().filter((s) => s.id !== id);
+    saveLocalHaariSettlements(local);
   },
 
   // Legacy water endpoints (kept for backward compatibility in case the backend exposes /water)
