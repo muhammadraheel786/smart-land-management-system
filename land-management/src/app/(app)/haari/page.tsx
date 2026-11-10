@@ -6,6 +6,7 @@ import {
   Plus,
   Pencil,
   Trash,
+  Trash2,
   Calculator,
   History,
   FileText,
@@ -20,11 +21,15 @@ import {
   X,
   Wheat,
   Calendar,
+  Layers,
+  Receipt,
+  ArrowRight,
+  ArrowDownRight,
 } from "lucide-react";
 import { useLandStore } from "@/lib/store";
 import { format, isAfter } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
-import type { ExpenseSharingMode, HaariRecord, HaariSettlement } from "@/types";
+import type { HaariRecord, HaariSettlement, HaariLoanEntry } from "@/types";
 
 export default function HaariPage() {
   const { t } = useLocale();
@@ -51,13 +56,18 @@ export default function HaariPage() {
   const [hariName, setHariName] = useState("");
   const [hariContact, setHariContact] = useState("");
   const [hariCnic, setHariCnic] = useState("");
-  const [allocatedArea, setAllocatedArea] = useState("");
   const [crop, setCrop] = useState("Wheat");
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState("");
   const [landownerShare, setLandownerShare] = useState<number>(50);
-  const [expenseSharingMode, setExpenseSharingMode] = useState<ExpenseSharingMode>("SHARED_BY_PERCENTAGE");
-  const [advanceLoanAmount, setAdvanceLoanAmount] = useState("");
+
+  // Dynamic Loan Ledger State
+  const [loans, setLoans] = useState<HaariLoanEntry[]>([]);
+  const [newLoanAmount, setNewLoanAmount] = useState("");
+  const [newLoanType, setNewLoanType] = useState<"business" | "personal">("business");
+  const [newLoanDate, setNewLoanDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [newLoanRemarks, setNewLoanRemarks] = useState("");
+
   const [notes, setNotes] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -74,8 +84,11 @@ export default function HaariPage() {
   const [yieldQuantity, setYieldQuantity] = useState<string>("100");
   const [yieldUnit, setYieldUnit] = useState<string>("maunds");
   const [marketRate, setMarketRate] = useState<string>("4000");
-  const [inputExpenses, setInputExpenses] = useState<string>("50000");
-  const [advanceToDeduct, setAdvanceToDeduct] = useState<string>("0");
+
+  // Formula states (as handwritten: Profit = Total Amount, Total - Business Loan, split by %, from hari take return personal loan)
+  const [settleBusinessLoan, setSettleBusinessLoan] = useState<string>("0");
+  const [settlePersonalLoan, setSettlePersonalLoan] = useState<string>("0");
+  const [settleLandownerPercent, setSettleLandownerPercent] = useState<number>(50);
   const [settleNotes, setSettleNotes] = useState("");
   const [settleSubmitting, setSettleSubmitting] = useState(false);
 
@@ -92,29 +105,88 @@ export default function HaariPage() {
         setHariName(c.hariName);
         setHariContact(c.hariContact || "");
         setHariCnic(c.hariCnic || "");
-        setAllocatedArea(c.allocatedArea ? String(c.allocatedArea) : "");
         setCrop(c.crop || "Wheat");
         setStartDate(c.startDate);
         setEndDate(c.endDate);
         setLandownerShare(c.landownerSharePercentage || 50);
-        setExpenseSharingMode(c.expenseSharingMode || "SHARED_BY_PERCENTAGE");
-        setAdvanceLoanAmount(c.advanceLoanAmount ? String(c.advanceLoanAmount) : "");
         setNotes(c.notes || "");
+
+        if (Array.isArray(c.loans) && c.loans.length > 0) {
+          setLoans(c.loans);
+        } else {
+          // Backward compatibility fallback from existing single advance / loan fields
+          const initLoans: HaariLoanEntry[] = [];
+          if ((c as any).businessLoanAmount) {
+            initLoans.push({
+              id: "loan_b_init",
+              type: "business",
+              amount: Number((c as any).businessLoanAmount),
+              date: c.startDate || format(new Date(), "yyyy-MM-dd"),
+              remarks: "Initial business loan",
+            });
+          }
+          if ((c as any).personalLoanAmount) {
+            initLoans.push({
+              id: "loan_p_init",
+              type: "personal",
+              amount: Number((c as any).personalLoanAmount),
+              date: c.startDate || format(new Date(), "yyyy-MM-dd"),
+              remarks: "Initial personal loan",
+            });
+          }
+          if (initLoans.length === 0 && c.advanceLoanAmount) {
+            initLoans.push({
+              id: "loan_adv_init",
+              type: "business",
+              amount: Number(c.advanceLoanAmount),
+              date: c.startDate || format(new Date(), "yyyy-MM-dd"),
+              remarks: "Starting advance",
+            });
+          }
+          setLoans(initLoans);
+        }
       }
     }
   }, [editingId, haariRecords]);
 
-  // When field changes, auto-populate allocated area with field area if empty
-  const handleFieldChange = (id: string) => {
-    setFieldId(id);
-    const selectedField = fields.find((f) => f.id === id);
-    if (selectedField?.area && !allocatedArea) {
-      setAllocatedArea(String(selectedField.area));
-    }
-  };
-
   // Auto-calculated Hari share percentage
   const hariShare = useMemo(() => 100 - landownerShare, [landownerShare]);
+
+  // Loan totals
+  const totalBusinessLoans = useMemo(
+    () => loans.filter((l) => l.type === "business").reduce((s, l) => s + (Number(l.amount) || 0), 0),
+    [loans]
+  );
+  const totalPersonalLoans = useMemo(
+    () => loans.filter((l) => l.type === "personal").reduce((s, l) => s + (Number(l.amount) || 0), 0),
+    [loans]
+  );
+  const totalAdvanceLoan = useMemo(() => totalBusinessLoans + totalPersonalLoans, [totalBusinessLoans, totalPersonalLoans]);
+
+  // Add a loan item to the ledger
+  const handleAddLoan = () => {
+    const amt = Number(newLoanAmount);
+    if (!amt || amt <= 0 || isNaN(amt)) {
+      setFormError("Please enter a valid loan amount.");
+      return;
+    }
+    const item: HaariLoanEntry = {
+      id: "loan_" + Date.now(),
+      type: newLoanType,
+      amount: amt,
+      date: newLoanDate || format(new Date(), "yyyy-MM-dd"),
+      remarks: newLoanRemarks.trim(),
+    };
+    setLoans((prev) => [...prev, item]);
+    setNewLoanAmount("");
+    setNewLoanRemarks("");
+    setFormError(null);
+  };
+
+  // Remove a loan from ledger
+  const handleRemoveLoan = (id: string) => {
+    setLoans((prev) => prev.filter((l) => l.id !== id));
+  };
 
   // Active vs Expired/Completed contracts
   const activeContracts = useMemo(
@@ -128,11 +200,19 @@ export default function HaariPage() {
 
   // Summary Metrics
   const totalAllocatedArea = useMemo(
-    () => activeContracts.reduce((sum, r) => sum + (Number(r.allocatedArea) || 0), 0),
-    [activeContracts]
+    () => activeContracts.reduce((sum, r) => sum + (fields.find((f) => f.id === r.fieldId)?.area || Number(r.allocatedArea) || 0), 0),
+    [activeContracts, fields]
   );
   const totalOutstandingKhaata = useMemo(
-    () => activeContracts.reduce((sum, r) => sum + (Number(r.advanceLoanAmount) || 0), 0),
+    () =>
+      activeContracts.reduce(
+        (sum, r) =>
+          sum +
+          (r.loans
+            ? r.loans.reduce((acc, l) => acc + (Number(l.amount) || 0), 0)
+            : Number(r.advanceLoanAmount || 0)),
+        0
+      ),
     [activeContracts]
   );
 
@@ -141,21 +221,23 @@ export default function HaariPage() {
     [fields]
   );
 
-  // Reset contract form
+  // Reset form
   const resetForm = () => {
-    setEditingId(null);
     setFieldId("");
     setHariName("");
     setHariContact("");
     setHariCnic("");
-    setAllocatedArea("");
     setCrop("Wheat");
     setStartDate(format(new Date(), "yyyy-MM-dd"));
     setEndDate("");
     setLandownerShare(50);
-    setExpenseSharingMode("SHARED_BY_PERCENTAGE");
-    setAdvanceLoanAmount("");
+    setLoans([]);
+    setNewLoanAmount("");
+    setNewLoanType("business");
+    setNewLoanDate(format(new Date(), "yyyy-MM-dd"));
+    setNewLoanRemarks("");
     setNotes("");
+    setEditingId(null);
     setFormError(null);
   };
 
@@ -165,28 +247,30 @@ export default function HaariPage() {
     setFormError(null);
 
     if (!fieldId || !hariName.trim() || !startDate) {
-      setFormError(t("thakaFillRequired") || "Please fill all required fields.");
+      setFormError("Please select a field, enter Hari name, and choose start date.");
       return;
     }
     if (endDate && new Date(endDate) < new Date(startDate)) {
-      setFormError(t("thakaEndAfterStart") || "End date must be on or after start date.");
+      setFormError("End date must be on or after start date.");
       return;
     }
 
-    const payload = {
+    const payload: Partial<HaariRecord> = {
       fieldId,
       hariName: hariName.trim(),
       hariContact: hariContact.trim() || undefined,
       hariCnic: hariCnic.trim() || undefined,
-      allocatedArea: allocatedArea ? (Number(allocatedArea) || undefined) : undefined,
       crop: crop.trim() || "Wheat",
       startDate,
       endDate: endDate || startDate,
       landownerSharePercentage: Number(landownerShare) || 50,
       hariSharePercentage: Number(hariShare) || 50,
-      expenseSharingMode,
-      advanceLoanAmount: advanceLoanAmount ? (Number(advanceLoanAmount) || 0) : 0,
-      status: "active" as const,
+      expenseSharingMode: "SHARED_BY_PERCENTAGE",
+      advanceLoanAmount: totalAdvanceLoan,
+      businessLoanAmount: totalBusinessLoans,
+      personalLoanAmount: totalPersonalLoans,
+      loans,
+      status: "active",
       notes: notes.trim() || undefined,
     };
 
@@ -199,20 +283,20 @@ export default function HaariPage() {
         return;
       }
 
-      const ok = await addHaariRecord(payload);
+      const ok = await addHaariRecord(payload as any);
       if (ok) {
         try {
           await updateField(fieldId, { status: "haari" });
         } catch (_) {}
-        setSuccessMsg(t("haariContractAdded") || "Haari agreement added successfully.");
+        setSuccessMsg("Haari agreement created successfully.");
         resetForm();
         setTimeout(() => setSuccessMsg(null), 4000);
       } else {
-        setFormError(t("haariAddFailed") || "Failed to save Haari contract. Try again.");
+        setFormError("Failed to save Haari contract. Try again.");
       }
     } catch (err: any) {
       console.error("Haari contract submit error:", err);
-      setFormError(err?.message || t("haariAddFailed") || "Failed to save Haari contract. Try again.");
+      setFormError(err?.message || "Failed to save Haari contract. Try again.");
     }
   };
 
@@ -223,127 +307,128 @@ export default function HaariPage() {
     const contract = haariRecords.find((c) => c.id === targetId);
     if (contract) {
       setSettleCrop(contract.crop || "Wheat");
-      setAdvanceToDeduct(String(contract.advanceLoanAmount || 0));
+
+      // Pre-fill business loan from contract's business loans
+      const bLoans = contract.loans
+        ? contract.loans.filter((l) => l.type === "business").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+        : Number((contract as any).businessLoanAmount || contract.advanceLoanAmount || 0);
+
+      // Pre-fill personal loan from contract's personal loans
+      const pLoans = contract.loans
+        ? contract.loans.filter((l) => l.type === "personal").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+        : Number((contract as any).personalLoanAmount || 0);
+
+      setSettleBusinessLoan(String(bLoans));
+      setSettlePersonalLoan(String(pLoans));
+      setSettleLandownerPercent(contract.landownerSharePercentage || 50);
     } else {
-      setAdvanceToDeduct("0");
+      setSettleBusinessLoan("0");
+      setSettlePersonalLoan("0");
+      setSettleLandownerPercent(50);
     }
     setSettlementModalOpen(true);
   };
 
-  // Live Settlement Calculations
-  const selectedContract = useMemo(
-    () => haariRecords.find((c) => c.id === selectedContractId) || null,
-    [haariRecords, selectedContractId]
-  );
-
+  // Live Settlement Calculations exactly matching the handwritten formula:
+  // 1. Profit = Total Amount (Yield Quantity * Market Rate)
+  // 2. Remaining Amount = Total Amount - Business Loan
+  // 3. Divided by share percentages (Landowner % and Hari %)
+  // 4. From Hari Amount take return personal loan -> Hari Net Payable
   const settlementCalculations = useMemo(() => {
     const qty = Number(yieldQuantity) || 0;
     const rate = Number(marketRate) || 0;
-    const grossValue = qty * rate;
-    const expenses = Number(inputExpenses) || 0;
+    const totalAmount = qty * rate; // Profit = Total Amount
 
-    const lPercent = selectedContract ? selectedContract.landownerSharePercentage : 50;
+    const bLoan = Number(settleBusinessLoan) || 0; // Total Amount - Business Loan
+    const remainingAmount = Math.max(0, totalAmount - bLoan); // Remaining Amount after business loan
+
+    const lPercent = settleLandownerPercent;
     const hPercent = 100 - lPercent;
-    const mode: ExpenseSharingMode = selectedContract ? selectedContract.expenseSharingMode : "SHARED_BY_PERCENTAGE";
 
-    // Physical yield split
-    const landownerPhysicalYield = (qty * lPercent) / 100;
-    const hariPhysicalYield = (qty * hPercent) / 100;
+    // Split remaining amount
+    const landownerShareAmount = (remainingAmount * lPercent) / 100;
+    const hariShareAmount = (remainingAmount * hPercent) / 100;
 
-    let landownerExpenseShare = 0;
-    let hariExpenseShare = 0;
-    let landownerGross = (grossValue * lPercent) / 100;
-    let hariGross = (grossValue * hPercent) / 100;
-    let landownerNet = 0;
-    let hariNet = 0;
+    // From hari Amount take return personal loan
+    const pLoan = Number(settlePersonalLoan) || 0;
+    const pLoanDeducted = Math.min(hariShareAmount, pLoan);
+    const hariNetPayable = Math.max(0, hariShareAmount - pLoanDeducted);
+    const remainingPersonalLoan = Math.max(0, pLoan - pLoanDeducted);
 
-    if (mode === "SHARED_BY_PERCENTAGE") {
-      landownerExpenseShare = (expenses * lPercent) / 100;
-      hariExpenseShare = (expenses * hPercent) / 100;
-      landownerNet = landownerGross - landownerExpenseShare;
-      hariNet = hariGross - hariExpenseShare;
-    } else if (mode === "LANDOWNER_BEARS_ALL") {
-      landownerExpenseShare = expenses;
-      hariExpenseShare = 0;
-      landownerNet = landownerGross - expenses;
-      hariNet = hariGross;
-    } else if (mode === "HARI_BEARS_ALL") {
-      landownerExpenseShare = 0;
-      hariExpenseShare = expenses;
-      landownerNet = landownerGross;
-      hariNet = hariGross - expenses;
-    }
-
-    const currentKhaata = selectedContract ? Number(selectedContract.advanceLoanAmount || 0) : 0;
-    const advanceDeducted = Math.min(currentKhaata, Math.max(0, Number(advanceToDeduct) || 0));
-    const hariNetPayable = hariNet - advanceDeducted;
-    const remainingKhaata = Math.max(0, currentKhaata - advanceDeducted);
+    // Landowner total return: Crop Share + Recovered Business Loan + Recovered Personal Loan
+    const landownerTotalReceived = landownerShareAmount + bLoan + pLoanDeducted;
 
     return {
-      grossValue,
+      totalAmount,
+      bLoan,
+      remainingAmount,
       lPercent,
       hPercent,
-      landownerPhysicalYield,
-      hariPhysicalYield,
-      landownerExpenseShare,
-      hariExpenseShare,
-      landownerGross,
-      hariGross,
-      landownerNet,
-      hariNet,
-      advanceDeducted,
+      landownerShareAmount,
+      hariShareAmount,
+      pLoan,
+      pLoanDeducted,
       hariNetPayable,
-      remainingKhaata,
-      currentKhaata,
-      mode,
+      remainingPersonalLoan,
+      landownerTotalReceived,
     };
-  }, [yieldQuantity, marketRate, inputExpenses, advanceToDeduct, selectedContract]);
+  }, [yieldQuantity, marketRate, settleBusinessLoan, settlePersonalLoan, settleLandownerPercent]);
 
-  // Submit Settlement
+  // Finalize settlement
   const handleFinalizeSettlement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedContract) return;
-
+    if (!selectedContractId) return;
     setSettleSubmitting(true);
-    try {
-      await addHaariSettlement({
-        haariId: selectedContract.id,
-        fieldId: selectedContract.fieldId,
-        hariName: selectedContract.hariName,
-        crop: settleCrop,
-        date: settleDate,
-        yieldQuantity: Number(yieldQuantity) || 0,
-        yieldUnit,
-        marketRate: Number(marketRate) || 0,
-        grossHarvestValue: settlementCalculations.grossValue,
-        totalInputExpenses: Number(inputExpenses) || 0,
-        expenseSharingMode: selectedContract.expenseSharingMode,
-        landownerSharePercentage: settlementCalculations.lPercent,
-        hariSharePercentage: settlementCalculations.hPercent,
-        landownerExpenseShare: settlementCalculations.landownerExpenseShare,
-        hariExpenseShare: settlementCalculations.hariExpenseShare,
-        landownerGrossShare: settlementCalculations.landownerGross,
-        hariGrossShare: settlementCalculations.hariGross,
-        landownerNetShare: settlementCalculations.landownerNet,
-        hariNetShare: settlementCalculations.hariNet,
-        advanceDeducted: settlementCalculations.advanceDeducted,
-        hariNetPayable: settlementCalculations.hariNetPayable,
-        notes: settleNotes.trim() || undefined,
-        status: "finalized",
-      });
 
+    const contract = haariRecords.find((c) => c.id === selectedContractId);
+    if (!contract) {
+      setSettleSubmitting(false);
+      return;
+    }
+
+    const payload: Partial<HaariSettlement> = {
+      haariId: contract.id,
+      fieldId: contract.fieldId,
+      hariName: contract.hariName,
+      crop: settleCrop,
+      date: settleDate,
+      yieldQuantity: Number(yieldQuantity) || 0,
+      yieldUnit,
+      marketRate: Number(marketRate) || 0,
+      grossHarvestValue: settlementCalculations.totalAmount,
+      totalInputExpenses: settlementCalculations.bLoan,
+      expenseSharingMode: "SHARED_BY_PERCENTAGE",
+      landownerSharePercentage: settlementCalculations.lPercent,
+      hariSharePercentage: settlementCalculations.hPercent,
+      landownerExpenseShare: 0,
+      hariExpenseShare: 0,
+      landownerGrossShare: settlementCalculations.landownerShareAmount,
+      hariGrossShare: settlementCalculations.hariShareAmount,
+      landownerNetShare: settlementCalculations.landownerTotalReceived,
+      hariNetShare: settlementCalculations.hariNetPayable,
+      advanceDeducted: settlementCalculations.pLoanDeducted,
+      hariNetPayable: settlementCalculations.hariNetPayable,
+      notes: settleNotes
+        ? `[Settlement: BizLoan=${settlementCalculations.bLoan}, PersonalLoan=${settlementCalculations.pLoanDeducted}] ${settleNotes}`
+        : `[Settlement: BizLoan=${settlementCalculations.bLoan}, PersonalLoan=${settlementCalculations.pLoanDeducted}]`,
+      status: "finalized",
+    };
+
+    try {
+      await addHaariSettlement(payload as any);
       setSettlementModalOpen(false);
-      setSuccessMsg(t("haariSettlementRecorded") || "Harvest settlement recorded successfully.");
-      setTimeout(() => setSuccessMsg(null), 5000);
-    } catch (err) {
-      console.error("Failed to finalize settlement:", err);
+      setActiveTab("settlements");
+      setSuccessMsg("Harvest settlement finalized and recorded.");
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err: any) {
+      alert(err?.message || "Failed to finalize settlement.");
     } finally {
       setSettleSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -356,7 +441,7 @@ export default function HaariPage() {
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-theme-muted ml-[52px] mt-1">
-            {t("haariManagementSubtitle")}
+            Manage Pakistani sharecropping contracts, dynamic loan ledger & harvest settlements
           </p>
         </div>
 
@@ -375,13 +460,13 @@ export default function HaariPage() {
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">
+        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-200 text-sm font-bold">
           {error}
         </div>
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Active Contracts */}
         <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 shadow-inner">
@@ -398,72 +483,56 @@ export default function HaariPage() {
         {/* Allocated Area */}
         <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0 shadow-inner">
-            <Wheat className="w-7 h-7 text-emerald-500" />
+            <Scale className="w-7 h-7 text-emerald-500" />
           </div>
           <div>
             <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">
-              {t("haariTotalAllocatedArea")}
+              {t("haariAllocatedArea")}
             </p>
             <p className="text-2xl font-black text-theme">
-              {totalAllocatedArea.toFixed(1)} <span className="text-sm font-normal text-theme-muted">{t("acres")}</span>
+              {totalAllocatedArea.toFixed(1)} <span className="text-xs font-bold text-theme-muted">{t("acres")}</span>
             </p>
           </div>
         </div>
 
-        {/* Outstanding Khaata */}
+        {/* Total Outstanding Khaata */}
         <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 shadow-inner">
             <Coins className="w-7 h-7 text-blue-500" />
           </div>
           <div>
             <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">
-              {t("haariTotalKhaata")}
+              Total Starting Loans / Advances
             </p>
-            <p className="text-2xl font-black text-blue-500">
-              Rs {totalOutstandingKhaata.toLocaleString()}
-            </p>
-          </div>
-        </div>
-
-        {/* Harvest Settlements Recorded */}
-        <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center shrink-0 shadow-inner">
-            <Scale className="w-7 h-7 text-purple-500" />
-          </div>
-          <div>
-            <p className="text-theme-muted text-[10px] font-black uppercase tracking-widest mb-1 truncate">
-              {t("haariSettlements")}
-            </p>
-            <p className="text-2xl font-black text-purple-500">
-              {haariSettlements.length}
-            </p>
+            <p className="text-2xl font-black text-blue-400">Rs {totalOutstandingKhaata.toLocaleString()}</p>
           </div>
         </div>
       </div>
 
-      {/* Main View Tabs */}
-      <div className="flex border-b border-theme gap-4">
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-theme gap-2 text-sm font-semibold">
         <button
           type="button"
           onClick={() => setActiveTab("contracts")}
-          className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-4 border-b-2 transition flex items-center gap-2 ${
             activeTab === "contracts"
-              ? "border-amber-500 text-amber-500"
+              ? "border-amber-500 text-amber-500 font-bold"
               : "border-transparent text-theme-muted hover:text-theme"
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>{t("haariAgreementsList")}</span>
+          <span>{t("haariAgreements")}</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-theme-track text-theme-muted">
             {haariRecords.length}
           </span>
         </button>
+
         <button
           type="button"
           onClick={() => setActiveTab("settlements")}
-          className={`pb-3 text-sm font-bold transition border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-4 border-b-2 transition flex items-center gap-2 ${
             activeTab === "settlements"
-              ? "border-amber-500 text-amber-500"
+              ? "border-amber-500 text-amber-500 font-bold"
               : "border-transparent text-theme-muted hover:text-theme"
           }`}
         >
@@ -477,7 +546,7 @@ export default function HaariPage() {
 
       {activeTab === "contracts" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Create / Edit Contract Form (5 columns on lg) */}
+          {/* ══════════ CREATE / EDIT CONTRACT FORM (5 cols) ══════════ */}
           <div className="lg:col-span-5 bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm h-fit">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-theme">
@@ -516,7 +585,7 @@ export default function HaariPage() {
                 </label>
                 <select
                   value={fieldId}
-                  onChange={(e) => handleFieldChange(e.target.value)}
+                  onChange={(e) => setFieldId(e.target.value)}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
                 >
@@ -572,37 +641,21 @@ export default function HaariPage() {
                 </div>
               </div>
 
-              {/* Crop & Allocated Area */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("haariCrop")}
-                  </label>
-                  <input
-                    type="text"
-                    value={crop}
-                    onChange={(e) => setCrop(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
-                    placeholder="Wheat, Cotton, Rice..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("haariAllocatedArea")}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={allocatedArea}
-                    onChange={(e) => setAllocatedArea(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
-                    placeholder="Acres"
-                  />
-                </div>
+              {/* Crop */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
+                  {t("haariCrop")}
+                </label>
+                <input
+                  type="text"
+                  value={crop}
+                  onChange={(e) => setCrop(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
+                  placeholder="Wheat, Cotton, Rice..."
+                />
               </div>
 
-              {/* Percentage Split - Two Input Boxes */}
+              {/* Percentage Split - Two Input Boxes + Slider */}
               <div className="p-4 rounded-2xl bg-theme-track/60 border border-theme space-y-3">
                 <p className="text-xs font-bold uppercase tracking-wider text-theme-muted">
                   {t("haariLandownerShare")} / {t("haariHariShare")} — <span className="text-amber-500">Must total 100%</span>
@@ -650,11 +703,19 @@ export default function HaariPage() {
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-theme-muted">Landowner: <strong className="text-amber-500">{landownerShare}%</strong></span>
-                  <span className={`text-[10px] font-black ${landownerShare + hariShare === 100 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    Total: {landownerShare + hariShare}% {landownerShare + hariShare === 100 ? '✓' : '⚠ Must = 100'}
+                  <span className="text-[10px] text-theme-muted">
+                    Landowner: <strong className="text-amber-500">{landownerShare}%</strong>
                   </span>
-                  <span className="text-[10px] text-theme-muted">Hari: <strong className="text-emerald-500">{hariShare}%</strong></span>
+                  <span
+                    className={`text-[10px] font-black ${
+                      landownerShare + hariShare === 100 ? "text-emerald-500" : "text-red-500"
+                    }`}
+                  >
+                    Total: {landownerShare + hariShare}% {landownerShare + hariShare === 100 ? "✓" : "⚠ Must = 100"}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">
+                    Hari: <strong className="text-emerald-500">{hariShare}%</strong>
+                  </span>
                 </div>
                 {/* Slider for quick adjustment */}
                 <input
@@ -668,35 +729,138 @@ export default function HaariPage() {
                 />
               </div>
 
-              {/* Expense Sharing Mode */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                  {t("haariExpenseSharingMode")}
-                </label>
-                <select
-                  value={expenseSharingMode}
-                  onChange={(e) => setExpenseSharingMode(e.target.value as ExpenseSharingMode)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
-                >
-                  <option value="SHARED_BY_PERCENTAGE">{t("haariExpenseSharedPercent")}</option>
-                  <option value="LANDOWNER_BEARS_ALL">{t("haariExpenseLandownerAll")}</option>
-                  <option value="HARI_BEARS_ALL">{t("haariExpenseHariAll")}</option>
-                </select>
-              </div>
+              {/* ══════════ NEW LOAN/ADVANCE LEDGER SECTION ══════════ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-theme-track/60 border border-theme space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-theme">
+                      Loan & Advance Ledger (قرضہ / کھاتہ)
+                    </h4>
+                    <p className="text-[10px] text-theme-muted">
+                      Track starting business loans (seed, fertilizer) and personal loans
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-black">
+                    <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px]">
+                      Biz: Rs {totalBusinessLoans.toLocaleString()}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px]">
+                      Personal: Rs {totalPersonalLoans.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
 
-              {/* Advance Loan / Khaata */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                  {t("haariAdvanceLoan")}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={advanceLoanAmount}
-                  onChange={(e) => setAdvanceLoanAmount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
-                  placeholder="Rs 0"
-                />
+                {/* Added loans list */}
+                {loans.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {loans.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 rounded-xl bg-theme-card border border-theme text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider shrink-0 ${
+                              item.type === "business"
+                                ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                                : "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                            }`}
+                          >
+                            {item.type === "business" ? "Business Loan" : "Personal Loan"}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="font-black text-theme">Rs {item.amount.toLocaleString()}</span>
+                            {item.remarks && <p className="text-[11px] text-theme-muted truncate">{item.remarks}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] text-theme-muted">{item.date}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLoan(item.id)}
+                            className="p-1 rounded-lg text-theme-muted hover:text-red-400 hover:bg-red-500/10 transition"
+                            title="Remove loan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-3 text-center text-xs text-theme-muted font-bold opacity-60 bg-theme-card/50 rounded-xl border border-dashed border-theme">
+                    No starting loans recorded yet. Add using the fields below:
+                  </div>
+                )}
+
+                {/* Dynamic Entry Inputs */}
+                <div className="pt-2 border-t border-theme/60 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-theme-muted">
+                    Add Loan / Advance Entry:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[9px] font-black uppercase tracking-widest text-theme-muted mb-1">
+                        Amount (Rs) *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newLoanAmount}
+                        onChange={(e) => setNewLoanAmount(e.target.value)}
+                        placeholder="e.g. 25000"
+                        className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/40"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black uppercase tracking-widest text-theme-muted mb-1">
+                        Loan Type *
+                      </label>
+                      <select
+                        value={newLoanType}
+                        onChange={(e) => setNewLoanType(e.target.value as "business" | "personal")}
+                        className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/40"
+                      >
+                        <option value="business">Business Loan (کھاد / بیج / کاروبار)</option>
+                        <option value="personal">Personal Loan (ذاتی قرضہ / راشن)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[9px] font-black uppercase tracking-widest text-theme-muted mb-1">
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        value={newLoanDate}
+                        onChange={(e) => setNewLoanDate(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-xs font-bold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black uppercase tracking-widest text-theme-muted mb-1">
+                        Remarks / Description
+                      </label>
+                      <input
+                        type="text"
+                        value={newLoanRemarks}
+                        onChange={(e) => setNewLoanRemarks(e.target.value)}
+                        placeholder="e.g. Fertilizer advance, Home expenses"
+                        className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-xs font-bold outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddLoan}
+                    className="w-full py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> + Add More
+                  </button>
+                </div>
               </div>
 
               {/* Start & End Dates */}
@@ -726,49 +890,55 @@ export default function HaariPage() {
                 </div>
               </div>
 
-              {/* Notes */}
+              {/* Optional Description Notes */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                  {t("description")}
+                  Optional Description / Agreement Notes
                 </label>
                 <textarea
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
-                  placeholder="Optional agreement notes (e.g. seeds provided, tube-well sharing terms)"
+                  placeholder="Optional agreement notes (e.g. tube-well sharing terms, water turn details...)"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold hover:opacity-95 disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-md shadow-amber-500/20"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-sm shadow-lg shadow-amber-500/30 hover:opacity-95 transition active:scale-95"
               >
-                <Plus className="w-5 h-5" />
-                {editingId ? t("update") : t("haariAddContract")}
+                {editingId ? t("update") : "Save Haari Agreement"}
               </button>
             </form>
           </div>
 
-          {/* Contracts List (7 columns on lg) */}
+          {/* ══════════ CONTRACTS LIST & CARDS (7 cols) ══════════ */}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm">
-              <h3 className="text-lg font-black text-theme uppercase tracking-tight mb-4 flex items-center justify-between">
-                <span>{t("haariActiveContracts")}</span>
-                <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  {activeContracts.length} Active
-                </span>
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-theme">
+                  {t("haariActiveContracts")} ({activeContracts.length})
+                </h3>
+              </div>
 
               {activeContracts.length === 0 ? (
-                <p className="text-theme-muted text-center py-10 italic uppercase text-xs tracking-widest font-bold">
-                  {t("haariNoActive")}
-                </p>
+                <div className="text-center py-12 text-theme-muted text-sm space-y-2">
+                  <Handshake className="w-10 h-10 mx-auto opacity-30 text-amber-500 mb-2" />
+                  <p className="font-bold">No active Haari agreements</p>
+                  <p className="text-xs">Use the form on the left to register your first Haari contract.</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {activeContracts.map((c) => {
                     const field = fields.find((f) => f.id === c.fieldId);
+                    const bLoans = c.loans
+                      ? c.loans.filter((l) => l.type === "business").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+                      : Number((c as any).businessLoanAmount || c.advanceLoanAmount || 0);
+                    const pLoans = c.loans
+                      ? c.loans.filter((l) => l.type === "personal").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+                      : Number((c as any).personalLoanAmount || 0);
+
                     return (
                       <div
                         key={c.id}
@@ -783,7 +953,7 @@ export default function HaariPage() {
                               {c.crop || "Wheat"}
                             </span>
                             <span className="text-xs px-2 py-0.5 rounded-md bg-theme-track text-theme-muted font-medium">
-                              {field?.name || c.fieldId} ({c.allocatedArea || field?.area || 0} acres)
+                              {field?.name || c.fieldId} ({field?.area ? `${field.area.toFixed(1)} acres` : "Field"})
                             </span>
                           </div>
 
@@ -807,16 +977,38 @@ export default function HaariPage() {
                             </span>
                           </div>
 
-                          {/* Share & Khaata Summary Pills */}
-                          <div className="flex items-center gap-3 pt-1 flex-wrap text-xs">
+                          {/* Share & Loan Summary Pills */}
+                          <div className="flex items-center gap-2.5 pt-1 flex-wrap text-xs">
                             <div className="px-2.5 py-1 rounded-lg bg-theme-track border border-theme font-medium text-theme">
                               Split: <span className="text-amber-500 font-bold">{c.landownerSharePercentage}% L</span> /{" "}
                               <span className="text-emerald-500 font-bold">{c.hariSharePercentage}% H</span>
                             </div>
-                            <div className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 font-medium text-blue-500">
-                              Khaata Advance: <span className="font-bold">Rs {(c.advanceLoanAmount || 0).toLocaleString()}</span>
+                            <div className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 font-medium text-blue-400">
+                              Biz Loan: <span className="font-bold">Rs {bLoans.toLocaleString()}</span>
+                            </div>
+                            <div className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 font-medium text-purple-400">
+                              Personal Loan: <span className="font-bold">Rs {pLoans.toLocaleString()}</span>
                             </div>
                           </div>
+
+                          {/* Individual loans list preview if multiple */}
+                          {c.loans && c.loans.length > 0 && (
+                            <div className="pt-1 flex flex-wrap gap-1.5">
+                              {c.loans.map((l, idx) => (
+                                <span
+                                  key={l.id || idx}
+                                  className={`text-[10px] px-2 py-0.5 rounded-md border font-bold ${
+                                    l.type === "business"
+                                      ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
+                                      : "bg-purple-500/5 border-purple-500/20 text-purple-400"
+                                  }`}
+                                >
+                                  {l.type === "business" ? "Biz" : "Personal"}: Rs {l.amount.toLocaleString()}
+                                  {l.remarks ? ` (${l.remarks})` : ""}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         {/* Action buttons */}
@@ -824,7 +1016,7 @@ export default function HaariPage() {
                           <button
                             type="button"
                             onClick={() => openSettlementModal(c.id)}
-                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
+                            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95"
                             title="Settle Harvest"
                           >
                             <Calculator className="w-3.5 h-3.5" />
@@ -902,95 +1094,83 @@ export default function HaariPage() {
         </div>
       )}
 
-      {/* Settlements History Tab */}
+      {/* ══════════ SETTLEMENT HISTORY TAB ══════════ */}
       {activeTab === "settlements" && (
         <div className="bg-theme-card border border-theme rounded-[2rem] p-6 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h3 className="text-lg font-black text-theme uppercase tracking-tight">
-              {t("haariSettlementHistory")}
-            </h3>
-            <button
-              type="button"
-              onClick={() => openSettlementModal()}
-              disabled={activeContracts.length === 0}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xs self-start sm:self-auto shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Record New Settlement</span>
-            </button>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-theme">{t("haariSettlementHistory")}</h3>
+              <p className="text-xs text-theme-muted">
+                Audit trail of finalized harvest settlements with business loan deductions & personal loan returns
+              </p>
+            </div>
           </div>
 
           {haariSettlements.length === 0 ? (
-            <p className="text-theme-muted text-center py-12 italic uppercase text-xs tracking-widest font-bold">
-              {t("haariNoSettlementsYet")}
-            </p>
+            <div className="text-center py-16 text-theme-muted text-sm space-y-2">
+              <History className="w-10 h-10 mx-auto opacity-30 text-amber-500 mb-2" />
+              <p className="font-bold">No harvest settlements recorded yet</p>
+              <p className="text-xs">
+                Launch the Settlement Calculator from an active contract to split harvest yields.
+              </p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {haariSettlements.map((s) => (
                 <div
                   key={s.id}
-                  className="p-5 rounded-2xl bg-theme-track/50 border border-theme space-y-3 relative group"
+                  className="p-5 rounded-2xl bg-theme-track/50 border border-theme hover:border-amber-500/30 transition space-y-3"
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-theme/60 pb-3">
                     <div>
-                      <p className="font-black text-base text-theme">{s.hariName}</p>
-                      <p className="text-xs text-theme-muted">
-                        {s.crop} • {format(new Date(s.date), "dd MMM yyyy")}
-                      </p>
+                      <span className="font-black text-theme text-base mr-2">{s.hariName}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-500 font-bold">
+                        {s.crop}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                        Finalized
+                    <div className="flex items-center gap-3 text-xs text-theme-muted">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {s.date ? format(new Date(s.date), "MMM d, yyyy") : "—"}
                       </span>
                       <button
                         type="button"
                         onClick={() => setDeleteSettlementId(s.id)}
-                        className="p-1 rounded-lg text-theme-muted hover:text-red-500 transition"
+                        className="text-red-400 hover:text-red-500 transition p-1"
                         title={t("delete")}
                       >
-                        <Trash className="w-4 h-4" />
+                        <Trash className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-theme/60">
-                    <div>
-                      <span className="text-theme-muted block">Harvest Yield</span>
-                      <span className="font-bold text-theme">
+                  {/* Settlement Breakdown Metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-theme-card border border-theme">
+                      <span className="text-theme-muted block text-[10px] uppercase font-bold">Yield</span>
+                      <span className="font-black text-theme text-sm">
                         {s.yieldQuantity} {s.yieldUnit} @ Rs {s.marketRate}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-theme-muted block">Gross Value</span>
-                      <span className="font-bold text-theme">
+
+                    <div className="p-3 rounded-xl bg-theme-card border border-theme">
+                      <span className="text-theme-muted block text-[10px] uppercase font-bold">Total Amount</span>
+                      <span className="font-black text-theme text-sm">
                         Rs {(s.grossHarvestValue || 0).toLocaleString()}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-theme-muted block">Input Expenses</span>
-                      <span className="font-bold text-red-400">
-                        Rs {(s.totalInputExpenses || 0).toLocaleString()}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-theme-muted block">Khaata Recovered</span>
-                      <span className="font-bold text-blue-400">
-                        Rs {(s.advanceDeducted || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="flex justify-between items-center text-xs">
-                    <div>
-                      <span className="text-theme-muted block">Landowner Net</span>
-                      <span className="font-black text-amber-500 text-sm">
-                        Rs {(s.landownerNetShare || 0).toLocaleString()}
+                    <div className="p-3 rounded-xl bg-theme-card border border-theme">
+                      <span className="text-theme-muted block text-[10px] uppercase font-bold">Biz Loan Deducted</span>
+                      <span className="font-black text-rose-400 text-sm">
+                        -Rs {(s.totalInputExpenses || 0).toLocaleString()}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-theme-muted block">Net Paid to Hari</span>
-                      <span className="font-black text-emerald-500 text-sm">
-                        Rs {(s.hariNetPayable || 0).toLocaleString()}
+
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                      <span className="text-emerald-500 block text-[10px] uppercase font-bold">Net Paid to Hari</span>
+                      <span className="font-black text-emerald-400 text-sm">
+                        Rs {(s.hariNetPayable || s.hariNetShare || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -1007,7 +1187,7 @@ export default function HaariPage() {
         </div>
       )}
 
-      {/* Harvest Settlement Interactive Modal */}
+      {/* ══════════ HARVEST SETTLEMENT INTERACTIVE MODAL ══════════ */}
       {settlementModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-start justify-center p-4 sm:p-6 overflow-y-auto">
           <div
@@ -1015,7 +1195,7 @@ export default function HaariPage() {
             onClick={() => setSettlementModalOpen(false)}
           />
           <div className="relative z-10 bg-theme-card border border-theme rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col my-4 animate-in zoom-in-95 duration-200">
-            {/* Modal Pinned Header */}
+            {/* Modal Header */}
             <div className="flex items-center justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b border-theme shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
@@ -1026,7 +1206,7 @@ export default function HaariPage() {
                     {t("haariSettlementCalculator")}
                   </h3>
                   <p className="text-xs text-theme-muted truncate">
-                    Calculate Gross Harvest, Expense Split & Khaata Deductions
+                    Profit = Total Amount - Business Loan, Split by %, Return Personal Loan
                   </p>
                 </div>
               </div>
@@ -1040,225 +1220,277 @@ export default function HaariPage() {
             </div>
 
             <form onSubmit={handleFinalizeSettlement}>
-              {/* Scrollable Form Body */}
+              {/* Form Body */}
               <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-              {/* Contract Selector */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                  {t("haariSelectContract")} *
-                </label>
-                <select
-                  value={selectedContractId}
-                  onChange={(e) => setSelectedContractId(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
-                >
-                  {haariRecords.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.hariName} — {c.crop || "Crop"} ({fields.find((f) => f.id === c.fieldId)?.name || c.fieldId})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Crop & Date */}
-              <div className="grid grid-cols-2 gap-3">
+                {/* Contract Selector */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("haariCrop")}
-                  </label>
-                  <input
-                    type="text"
-                    value={settleCrop}
-                    onChange={(e) => setSettleCrop(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("date")}
-                  </label>
-                  <input
-                    type="date"
-                    value={settleDate}
-                    onChange={(e) => setSettleDate(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Yield Quantity, Unit, & Market Rate */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("haariYieldQuantity")} *
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    step="0.1"
-                    value={yieldQuantity}
-                    onChange={(e) => setYieldQuantity(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
-                    placeholder="e.g. 100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("haariYieldUnit")}
+                    {t("haariSelectContract")} *
                   </label>
                   <select
-                    value={yieldUnit}
-                    onChange={(e) => setYieldUnit(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
+                    value={selectedContractId}
+                    onChange={(e) => {
+                      const cid = e.target.value;
+                      setSelectedContractId(cid);
+                      const c = haariRecords.find((x) => x.id === cid);
+                      if (c) {
+                        setSettleCrop(c.crop || "Wheat");
+                        const bLoans = c.loans
+                          ? c.loans.filter((l) => l.type === "business").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+                          : Number((c as any).businessLoanAmount || c.advanceLoanAmount || 0);
+                        const pLoans = c.loans
+                          ? c.loans.filter((l) => l.type === "personal").reduce((s, l) => s + (Number(l.amount) || 0), 0)
+                          : Number((c as any).personalLoanAmount || 0);
+                        setSettleBusinessLoan(String(bLoans));
+                        setSettlePersonalLoan(String(pLoans));
+                        setSettleLandownerPercent(c.landownerSharePercentage || 50);
+                      }
+                    }}
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-sm focus:ring-2 focus:ring-amber-500/40 outline-none"
                   >
-                    <option value="maunds">{t("haariUnitMaunds")}</option>
-                    <option value="bags">{t("haariUnitBags")}</option>
-                    <option value="kg">{t("haariUnitKg")}</option>
+                    {haariRecords.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.hariName} — {c.crop || "Crop"} ({fields.find((f) => f.id === c.fieldId)?.name || c.fieldId})
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("haariMarketRate")} *
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={marketRate}
-                    onChange={(e) => setMarketRate(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
-                    placeholder="Rs / unit"
-                  />
-                </div>
-              </div>
 
-              {/* Total Input Expenses & Khaata Deduction */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    {t("haariTotalInputExpenses")} (Seeds, Fert, Water)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={inputExpenses}
-                    onChange={(e) => setInputExpenses(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
-                    placeholder="Rs 0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                    Deduct Advance / Khaata (Max: Rs {settlementCalculations.currentKhaata.toLocaleString()})
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max={settlementCalculations.currentKhaata}
-                    value={advanceToDeduct}
-                    onChange={(e) => setAdvanceToDeduct(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
-                    placeholder="Rs 0"
-                  />
-                </div>
-              </div>
-
-              {/* Interactive Live Calculation Breakdown Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-theme-track to-theme-track border border-amber-500/30 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-theme/60">
-                  <span className="text-xs font-bold uppercase tracking-wider text-theme-muted">
-                    {t("haariGrossValue")}
-                  </span>
-                  <span className="text-base font-black text-theme">
-                    Rs {settlementCalculations.grossValue.toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  {/* Landowner Column */}
-                  <div className="space-y-1 p-3 rounded-xl bg-theme-card/80 border border-theme">
-                    <p className="font-black text-amber-500 uppercase text-[10px] tracking-wider">
-                      Landowner ({settlementCalculations.lPercent}%)
-                    </p>
-                    <p className="text-theme-muted">
-                      Physical: <span className="font-bold text-theme">{settlementCalculations.landownerPhysicalYield.toFixed(1)} {yieldUnit}</span>
-                    </p>
-                    <p className="text-theme-muted">
-                      Gross: <span className="font-bold text-theme">Rs {settlementCalculations.landownerGross.toLocaleString()}</span>
-                    </p>
-                    <p className="text-red-400">
-                      Expense: -Rs {settlementCalculations.landownerExpenseShare.toLocaleString()}
-                    </p>
-                    <p className="font-black text-sm text-theme pt-1 border-t border-theme/40">
-                      Net: Rs {settlementCalculations.landownerNet.toLocaleString()}
-                    </p>
+                {/* Crop & Date */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
+                      {t("haariCrop")}
+                    </label>
+                    <input
+                      type="text"
+                      value={settleCrop}
+                      onChange={(e) => setSettleCrop(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
+                    />
                   </div>
-
-                  {/* Hari Column */}
-                  <div className="space-y-1 p-3 rounded-xl bg-theme-card/80 border border-theme">
-                    <p className="font-black text-emerald-500 uppercase text-[10px] tracking-wider">
-                      Hari ({settlementCalculations.hPercent}%)
-                    </p>
-                    <p className="text-theme-muted">
-                      Physical: <span className="font-bold text-theme">{settlementCalculations.hariPhysicalYield.toFixed(1)} {yieldUnit}</span>
-                    </p>
-                    <p className="text-theme-muted">
-                      Gross: <span className="font-bold text-theme">Rs {settlementCalculations.hariGross.toLocaleString()}</span>
-                    </p>
-                    <p className="text-red-400">
-                      Expense: -Rs {settlementCalculations.hariExpenseShare.toLocaleString()}
-                    </p>
-                    <p className="text-blue-400">
-                      Khaata: -Rs {settlementCalculations.advanceDeducted.toLocaleString()}
-                    </p>
-                    <p className="font-black text-sm text-emerald-500 pt-1 border-t border-theme/40">
-                      Payable: Rs {settlementCalculations.hariNetPayable.toLocaleString()}
-                    </p>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
+                      {t("date")}
+                    </label>
+                    <input
+                      type="date"
+                      value={settleDate}
+                      onChange={(e) => setSettleDate(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
+                    />
                   </div>
                 </div>
 
-                {settlementCalculations.remainingKhaata > 0 && (
-                  <p className="text-[11px] text-blue-400 font-medium">
-                    * Remaining Hari Khaata balance after this settlement: Rs {settlementCalculations.remainingKhaata.toLocaleString()}
+                {/* Yield Quantity, Unit, & Market Rate */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
+                      {t("haariYieldQuantity")} *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.1"
+                      value={yieldQuantity}
+                      onChange={(e) => setYieldQuantity(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
+                      placeholder="e.g. 100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
+                      {t("haariYieldUnit")}
+                    </label>
+                    <select
+                      value={yieldUnit}
+                      onChange={(e) => setYieldUnit(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
+                    >
+                      <option value="maunds">{t("haariUnitMaunds")}</option>
+                      <option value="bags">{t("haariUnitBags")}</option>
+                      <option value="kg">{t("haariUnitKg")}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
+                      {t("haariMarketRate")} *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={marketRate}
+                      onChange={(e) => setMarketRate(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
+                      placeholder="Rs / unit"
+                    />
+                  </div>
+                </div>
+
+                {/* ══════════ FORMULA LOAN DEDUCTIONS ══════════ */}
+                <div className="p-4 rounded-2xl bg-theme-track/60 border border-theme space-y-3">
+                  <p className="text-xs font-black uppercase tracking-wider text-theme">
+                    Loan Deductions (حساب کتاب کے قرضے)
                   </p>
-                )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-blue-400 mb-1">
+                        1. Business Loan (Deducted from Total Amount)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={settleBusinessLoan}
+                        onChange={(e) => setSettleBusinessLoan(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-theme-card border border-blue-500/30 text-theme text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/40"
+                        placeholder="Rs 0"
+                      />
+                      <p className="text-[10px] text-theme-muted mt-0.5">
+                        Seed, fertilizer & tractor expenses taken off top
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-purple-400 mb-1">
+                        2. Personal Loan (Return from Hari Share)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={settlePersonalLoan}
+                        onChange={(e) => setSettlePersonalLoan(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-theme-card border border-purple-500/30 text-theme text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500/40"
+                        placeholder="Rs 0"
+                      />
+                      <p className="text-[10px] text-theme-muted mt-0.5">
+                        Deducted directly from Hari&apos;s share of the crop
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ══════════ LIVE CALCULATION BREAKDOWN CARD ══════════ */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-theme-track/80 border border-amber-500/30 space-y-4">
+                  {/* Total Harvest & Business Loan Deduction */}
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-theme/60 pb-3">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-theme-muted">
+                        Total Amount (Gross Crop Value):
+                      </span>
+                      <p className="text-xl font-black text-theme">
+                        Rs {settlementCalculations.totalAmount.toLocaleString()}
+                      </p>
+                    </div>
+                    {settlementCalculations.bLoan > 0 && (
+                      <div className="text-left sm:text-right">
+                        <span className="text-xs text-rose-400 font-bold block">
+                          - Business Loan: Rs {settlementCalculations.bLoan.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-amber-500 font-bold">
+                          = Remaining to Split: Rs {settlementCalculations.remainingAmount.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Two Columns: Landowner vs Hari */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Landowner Share */}
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1.5 text-xs">
+                      <span className="text-amber-500 font-black uppercase tracking-wider text-[11px] block">
+                        Landowner ({settlementCalculations.lPercent}%)
+                      </span>
+                      <div className="flex justify-between">
+                        <span className="text-theme-muted">Crop Share:</span>
+                        <span className="font-bold text-theme">
+                          Rs {settlementCalculations.landownerShareAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      {settlementCalculations.bLoan > 0 && (
+                        <div className="flex justify-between text-blue-400">
+                          <span>+ Business Loan Recovered:</span>
+                          <span className="font-bold">Rs {settlementCalculations.bLoan.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {settlementCalculations.pLoanDeducted > 0 && (
+                        <div className="flex justify-between text-purple-400">
+                          <span>+ Personal Loan Recovered:</span>
+                          <span className="font-bold">Rs {settlementCalculations.pLoanDeducted.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-amber-500/20 pt-1 flex justify-between font-black text-amber-400 text-sm">
+                        <span>Total Landowner Return:</span>
+                        <span>Rs {settlementCalculations.landownerTotalReceived.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Hari Share */}
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-1.5 text-xs">
+                      <span className="text-emerald-500 font-black uppercase tracking-wider text-[11px] block">
+                        Hari ({settlementCalculations.hPercent}%)
+                      </span>
+                      <div className="flex justify-between">
+                        <span className="text-theme-muted">Gross Crop Share:</span>
+                        <span className="font-bold text-theme">
+                          Rs {settlementCalculations.hariShareAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      {settlementCalculations.pLoanDeducted > 0 && (
+                        <div className="flex justify-between text-rose-400">
+                          <span>- Personal Loan Return:</span>
+                          <span className="font-bold">
+                            -Rs {settlementCalculations.pLoanDeducted.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="border-t border-emerald-500/20 pt-1 flex justify-between font-black text-emerald-400 text-sm">
+                        <span>Net Payable to Hari:</span>
+                        <span>Rs {settlementCalculations.hariNetPayable.toLocaleString()}</span>
+                      </div>
+                      {settlementCalculations.remainingPersonalLoan > 0 && (
+                        <p className="text-[10px] text-amber-500 mt-0.5">
+                          Remaining Personal Loan: Rs {settlementCalculations.remainingPersonalLoan.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Settlement Notes */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
+                    Settlement Remarks / Notes
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={settleNotes}
+                    onChange={(e) => setSettleNotes(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-xs outline-none"
+                    placeholder="Optional notes regarding market rate, grain quality, deduction details..."
+                  />
+                </div>
               </div>
 
-              {/* Settlement Notes */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">
-                  Settlement Notes / Remarks
-                </label>
-                <input
-                  type="text"
-                  value={settleNotes}
-                  onChange={(e) => setSettleNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-theme-track border border-theme text-theme text-sm outline-none"
-                  placeholder="e.g. Rabi 2024 Wheat harvest finalized"
-                />
-              </div>
-
-              </div>
-
-              {/* Modal Pinned Footer with Action Buttons */}
-              <div className="p-4 sm:p-6 pt-3 border-t border-theme bg-theme-card/95 backdrop-blur-sm flex items-center justify-end gap-3 shrink-0">
+              {/* Modal Footer */}
+              <div className="p-4 sm:p-6 pt-3 border-t border-theme flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setSettlementModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-theme-track border border-theme text-theme-muted font-bold hover:text-theme transition text-sm"
+                  className="px-4 py-2.5 rounded-xl bg-theme-track border border-theme text-theme text-xs font-bold hover:bg-theme-muted/10 transition"
                 >
                   {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={settleSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold hover:opacity-95 disabled:opacity-50 transition shadow-lg shadow-amber-500/20 text-sm"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-xs font-black shadow-lg shadow-amber-500/30 transition active:scale-95 disabled:opacity-50"
                 >
-                  {settleSubmitting ? "Finalizing…" : t("haariFinalizeSettlement")}
+                  {settleSubmitting ? "Finalizing..." : "Finalize & Record Settlement"}
                 </button>
               </div>
             </form>
@@ -1266,87 +1498,89 @@ export default function HaariPage() {
         </div>
       )}
 
-      {/* Delete Contract Confirmation Modal */}
+      {/* Delete Contract Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setDeleteConfirmId(null)}
           />
-          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
-            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
-              <Trash className="w-8 h-8 text-red-500" />
+          <div className="relative z-10 bg-theme-card border border-theme rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-12 h-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center mx-auto">
+              <Trash className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-black text-theme mb-2">{t("confirmDelete")}</h3>
-            <p className="text-theme-muted text-sm mb-6 leading-relaxed">
-              This Haari contract will be archived. You can undo this action from the activities logger.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  await deleteHaariRecord(deleteConfirmId);
-                  setDeleteConfirmId(null);
-                  setSuccessMsg(t("recordDeleted") || "Record deleted.");
-                  setTimeout(() => setSuccessMsg(null), 5000);
-                }}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-red-500/20"
-              >
-                Yes, Delete
-              </button>
+            <div>
+              <h3 className="text-base font-bold text-theme">Delete Haari Agreement?</h3>
+              <p className="text-xs text-theme-muted mt-1">
+                This will delete the agreement and free up the allocated land parcel.
+              </p>
+            </div>
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 bg-theme-track border border-theme text-theme-muted py-3 rounded-xl font-bold"
+                className="flex-1 py-2.5 rounded-xl bg-theme-track text-theme text-xs font-bold"
               >
                 {t("cancel")}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Settlement Confirmation Modal */}
-      {deleteSettlementId && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setDeleteSettlementId(null)}
-          />
-          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
-            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
-              <Trash className="w-8 h-8 text-red-500" />
-            </div>
-            <h3 className="text-xl font-black text-theme mb-2">Delete Settlement?</h3>
-            <p className="text-theme-muted text-sm mb-6 leading-relaxed">
-              Are you sure you want to remove this harvest settlement record?
-            </p>
-            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={async () => {
-                  await deleteHaariSettlement(deleteSettlementId);
-                  setDeleteSettlementId(null);
-                  setSuccessMsg("Settlement record deleted.");
-                  setTimeout(() => setSuccessMsg(null), 4000);
+                  if (deleteConfirmId) {
+                    await deleteHaariRecord(deleteConfirmId);
+                    setDeleteConfirmId(null);
+                  }
                 }}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold transition shadow-lg shadow-red-500/20"
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition"
               >
-                Delete
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteSettlementId(null)}
-                className="flex-1 bg-theme-track border border-theme text-theme-muted py-3 rounded-xl font-bold"
-              >
-                {t("cancel")}
+                {t("delete")}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="h-20 md:hidden" />
+      {/* Delete Settlement Modal */}
+      {deleteSettlementId && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setDeleteSettlementId(null)}
+          />
+          <div className="relative z-10 bg-theme-card border border-theme rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-12 h-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center mx-auto">
+              <Trash className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-theme">Delete Settlement Record?</h3>
+              <p className="text-xs text-theme-muted mt-1">
+                This will remove this historical harvest settlement entry from the audit history.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteSettlementId(null)}
+                className="flex-1 py-2.5 rounded-xl bg-theme-track text-theme text-xs font-bold"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (deleteSettlementId) {
+                    await deleteHaariSettlement(deleteSettlementId);
+                    setDeleteSettlementId(null);
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition"
+              >
+                {t("delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

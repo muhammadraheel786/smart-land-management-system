@@ -12,11 +12,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { Activity, GeoFence, Material } from "@/types";
 import * as XLSX from "xlsx";
+import { API_BASE_URL } from "@/config/api";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
-const API_URL = rawApiUrl.replace(/\/+$/, "").replace(/\/api$/, "");
+const API_URL = API_BASE_URL;
 
 function getAuthHeaders(): Record<string, string> {
     const token = typeof window !== "undefined" ? localStorage.getItem("smartland_token") : null;

@@ -62,6 +62,14 @@ export interface ThakaRecord {
 
 export type ExpenseSharingMode = 'SHARED_BY_PERCENTAGE' | 'LANDOWNER_BEARS_ALL' | 'HARI_BEARS_ALL';
 
+export interface HaariLoanEntry {
+  id: string;
+  type: 'business' | 'personal';
+  amount: number;
+  date: string;
+  remarks?: string;
+}
+
 export interface HaariRecord {
   id: string;
   fieldId: string;
@@ -74,8 +82,11 @@ export interface HaariRecord {
   endDate: string;
   landownerSharePercentage: number;
   hariSharePercentage: number;
-  expenseSharingMode: ExpenseSharingMode;
+  expenseSharingMode?: ExpenseSharingMode;
   advanceLoanAmount: number;
+  businessLoanAmount?: number;
+  personalLoanAmount?: number;
+  loans?: HaariLoanEntry[];
   status: 'active' | 'completed' | 'terminated';
   notes?: string;
   createdAt?: string;
