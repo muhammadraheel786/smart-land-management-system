@@ -602,12 +602,61 @@ export default function HaariPage() {
                 </div>
               </div>
 
-              {/* Percentage Split Slider & Inputs */}
+              {/* Percentage Split - Two Input Boxes */}
               <div className="p-4 rounded-2xl bg-theme-track/60 border border-theme space-y-3">
-                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-theme-muted">
-                  <span>{t("haariLandownerShare")}: <span className="text-amber-500 text-sm font-black">{landownerShare}%</span></span>
-                  <span>{t("haariHariShare")}: <span className="text-emerald-500 text-sm font-black">{hariShare}%</span></span>
+                <p className="text-xs font-bold uppercase tracking-wider text-theme-muted">
+                  {t("haariLandownerShare")} / {t("haariHariShare")} — <span className="text-amber-500">Must total 100%</span>
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">
+                      {t("haariLandownerShare")}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={landownerShare}
+                        onChange={(e) => {
+                          const v = Math.min(100, Math.max(0, Number(e.target.value)));
+                          setLandownerShare(v);
+                        }}
+                        className="w-full px-3 py-3 rounded-xl bg-theme-track border border-amber-500/40 text-amber-400 text-xl font-black text-center focus:ring-2 focus:ring-amber-500/40 outline-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500/60 font-black text-sm">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">
+                      {t("haariHariShare")}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={hariShare}
+                        onChange={(e) => {
+                          const v = Math.min(100, Math.max(0, Number(e.target.value)));
+                          setLandownerShare(100 - v);
+                        }}
+                        className="w-full px-3 py-3 rounded-xl bg-theme-track border border-emerald-500/40 text-emerald-400 text-xl font-black text-center focus:ring-2 focus:ring-emerald-500/40 outline-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500/60 font-black text-sm">%</span>
+                    </div>
+                  </div>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-theme-muted">Landowner: <strong className="text-amber-500">{landownerShare}%</strong></span>
+                  <span className={`text-[10px] font-black ${landownerShare + hariShare === 100 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    Total: {landownerShare + hariShare}% {landownerShare + hariShare === 100 ? '✓' : '⚠ Must = 100'}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">Hari: <strong className="text-emerald-500">{hariShare}%</strong></span>
+                </div>
+                {/* Slider for quick adjustment */}
                 <input
                   type="range"
                   min="10"
@@ -617,11 +666,6 @@ export default function HaariPage() {
                   onChange={(e) => setLandownerShare(Number(e.target.value))}
                   className="w-full accent-amber-500 cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-theme-muted">
-                  <span>Landowner: {landownerShare}%</span>
-                  <span>Auto-balanced (100%)</span>
-                  <span>Hari: {hariShare}%</span>
-                </div>
               </div>
 
               {/* Expense Sharing Mode */}
@@ -965,12 +1009,12 @@ export default function HaariPage() {
 
       {/* Harvest Settlement Interactive Modal */}
       {settlementModalOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4">
+        <div className="fixed inset-0 z-[120] flex items-start justify-center p-4 sm:p-6 overflow-y-auto">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setSettlementModalOpen(false)}
           />
-          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200 overflow-hidden">
+          <div className="relative z-10 bg-theme-card border border-theme rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col my-4 animate-in zoom-in-95 duration-200">
             {/* Modal Pinned Header */}
             <div className="flex items-center justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b border-theme shrink-0">
               <div className="flex items-center gap-3 min-w-0">
@@ -995,9 +1039,9 @@ export default function HaariPage() {
               </button>
             </div>
 
-            <form onSubmit={handleFinalizeSettlement} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <form onSubmit={handleFinalizeSettlement}>
               {/* Scrollable Form Body */}
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
               {/* Contract Selector */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-theme-muted mb-1">

@@ -762,16 +762,140 @@ function AddTransactionModal({ open, type, labour, onClose, onSave, locale }: { 
 
 function AttendanceModal({ open, labour, onClose, onSave, locale }: { open: boolean, labour: Labour | null, onClose: () => void, onSave: () => void, locale: string }) {
     if (!open || !labour) return null;
+
+    const today = new Date();
+    const [currentMonth, setCurrentMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+    const [dayStatus, setDayStatus] = useState<Record<string, 'present' | 'absent' | 'half_day'>>(() => {
+        const map: Record<string, 'present' | 'absent' | 'half_day'> = {};
+        (labour.attendance || []).forEach(a => { map[a.date.split('T')[0]] = a.status; });
+        return map;
+    });
     const [saving, setSaving] = useState(false);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const mark = async (status: string) => { setSaving(true); try { await api.markAttendance(labour.id || labour._id || '', { date, status }); onSave(); } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Error marking attendance'); } setSaving(false); };
+
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0=Sun
+    const monthKey = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    const cycleStatus = (day: number) => {
+        const key = monthKey(day);
+        setDayStatus(prev => {
+            const cur = prev[key];
+            if (!cur) return { ...prev, [key]: 'present' };
+            if (cur === 'present') return { ...prev, [key]: 'absent' };
+            if (cur === 'absent') return { ...prev, [key]: 'half_day' };
+            const next = { ...prev }; delete next[key]; return next;
+        });
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        const labourId = labour.id || labour._id || '';
+        try {
+            const entries = Object.entries(dayStatus);
+            for (const [date, status] of entries) {
+                const existing = (labour.attendance || []).find(a => a.date.split('T')[0] === date);
+                if (existing) {
+                    await api.updateAttendance(existing.id || existing._id || '', { status, date });
+                } else {
+                    await api.markAttendance(labourId, { date, status });
+                }
+            }
+            onSave();
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Error saving attendance');
+        }
+        setSaving(false);
+    };
+
+    const dayColors: Record<string, string> = {
+        present: 'bg-blue-500 text-white border-blue-400',
+        absent: 'bg-red-500 text-white border-red-400',
+        half_day: 'bg-amber-500 text-white border-amber-400',
+    };
+
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const weekDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    // Count for summary
+    const presentCount = Object.values(dayStatus).filter(s => s === 'present').length;
+    const absentCount = Object.values(dayStatus).filter(s => s === 'absent').length;
+    const halfCount = Object.values(dayStatus).filter(s => s === 'half_day').length;
+
     return (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-sm bg-theme-card border border-theme rounded-3xl p-5 md:p-8 text-theme text-center mx-2">
-                <h2 className="font-black mb-6">Mark Attendance</h2>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-theme-track border border-theme p-4 rounded-xl text-theme mb-6" />
-                <div className="grid grid-cols-2 gap-4"><button onClick={() => mark('present')} className="bg-emerald-500 text-white p-5 rounded-xl font-black uppercase">Present</button><button onClick={() => mark('absent')} className="bg-red-500 text-white p-5 rounded-xl font-black uppercase">Absent</button></div>
+        <div className="fixed inset-0 z-[150] flex items-start justify-center p-3 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-md bg-theme-card border border-theme rounded-3xl shadow-2xl my-4 mx-2">
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-theme">
+                    <div>
+                        <h2 className="font-black text-theme text-lg">Mark Attendance</h2>
+                        <p className="text-xs text-theme-muted font-bold">{labour.name}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 rounded-xl text-theme-muted hover:bg-theme-track transition"><X className="w-5 h-5" /></button>
+                </div>
+
+                {/* Month Navigator */}
+                <div className="flex items-center justify-between px-5 py-3 border-b border-theme">
+                    <button type="button" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+                        className="p-2 rounded-xl bg-theme-track border border-theme text-theme hover:border-blue-500/50 transition font-black text-sm">‹</button>
+                    <span className="font-black text-theme text-sm uppercase tracking-widest">{monthNames[month]} {year}</span>
+                    <button type="button" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+                        className="p-2 rounded-xl bg-theme-track border border-theme text-theme hover:border-blue-500/50 transition font-black text-sm">›</button>
+                </div>
+
+                <div className="p-4">
+                    {/* Legend */}
+                    <div className="flex items-center gap-3 mb-3 justify-center flex-wrap">
+                        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" /> Present ({presentCount})</span>
+                        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /> Absent ({absentCount})</span>
+                        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase"><span className="w-3 h-3 rounded-full bg-amber-500 inline-block" /> Half ({halfCount})</span>
+                    </div>
+                    <p className="text-[10px] text-center text-theme-muted mb-3">Tap a day to cycle: Unmarked → Present → Absent → Half → Unmarked</p>
+
+                    {/* Week headers */}
+                    <div className="grid grid-cols-7 gap-1 mb-1">
+                        {weekDays.map(d => (
+                            <div key={d} className="text-center text-[9px] font-black text-theme-muted uppercase py-1">{d}</div>
+                        ))}
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="grid grid-cols-7 gap-1">
+                        {/* Empty cells for first row offset */}
+                        {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={`empty-${i}`} />)}
+                        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                            const key = monthKey(day);
+                            const status = dayStatus[key];
+                            const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+                            return (
+                                <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => cycleStatus(day)}
+                                    className={`aspect-square rounded-xl border-2 font-black text-xs transition-all active:scale-90 relative
+                                        ${status ? dayColors[status] : 'bg-theme-track border-theme text-theme-muted hover:border-blue-500/40'}
+                                        ${isToday && !status ? 'border-blue-500/60 ring-2 ring-blue-500/20' : ''}`}
+                                >
+                                    {day}
+                                    {isToday && <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full border border-theme-card" />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 pt-0 flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-3.5 rounded-2xl bg-theme-track border border-theme text-theme font-black uppercase text-xs transition hover:border-theme-muted">
+                        Cancel
+                    </button>
+                    <button onClick={handleSave} disabled={saving}
+                        className="flex-2 flex-[2] py-3.5 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-black uppercase text-xs transition disabled:opacity-50">
+                        {saving ? 'Saving...' : `Save Attendance (${presentCount + absentCount + halfCount} days)`}
+                    </button>
+                </div>
             </div>
         </div>
     );

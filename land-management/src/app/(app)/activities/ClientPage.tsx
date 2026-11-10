@@ -176,6 +176,15 @@ export default function ActivitiesPage() {
     const [tractorHours, setTractorHours] = useState("");
     const [tractorFuelL, setTractorFuelL] = useState("");
     const [tractorFuelRate, setTractorFuelRate] = useState("");
+    const [tractorBillingMode, setTractorBillingMode] = useState<'per_liter' | 'per_hour'>('per_liter');
+    const [tractorHourRate, setTractorHourRate] = useState("");
+
+    // Harvest / Sale - Vendor name
+    const [vendorName, setVendorName] = useState("");
+
+    // Field search dropdown
+    const [fieldSearch, setFieldSearch] = useState("");
+    const [fieldDropdownOpen, setFieldDropdownOpen] = useState(false);
 
     // Auto-calculate cost from material price × quantity
     const selectedMaterial = useMemo(() => materials.find(m => m.id === materialId), [materials, materialId]);
@@ -214,15 +223,19 @@ export default function ActivitiesPage() {
         }
     }, [activityType, quantity, harvestUnitPrice, autoHarvestIncome]);
 
-    // Auto-calculate tractor fuel cost: litres × price/litre
+    // Auto-calculate tractor cost based on billing mode
     useEffect(() => {
         if (!isTractorMode) return;
-        const litres = Number(tractorFuelL);
-        const rate = Number(tractorFuelRate);
-        if (litres > 0 && rate > 0) {
-            setCost((litres * rate).toFixed(0));
+        if (tractorBillingMode === 'per_liter') {
+            const litres = Number(tractorFuelL);
+            const rate = Number(tractorFuelRate);
+            if (litres > 0 && rate > 0) setCost((litres * rate).toFixed(0));
+        } else {
+            const hours = Number(tractorHours);
+            const rate = Number(tractorHourRate);
+            if (hours > 0 && rate > 0) setCost((hours * rate).toFixed(0));
         }
-    }, [isTractorMode, tractorFuelL, tractorFuelRate]);
+    }, [isTractorMode, tractorBillingMode, tractorFuelL, tractorFuelRate, tractorHours, tractorHourRate]);
 
     // ── Fetch ──
     const fetchData = async () => {
@@ -244,6 +257,17 @@ export default function ActivitiesPage() {
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    // Close field dropdown on outside click
+    useEffect(() => {
+        if (!fieldDropdownOpen) return;
+        const handler = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('[data-field-dropdown]')) setFieldDropdownOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [fieldDropdownOpen]);
 
     // ── Toast ──
     const showToast = (type: "success" | "error", msg: string) => {
@@ -311,6 +335,8 @@ export default function ActivitiesPage() {
         setFieldId(""); setMaterialId(""); setQuantity(""); setCost(""); setIncome(""); setHarvestUnitPrice(""); setNotes("");
         setIsCustomMode(false); setCustomName(""); setCustomType("expense"); setCustomAmount("");
         setIsTractorMode(false); setTractorName(""); setTractorHours(""); setTractorFuelL(""); setTractorFuelRate("");
+        setTractorBillingMode('per_liter'); setTractorHourRate("");
+        setVendorName(""); setFieldSearch(""); setFieldDropdownOpen(false);
     };
 
     // ── Submit ──
@@ -336,8 +362,9 @@ export default function ActivitiesPage() {
                 const tractorDetails = [
                     tractorName.trim() && `[🚜 ${tractorName.trim()}]`,
                     tractorHours && `Hours: ${tractorHours}h`,
-                    tractorFuelL && `Fuel: ${tractorFuelL}L`,
-                    tractorFuelRate && `@Rs${tractorFuelRate}/L`,
+                    tractorBillingMode === 'per_liter'
+                        ? (tractorFuelL && `Fuel: ${tractorFuelL}L${tractorFuelRate ? ` @Rs${tractorFuelRate}/L` : ''}`)
+                        : (tractorHourRate && `Rate: Rs${tractorHourRate}/hr`),
                     notes.trim() && notes.trim(),
                 ].filter(Boolean).join(' | ');
                 payload = {
@@ -348,10 +375,14 @@ export default function ActivitiesPage() {
                 if (fieldId) payload.field_id = fieldId;
                 if (cost) payload.cost = Number(cost);
             } else {
+                // Prepend vendor name to notes for harvest/sale
+                const finalNotes = (activityType === 'harvest' || activityType === 'income') && vendorName.trim()
+                    ? `[Vendor: ${vendorName.trim()}]${notes ? ' ' + notes : ''}`
+                    : notes;
                 payload = {
                     activity_type: activityType,
                     date,
-                    notes,
+                    notes: finalNotes,
                 };
                 if (fieldId) payload.field_id = fieldId;
                 if (materialId) payload.material_id = materialId;
@@ -1057,46 +1088,94 @@ export default function ActivitiesPage() {
                                                 className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-bold focus:outline-none" />
                                         </div>
 
-                                        {/* Hours & Fuel */}
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'گھنٹے' : 'Hours Run'}
-                                                </label>
-                                                <input type="number" min="0" step="0.5" value={tractorHours}
-                                                    onChange={e => setTractorHours(e.target.value)}
-                                                    placeholder="0"
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'ایندھن (L)' : 'Fuel (Litres)'}
-                                                </label>
-                                                <input type="number" min="0" step="any" value={tractorFuelL}
-                                                    onChange={e => setTractorFuelL(e.target.value)}
-                                                    placeholder="0"
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
-                                                    {locale === 'ur' ? 'Rs/لیٹر' : 'Rs/Litre'}
-                                                </label>
-                                                <input type="number" min="0" step="any" value={tractorFuelRate}
-                                                    onChange={e => setTractorFuelRate(e.target.value)}
-                                                    placeholder="0"
-                                                    className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                        {/* Billing Mode Toggle */}
+                                        <div>
+                                            <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                {locale === 'ur' ? 'حساب کا طریقہ' : 'Billing Mode'}
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button type="button" onClick={() => setTractorBillingMode('per_liter')}
+                                                    className={`flex items-center justify-center gap-2 py-3 rounded-2xl border-2 font-black text-xs uppercase transition-all ${tractorBillingMode === 'per_liter' ? 'bg-teal-500 text-white border-teal-400 shadow-lg' : 'bg-theme-track border-theme text-theme-muted'}`}>
+                                                    <Fuel className="w-4 h-4" /> {locale === 'ur' ? 'فی لیٹر' : 'Per Liter'}
+                                                </button>
+                                                <button type="button" onClick={() => setTractorBillingMode('per_hour')}
+                                                    className={`flex items-center justify-center gap-2 py-3 rounded-2xl border-2 font-black text-xs uppercase transition-all ${tractorBillingMode === 'per_hour' ? 'bg-teal-500 text-white border-teal-400 shadow-lg' : 'bg-theme-track border-theme text-theme-muted'}`}>
+                                                    <Calendar className="w-4 h-4" /> {locale === 'ur' ? 'فی گھنٹہ' : 'Per Hour'}
+                                                </button>
                                             </div>
                                         </div>
 
-                                        {/* Auto fuel cost */}
-                                        {tractorFuelL && tractorFuelRate && (
+                                        {/* Per-Liter fields */}
+                                        {tractorBillingMode === 'per_liter' && (
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                        {locale === 'ur' ? 'گھنٹے' : 'Hours Run'}
+                                                    </label>
+                                                    <input type="number" min="0" step="0.5" value={tractorHours}
+                                                        onChange={e => setTractorHours(e.target.value)}
+                                                        placeholder="0"
+                                                        className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                        {locale === 'ur' ? 'ایندھن (L)' : 'Fuel (Litres)'}
+                                                    </label>
+                                                    <input type="number" min="0" step="any" value={tractorFuelL}
+                                                        onChange={e => setTractorFuelL(e.target.value)}
+                                                        placeholder="0"
+                                                        className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                        {locale === 'ur' ? 'Rs/لیٹر' : 'Rs/Litre'}
+                                                    </label>
+                                                    <input type="number" min="0" step="any" value={tractorFuelRate}
+                                                        onChange={e => setTractorFuelRate(e.target.value)}
+                                                        placeholder="0"
+                                                        className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Per-Hour fields */}
+                                        {tractorBillingMode === 'per_hour' && (
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                        {locale === 'ur' ? 'کل گھنٹے' : 'Hours Worked'}
+                                                    </label>
+                                                    <input type="number" min="0" step="0.5" value={tractorHours}
+                                                        onChange={e => setTractorHours(e.target.value)}
+                                                        placeholder="0"
+                                                        className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
+                                                        {locale === 'ur' ? 'Rs/گھنٹہ' : 'Rs/Hour'}
+                                                    </label>
+                                                    <input type="number" min="0" step="any" value={tractorHourRate}
+                                                        onChange={e => setTractorHourRate(e.target.value)}
+                                                        placeholder="0"
+                                                        className="w-full px-3 py-3 rounded-2xl bg-theme-track border border-teal-500/20 text-theme text-sm font-black text-center focus:outline-none" />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Auto cost display */}
+                                        {((tractorBillingMode === 'per_liter' && tractorFuelL && tractorFuelRate) ||
+                                          (tractorBillingMode === 'per_hour' && tractorHours && tractorHourRate)) && (
                                             <div className="flex items-center justify-between bg-teal-500/10 border border-teal-500/20 rounded-2xl px-4 py-3">
                                                 <span className="text-xs font-black text-teal-400 uppercase flex items-center gap-1.5">
                                                     <Fuel className="w-3.5 h-3.5" />
-                                                    {locale === 'ur' ? 'کل ایندھن لاگت (خودکار)' : 'Total Fuel Cost (Auto)'}
+                                                    {tractorBillingMode === 'per_liter'
+                                                        ? (locale === 'ur' ? 'کل ایندھن لاگت (خودکار)' : 'Total Fuel Cost (Auto)')
+                                                        : (locale === 'ur' ? 'کل فی گھنٹہ لاگت (خودکار)' : 'Total Hourly Cost (Auto)')}
                                                 </span>
                                                 <span className="text-lg font-black text-teal-400">
-                                                    Rs {(Number(tractorFuelL) * Number(tractorFuelRate)).toLocaleString()}
+                                                    Rs {tractorBillingMode === 'per_liter'
+                                                        ? (Number(tractorFuelL) * Number(tractorFuelRate)).toLocaleString()
+                                                        : (Number(tractorHours) * Number(tractorHourRate)).toLocaleString()}
                                                 </span>
                                             </div>
                                         )}
@@ -1199,12 +1278,40 @@ export default function ActivitiesPage() {
                                             <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
                                                 {locale === "ur" ? "کون سا کھیت؟" : "Select Field"}
                                             </label>
-                                            <select value={fieldId} onChange={e => setFieldId(e.target.value)}
-                                                required={activityType !== "expense" && activityType !== "income"}
-                                                className="w-full px-4 py-4 rounded-2xl bg-theme-track border border-theme text-theme text-sm font-bold focus:ring-4 focus:ring-green-500/10 focus:outline-none">
-                                                <option value="">{locale === "ur" ? "کھیت منتخب کریں" : "Select..."}</option>
-                                                {fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                            </select>
+                                            {/* Searchable Field Picker */}
+                                            <div className="relative" data-field-dropdown>
+                                                <div
+                                                    className="w-full px-4 py-3.5 rounded-2xl bg-theme-track border border-theme flex items-center gap-2 cursor-pointer focus-within:ring-4 focus-within:ring-green-500/10"
+                                                    onClick={() => setFieldDropdownOpen(o => !o)}
+                                                >
+                                                    <Search className="w-4 h-4 text-theme-muted shrink-0" />
+                                                    <input
+                                                        type="text"
+                                                        value={fieldDropdownOpen ? fieldSearch : (fields.find(f => f.id === fieldId)?.name || '')}
+                                                        onChange={e => { setFieldSearch(e.target.value); setFieldDropdownOpen(true); }}
+                                                        onFocus={() => { setFieldDropdownOpen(true); setFieldSearch(''); }}
+                                                        placeholder={locale === "ur" ? "کھیت تلاش کریں..." : "Search field by name..."}
+                                                        className="flex-1 bg-transparent outline-none text-theme text-sm font-bold placeholder:font-normal placeholder:opacity-60"
+                                                    />
+                                                    <ChevronDown className="w-4 h-4 text-theme-muted shrink-0" />
+                                                </div>
+                                                {fieldDropdownOpen && (
+                                                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-theme-card border border-theme rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
+                                                        {fields.filter(f => !fieldSearch || f.name?.toLowerCase().includes(fieldSearch.toLowerCase())).length === 0 ? (
+                                                            <p className="text-center text-theme-muted text-xs py-4 font-bold">{locale === 'ur' ? 'کوئی نتیجہ نہیں' : 'No fields found'}</p>
+                                                        ) : fields.filter(f => !fieldSearch || f.name?.toLowerCase().includes(fieldSearch.toLowerCase())).map(f => (
+                                                            <button
+                                                                key={f.id}
+                                                                type="button"
+                                                                onClick={() => { setFieldId(f.id); setFieldSearch(''); setFieldDropdownOpen(false); }}
+                                                                className={`w-full text-left px-4 py-3 text-sm font-bold hover:bg-theme-track transition-colors ${fieldId === f.id ? 'text-green-500 bg-green-500/5' : 'text-theme'}`}
+                                                            >
+                                                                {f.name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -1282,6 +1389,21 @@ export default function ActivitiesPage() {
 
                                     {needsIncome && (
                                         <div className="space-y-4 animate-in fade-in duration-500">
+                                            {/* Vendor / Buyer Name for harvest & income */}
+                                            {(activityType === "harvest" || activityType === "income") && (
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 px-1">
+                                                        {locale === "ur" ? "خریدار / وینڈر کا نام" : "Vendor / Buyer Name"}
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={vendorName}
+                                                        onChange={e => setVendorName(e.target.value)}
+                                                        placeholder={locale === "ur" ? "مثلاً: احمد تاجر، منڈی..." : "e.g. Ahmed Trader, Mandi..." }
+                                                        className="w-full px-6 py-4 rounded-2xl bg-theme-track border border-amber-500/30 text-theme text-sm font-bold focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+                                                    />
+                                                </div>
+                                            )}
                                             {activityType === "harvest" && (
                                                 <div>
                                                     <label className="block text-[10px] font-black text-theme-muted uppercase tracking-widest mb-2 px-1">
